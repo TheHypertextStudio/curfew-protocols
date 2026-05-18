@@ -96,8 +96,29 @@ async function main() {
   })
 
   const out = join(outDir, "CurfewProtocols.swift")
-  await writeFile(out, BANNER + "\n" + result.lines.join("\n") + "\n", "utf8")
+  const body = postprocess(result.lines.join("\n"))
+  await writeFile(out, BANNER + "\n" + body + "\n", "utf8")
   console.log(`wrote ${out} (${schemas.length} schemas)`)
+}
+
+// Quicktype derives Swift enum case names from the raw string values. Our
+// MCPWriteTool raw values are `curfew.request_extension` etc., which
+// quicktype renders as `curfewRequestExtension`. The existing Swift app
+// already uses `requestExtension` (etc.) as the case names, and there's
+// no `--enum-cases-as` option in quicktype-core that gets us this exact
+// mapping. So we rename here. Raw values are unchanged — wire format is
+// preserved bit-for-bit.
+function postprocess(swift: string): string {
+  const renames: Array<[RegExp, string]> = [
+    [/case curfewRequestExtension\b/g, "case requestExtension"],
+    [/case curfewRequestOverride\b/g, "case requestOverride"],
+    [/case curfewSetSchedule\b/g, "case setSchedule"],
+  ]
+  let out = swift
+  for (const [pattern, replacement] of renames) {
+    out = out.replace(pattern, replacement)
+  }
+  return out
 }
 
 main().catch((err) => {

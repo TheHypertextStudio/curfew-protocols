@@ -241,9 +241,9 @@ public enum MCPRequestStatus: String, Codable {
 /// pass through the same 24-hour anti-bypass cooldown the in-app editor applies;
 /// strengthening changes take effect at the next day boundary.
 public enum MCPWriteTool: String, Codable {
-    case curfewRequestExtension = "curfew.request_extension"
-    case curfewRequestOverride = "curfew.request_override"
-    case curfewSetSchedule = "curfew.set_schedule"
+    case requestExtension = "curfew.request_extension"
+    case requestOverride = "curfew.request_override"
+    case setSchedule = "curfew.set_schedule"
 }
 
 // MARK: - Helper functions for creating encoders and decoders
