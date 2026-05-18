@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.hypertext.studio/curfew/mcp-tools.json",
+  "title": "MCPToolRegistry",
+  "description": "The Curfew MCP tool registry. Each entry describes one tool exposed by `curfew-mcp` over the Model Context Protocol — its stable name, the human-readable description shown to AI clients in `tools/list`, and the JSON Schema for the `arguments` payload accepted by `tools/call`.\n\nThis manifest is extracted verbatim from `Sources/curfew-mcp/MCPTool.swift` in the Curfew repo at the same version tag. Adding or modifying a tool requires updating the Swift source first and re-extracting; the schema is the contract, not a separate truth.",
+  "type": "object",
+  "required": ["tools"],
+  "additionalProperties": false,
+  "properties": {
+    "tools": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/MCPToolDefinition" }
+    }
+  },
+  "definitions": {
+    "MCPToolDefinition": {
+      "type": "object",
+      "required": ["name", "description", "inputSchema"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Stable identifier sent in `tools/list` and matched in `tools/call`."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description shown to the AI model when it enumerates tools."
+        },
+        "inputSchema": {
+          "type": "object",
+          "description": "JSON Schema describing the `arguments` payload the tool accepts."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "tools": [
+        {
+          "name": "curfew.status",
+          "description": "Returns the current Curfew enforcement status: phase (working, warning, locked, day_off), minutes remaining until lock, today's schedule window, and whether an extension can be requested right now.",
+          "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+          "name": "curfew.schedule",
+          "description": "Returns the full weekly Curfew schedule: per-day lock and unlock times, which days are marked as day-off, and any pending schedule change that is waiting out a 24-hour anti-bypass cooldown.",
+          "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+          "name": "curfew.budget",
+          "description": "Returns this week's extension and override budget: weekly limits, how many have been used so far, remaining slots, and duration per slot. Useful for deciding whether to request an extension or escalate to an override.",
+          "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+          "name": "curfew.activity",
+          "description": "Returns recent activity events from the local log. Pass `{\"period\": \"today\"}` to limit to today's events or `{\"period\": \"week\"}` (default) for the full current week.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "period": {
+                "type": "string",
+                "enum": ["today", "week"],
+                "description": "Time window: \"today\" or \"week\" (default)."
+              }
+            },
+            "required": []
+          }
+        },
+        {
+          "name": "curfew.get_time_remaining",
+          "description": "Returns a compact machine-readable countdown: minutes until lockout, the current curfew mode (\"time\", \"hours\", or \"combined\"), and which trigger is driving the countdown. Useful for small widgets, status bars, and assistants that just need the number.",
+          "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+          "name": "curfew.get_weekly_summary",
+          "description": "Returns this week's activity rollup: lockouts held, extensions and overrides used, and a current streak count. The device attribution field echoes the local device name today; multi-device aggregation lands when CloudKit device records ship.",
+          "inputSchema": { "type": "object", "properties": {}, "required": [] }
+        },
+        {
+          "name": "curfew.request_extension",
+          "description": "Queues a request for a work-session extension (default +15 min). The Curfew app will show the user a consent prompt; extensions are only granted during warning stages (T-30 and T-15). Returns a request ID you can poll with `curfew.request_status`.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "description": "Why more time is needed (shown to the user)."
+              }
+            },
+            "required": ["reason"]
+          }
+        },
+        {
+          "name": "curfew.request_override",
+          "description": "Queues a \"Convince Me\" override request. If approved by the user, Curfew temporarily suspends the lockout for the configured override duration (default 30 min). Requires a justification of at least 50 characters. Returns a request ID to poll with `curfew.request_status`.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "type": "string",
+                "description": "Justification for the override (min 50 characters)."
+              }
+            },
+            "required": ["reason"]
+          }
+        },
+        {
+          "name": "curfew.set_schedule",
+          "description": "Queues a schedule change for a single weekday. Weakening changes (later lock time, adding a day off) wait out a 24-hour cooldown; strengthening changes apply at the next day boundary. Requires the user to approve the change in the Curfew app unless the AI consent policy is set to auto-approve.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "weekday": {
+                "type": "string",
+                "enum": [
+                  "monday",
+                  "tuesday",
+                  "wednesday",
+                  "thursday",
+                  "friday",
+                  "saturday",
+                  "sunday"
+                ]
+              },
+              "lock_time": {
+                "type": "string",
+                "description": "24-hour time, HH:MM, e.g. \"18:00\"."
+              },
+              "unlock_time": {
+                "type": "string",
+                "description": "Optional. Defaults to the day's current unlock time."
+              },
+              "is_day_off": {
+                "type": "boolean",
+                "description": "Optional. Set true to mark the day off."
+              }
+            },
+            "required": ["weekday", "lock_time"]
+          }
+        },
+        {
+          "name": "curfew.request_status",
+          "description": "Returns the current approval status for a pending MCP write request. Pass the `request_id` returned by `curfew.request_extension` or `curfew.request_override`. Status is one of: pending, approved, denied.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "description": "UUID returned by the write tool."
+              }
+            },
+            "required": ["request_id"]
+          }
+        }
+      ]
+    }
+  ]
+}

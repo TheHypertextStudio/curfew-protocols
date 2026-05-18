@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.hypertext.studio/curfew/pending-request.json",
+  "title": "MCPPendingRequest",
+  "description": "A write-tool request queued by `curfew-mcp` for user approval in the Curfew app.\n\nLifecycle:\n1. `curfew-mcp` creates a pending request with `status = pending` and appends it to the request queue.\n2. The Curfew app's `MCPRequestMonitor` detects the new entry and shows a consent sheet.\n3. The user approves or denies. The app updates `status` in-place and sets `resolvedAt`.\n4. `curfew-mcp` polls the queue file until the entry's `status` changes from `pending`, then responds to the MCP client accordingly. Timeout after 120 seconds → \"timed out\" error to the client.",
+  "type": "object",
+  "required": [
+    "id",
+    "tool",
+    "argumentsJSON",
+    "requestedAt",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable unique key for this request. Used by `curfew-mcp` to find its own entry in the queue after a poll cycle."
+    },
+    "tool": {
+      "$ref": "#/definitions/MCPWriteTool",
+      "description": "The write tool that was invoked."
+    },
+    "argumentsJSON": {
+      "type": "string",
+      "description": "Freeform arguments from the MCP client (tool-specific JSON payload decoded from the `tools/call` params). Stored verbatim so the app can reconstruct the exact user-facing prompt."
+    },
+    "requestedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when `curfew-mcp` added the request."
+    },
+    "status": {
+      "$ref": "#/definitions/MCPRequestStatus",
+      "description": "Approval state. Starts as `pending`; the app writes `approved` or `denied` after user interaction."
+    },
+    "resolvedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Set by the app when the user resolves the request."
+    },
+    "denialReason": {
+      "type": ["string", "null"],
+      "description": "Human-readable note the app may attach on denial (e.g. \"Not during lockout\"). Null on approval and on pending requests."
+    },
+    "signature": {
+      "type": ["string", "null"],
+      "description": "Hex-encoded HMAC-SHA256 produced by `MCPRequestSigner`. Present on requests written by `curfew-mcp`; absent on legacy entries or payloads written by other tools. The app treats absent/invalid signatures as \"do not auto-approve\" — they still flow to the consent sheet so the user can decide explicitly."
+    }
+  },
+  "definitions": {
+    "MCPWriteTool": {
+      "type": "string",
+      "enum": [
+        "curfew.request_extension",
+        "curfew.request_override",
+        "curfew.set_schedule"
+      ],
+      "description": "The MCP write-capable tools. Read tools never queue; they respond inline from shared storage.\n\n- `curfew.request_extension` — grant a short extension to the current session's end time.\n- `curfew.request_override` — grant a timed override that lets the user work past curfew.\n- `curfew.set_schedule` — update the schedule for a single weekday. Weakening changes pass through the same 24-hour anti-bypass cooldown the in-app editor applies; strengthening changes take effect at the next day boundary."
+    },
+    "MCPRequestStatus": {
+      "type": "string",
+      "enum": ["pending", "approved", "denied"],
+      "description": "Approval state for a pending MCP request.\n\n- `pending` — awaiting user interaction in the Curfew app consent sheet.\n- `approved` — the user approved the request. `curfew-mcp` should apply the action and return success to the MCP client.\n- `denied` — the user denied the request. `curfew-mcp` should return a user-visible refusal to the MCP client."
+    }
+  }
+}

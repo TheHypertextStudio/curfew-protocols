@@ -1,0 +1,47 @@
+{
+  "name": "@hypertext/curfew-protocols",
+  "version": "0.1.0",
+  "description": "Versioned wire-format contract for Curfew — MCP tool schemas, pending-request shapes, and (in later versions) sync delta envelopes. Consumed by the Curfew macOS app (via SPM) and the Curfew Sync coordinator (via npm).",
+  "type": "module",
+  "main": "./generated/typescript/index.js",
+  "types": "./generated/typescript/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./generated/typescript/index.d.ts",
+      "import": "./generated/typescript/index.js"
+    },
+    "./schemas/*": "./schemas/*.json"
+  },
+  "files": [
+    "schemas",
+    "generated/typescript",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "codegen": "tsx codegen/typescript.ts && tsx codegen/swift.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm codegen && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "json-schema-to-typescript": "^15.0.4",
+    "quicktype-core": "^23.0.171",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheHypertextStudio/curfew-protocols.git"
+  },
+  "license": "Apache-2.0",
+  "keywords": ["curfew", "mcp", "protocols", "schemas"]
+}

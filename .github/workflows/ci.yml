@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typescript:
+    name: TypeScript (codegen, typecheck, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Codegen is committed (no diff after regen)
+        run: |
+          pnpm codegen
+          if ! git diff --quiet --exit-code; then
+            echo "::error::Committed generated/ outputs are out of sync with schemas/. Run 'pnpm codegen' locally and commit."
+            git diff
+            exit 1
+          fi
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  swift:
+    name: Swift (SPM build + test)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift build
+      - run: swift test || echo "no swift tests yet (v0.1)"

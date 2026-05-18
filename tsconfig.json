@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "generated/typescript",
+    "rootDir": ".",
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": false,
+    "lib": ["ES2022"]
+  },
+  "include": ["codegen/**/*.ts", "tests/**/*.ts", "generated/typescript/**/*.ts"],
+  "exclude": ["node_modules", "generated/swift"]
+}
