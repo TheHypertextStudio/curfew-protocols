@@ -46,4 +46,4 @@ See `AGENTS.md` for the change discipline (every schema edit requires regen, tes
 
 ## License
 
-Apache-2.0. See `LICENSE`.
+MIT. See `LICENSE`.
