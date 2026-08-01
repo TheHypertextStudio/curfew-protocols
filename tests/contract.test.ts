@@ -29,6 +29,17 @@ describe("schemas", () => {
     }
   })
 
+  it("publishes the complete remote device-control contract", async () => {
+    const entries = await readdir(join(repoRoot, "schemas"))
+    expect(entries).toEqual(
+      expect.arrayContaining([
+        "device.json",
+        "device-session.json",
+        "remote-command.json",
+      ]),
+    )
+  })
+
   it("mcp-tools.json names exactly the 10 tools curfew-mcp exposes", async () => {
     const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
     const parsed = JSON.parse(raw)
@@ -49,6 +60,37 @@ describe("schemas", () => {
         "curfew.status",
       ].sort(),
     )
+  })
+
+  it("mcp-tools.json names the remote MCP tools separately from local tools", async () => {
+    const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
+    const parsed = JSON.parse(raw)
+    const names = parsed.examples?.[0]?.remoteTools?.map(
+      (tool: { name: string }) => tool.name,
+    )
+
+    expect(names).toEqual([
+      "curfew_get_status",
+      "curfew_list_devices",
+      "curfew_lock_device",
+      "curfew_lock_devices",
+      "curfew_lock_all_devices",
+      "curfew_get_command_status",
+      "curfew_open_control_panel",
+    ])
+  })
+
+  it("publishes the exact least-privilege OAuth scope identifiers", async () => {
+    const raw = await readFile(join(repoRoot, "schemas", "oauth.json"), "utf8")
+    const parsed = JSON.parse(raw)
+
+    expect(parsed.definitions.CurfewOAuthScope.enum).toEqual([
+      "curfew:read.status",
+      "curfew:read.devices",
+      "curfew:lock.device",
+      "curfew:lock.multiple",
+      "curfew:lock.all",
+    ])
   })
 })
 
