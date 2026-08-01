@@ -2,38 +2,40 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://schemas.hypertext.studio/curfew/device-session.json",
   "title": "DeviceSessionContract",
-  "description": "Device enrollment and proof-of-possession session messages.",
+  "description": "Device enrollment and proof-of-possession session messages. Signed claims are decoded only from verified compact JWS payloads.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "enrollmentRequest": { "$ref": "#/definitions/DeviceEnrollmentRequest" },
     "enrollmentExchange": { "$ref": "#/definitions/DeviceEnrollmentExchange" },
-    "credential": { "$ref": "#/definitions/DeviceCredential" }
+    "credential": { "$ref": "#/definitions/DeviceCredential" },
+    "proofClaims": { "$ref": "#/definitions/DeviceProofClaims" }
   },
   "definitions": {
+    "DevicePublicKeyJWK": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kty", "crv", "x", "y"],
+      "properties": {
+        "kty": { "type": "string", "const": "EC" },
+        "crv": { "type": "string", "const": "P-256" },
+        "x": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "y": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }
+      }
+    },
     "DeviceEnrollmentRequest": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "devicePublicKeyJwk",
-        "deviceKeyThumbprint",
-        "platform",
-        "appVersion",
-        "displayName",
-        "pkceChallenge",
-        "state",
-        "coordinatorNonce",
-        "deviceProof"
-      ],
+      "required": ["devicePublicKeyJwk", "deviceKeyThumbprint", "platform", "appVersion", "displayName", "pkceChallenge", "state", "coordinatorNonce", "deviceProof"],
       "properties": {
-        "devicePublicKeyJwk": { "type": "object" },
-        "deviceKeyThumbprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "devicePublicKeyJwk": { "$ref": "#/definitions/DevicePublicKeyJWK" },
+        "deviceKeyThumbprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
         "platform": { "type": "string", "minLength": 1, "maxLength": 40 },
         "appVersion": { "type": "string", "minLength": 1, "maxLength": 40 },
         "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
-        "pkceChallenge": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43,128}$" },
-        "state": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
-        "coordinatorNonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "pkceChallenge": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "state": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
+        "coordinatorNonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
         "deviceProof": { "$ref": "#/definitions/DeviceProof" }
       }
     },
@@ -42,25 +44,33 @@
       "additionalProperties": false,
       "required": ["code", "pkceVerifier", "coordinatorNonce", "deviceProof"],
       "properties": {
-        "code": { "type": "string", "minLength": 1 },
+        "code": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,128}$" },
         "pkceVerifier": { "type": "string", "pattern": "^[A-Za-z0-9._~-]{43,128}$" },
-        "coordinatorNonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "coordinatorNonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
         "deviceProof": { "$ref": "#/definitions/DeviceProof" }
       }
     },
     "DeviceProof": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["jws", "httpMethod", "canonicalUrl", "issuedAt", "jti", "nonce"],
+      "required": ["compactJws"],
       "properties": {
-        "jws": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$" },
+        "compactJws": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{86}$" }
+      }
+    },
+    "DeviceProofClaims": {
+      "description": "Post-verification view of the claims embedded in DeviceProof.compactJws. Never accepted beside a JWS on the wire.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["httpMethod", "canonicalUrl", "issuedAt", "jti", "nonce"],
+      "properties": {
         "httpMethod": { "type": "string", "pattern": "^[A-Z]+$" },
         "canonicalUrl": { "type": "string", "format": "uri" },
-        "issuedAt": { "type": "string", "format": "date-time" },
-        "jti": { "type": "string", "format": "uuid" },
-        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
-        "accessTokenHash": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]+$" },
-        "bodyDigest": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]+$" }
+        "issuedAt": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" },
+        "jti": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
+        "accessTokenHash": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "bodyDigest": { "type": ["string", "null"], "pattern": "^[A-Za-z0-9_-]{43}$" }
       }
     },
     "DeviceCredential": {
@@ -68,11 +78,11 @@
       "additionalProperties": false,
       "required": ["deviceId", "accessToken", "refreshToken", "keyThumbprint", "expiresAt"],
       "properties": {
-        "deviceId": { "type": "string", "format": "uuid" },
-        "accessToken": { "type": "string", "minLength": 1 },
-        "refreshToken": { "type": "string", "minLength": 1 },
-        "keyThumbprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
-        "expiresAt": { "type": "string", "format": "date-time" }
+        "deviceId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "accessToken": { "type": "string", "minLength": 32 },
+        "refreshToken": { "type": "string", "minLength": 32 },
+        "keyThumbprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "expiresAt": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" }
       }
     }
   }

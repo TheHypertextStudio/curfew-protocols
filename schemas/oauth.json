@@ -21,11 +21,11 @@
     "CurfewOAuthScope": {
       "type": "string",
       "enum": [
-        "curfew:read.status",
-        "curfew:read.devices",
-        "curfew:lock.device",
-        "curfew:lock.multiple",
-        "curfew:lock.all"
+        "curfew.read.status",
+        "curfew.read.devices",
+        "curfew.lock.device",
+        "curfew.lock.multiple",
+        "curfew.lock.all"
       ]
     }
   }

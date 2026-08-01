@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.hypertext.studio/curfew/sync.json",
+  "title": "DeviceSyncContract",
+  "description": "Authenticated device WebSocket frames. Identity and coordinator commands are transported only as compact JWS values.",
+  "oneOf": [
+    { "$ref": "#/definitions/DeviceSocketHello" },
+    { "$ref": "#/definitions/DeviceSocketWelcome" },
+    { "$ref": "#/definitions/DeviceStatusPublication" },
+    { "$ref": "#/definitions/RemoteCommandDelivery" },
+    { "$ref": "#/definitions/RemoteCommandCursorAcknowledgement" },
+    { "$ref": "#/definitions/RemoteCommandResultPublication" }
+  ],
+  "definitions": {
+    "CanonicalUUID": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+    "UTCInstant": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" },
+    "Cursor": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,128}$" },
+    "CompactJWS": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{86}$" },
+    "InternalDeviceIdentityAssertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compactJws"],
+      "properties": { "compactJws": { "$ref": "#/definitions/CompactJWS" } }
+    },
+    "InternalDeviceIdentityClaims": {
+      "description": "Post-verification Worker-to-Durable-Object identity view; never trusted beside the assertion.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["userId", "deviceId", "keyThumbprint", "audience", "issuedAt", "expiresAt"],
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "keyThumbprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "audience": { "type": "string", "const": "curfew-user-coordinator" },
+        "issuedAt": { "$ref": "#/definitions/UTCInstant" },
+        "expiresAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "DeviceSocketHello": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "identityAssertion"],
+      "properties": {
+        "type": { "type": "string", "const": "hello" },
+        "identityAssertion": { "$ref": "#/definitions/InternalDeviceIdentityAssertion" },
+        "resumeCursor": { "$ref": "#/definitions/Cursor" }
+      }
+    },
+    "DeviceSocketWelcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "serverTime"],
+      "properties": {
+        "type": { "type": "string", "const": "welcome" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "serverTime": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "DeviceStatusPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "deviceId", "phase", "timeZone", "scheduleDigest", "statusVersion", "observedAt"],
+      "properties": {
+        "type": { "type": "string", "const": "status" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "phase": { "type": "string", "enum": ["working", "warning", "locked", "day_off", "unknown"] },
+        "timeZone": { "type": "string", "pattern": "^[A-Za-z_+-]+(?:/[A-Za-z0-9_+-]+)+$" },
+        "scheduleDigest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "statusVersion": { "type": "integer", "minimum": 0 },
+        "observedAt": { "$ref": "#/definitions/UTCInstant" },
+        "nextTransitionAt": { "anyOf": [{ "$ref": "#/definitions/UTCInstant" }, { "type": "null" }] },
+        "activeLockoutEndsAt": { "anyOf": [{ "$ref": "#/definitions/UTCInstant" }, { "type": "null" }] }
+      }
+    },
+    "RemoteCommandDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "commandEnvelope"],
+      "properties": {
+        "type": { "type": "string", "const": "command" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "commandEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["compactJws"],
+          "properties": { "compactJws": { "$ref": "#/definitions/CompactJWS" } }
+        }
+      }
+    },
+    "RemoteCommandCursorAcknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "commandId", "deviceId", "sequence", "acknowledgedAt"],
+      "properties": {
+        "type": { "type": "string", "const": "delivered" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "acknowledgedAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "RemoteCommandResultPublication": {
+      "oneOf": [
+        { "$ref": "#/definitions/AppliedResultPublication" },
+        { "$ref": "#/definitions/RejectedResultPublication" },
+        { "$ref": "#/definitions/ExpiredResultPublication" }
+      ]
+    },
+    "AppliedResultPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "commandId", "deviceId", "sequence", "stage", "resolvedAt", "appliedDeadline"],
+      "properties": {
+        "type": { "type": "string", "const": "result" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "stage": { "type": "string", "const": "applied" },
+        "resolvedAt": { "$ref": "#/definitions/UTCInstant" },
+        "appliedDeadline": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "RejectedResultPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "commandId", "deviceId", "sequence", "stage", "resolvedAt", "rejectionCode"],
+      "properties": {
+        "type": { "type": "string", "const": "result" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "stage": { "type": "string", "const": "rejected" },
+        "resolvedAt": { "$ref": "#/definitions/UTCInstant" },
+        "rejectionCode": { "type": "string", "enum": ["ineligible", "stale_status", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"] }
+      }
+    },
+    "ExpiredResultPublication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "commandId", "deviceId", "sequence", "stage", "resolvedAt"],
+      "properties": {
+        "type": { "type": "string", "const": "result" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "stage": { "type": "string", "const": "expired" },
+        "resolvedAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    }
+  }
+}

@@ -26,6 +26,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "json-schema-to-typescript": "^15.0.4",
     "quicktype-core": "^23.0.171",
     "tsx": "^4.19.2",
@@ -43,5 +45,10 @@
     "url": "git+https://github.com/TheHypertextStudio/curfew-protocols.git"
   },
   "license": "MIT",
-  "keywords": ["curfew", "mcp", "protocols", "schemas"]
+  "keywords": [
+    "curfew",
+    "mcp",
+    "protocols",
+    "schemas"
+  ]
 }

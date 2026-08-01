@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
+import { definitionValidator } from "./schema-validator"
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -42,10 +43,10 @@ describe("remote command contract", () => {
       ]),
     )
     expect(remote.definitions.RemoteLockCommand.properties.nonce.pattern).toBe(
-      "^[A-Za-z0-9_-]+$",
+      "^[A-Za-z0-9_-]{22,86}$",
     )
-    expect(remote.definitions.RemoteLockCommand.properties.issuedAt.format).toBe(
-      "date-time",
+    expect(remote.definitions.RemoteLockCommand.properties.issuedAt.$ref).toBe(
+      "#/definitions/UTCInstant",
     )
   })
 
@@ -96,5 +97,20 @@ describe("platform-neutral decoding boundary", () => {
 
     expect(fixture).not.toMatch(/NSDate|Data\(|UUID\(|Keychain|AppKit|Foundation/)
     expect(JSON.parse(fixture).nonce).toMatch(/^[A-Za-z0-9_-]+$/)
+  })
+
+  it("validates the canonical fixture against RemoteLockCommand", async () => {
+    const fixture = JSON.parse(
+      await readFile(
+        join(repoRoot, "tests", "fixtures", "remote-command.json"),
+        "utf8",
+      ),
+    )
+    const validate = await definitionValidator(
+      "remote-command.json",
+      "RemoteLockCommand",
+    )
+
+    expect(validate(fixture), JSON.stringify(validate.errors)).toBe(true)
   })
 })
