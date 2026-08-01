@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.hypertext.studio/curfew/mcp-app.json",
+  "title": "MCPAppResource",
+  "description": "Curfew status-and-devices resources/read HTML content using MCP Apps _meta.ui policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["uri", "mimeType", "text", "_meta"],
+  "properties": {
+    "uri": { "type": "string", "const": "ui://curfew/status-and-devices" },
+    "mimeType": { "type": "string", "const": "text/html;profile=mcp-app" },
+    "text": { "type": "string", "minLength": 1 },
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ui"],
+      "properties": {
+        "ui": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["csp"],
+          "properties": {
+            "csp": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["connectDomains", "resourceDomains"],
+              "properties": {
+                "connectDomains": { "type": "array", "const": ["https://curfew-mcp.hypertext.studio"] },
+                "resourceDomains": { "type": "array", "const": ["https://curfew-mcp.hypertext.studio"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

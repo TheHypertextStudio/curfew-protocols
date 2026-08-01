@@ -43,8 +43,8 @@ describe("schemas", () => {
   it("mcp-tools.json names exactly the 10 tools curfew-mcp exposes", async () => {
     const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
     const parsed = JSON.parse(raw)
-    const tools = parsed.examples?.[0]?.tools as Array<{ name: string }> | undefined
-    expect(tools, "examples[0].tools must be populated").toBeDefined()
+    const tools = parsed.const?.tools as Array<{ name: string }> | undefined
+    expect(tools, "const.tools must be populated").toBeDefined()
     const names = (tools ?? []).map((t) => t.name).sort()
     expect(names).toEqual(
       [
@@ -65,7 +65,7 @@ describe("schemas", () => {
   it("mcp-tools.json names the remote MCP tools separately from local tools", async () => {
     const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
     const parsed = JSON.parse(raw)
-    const names = parsed.examples?.[0]?.remoteTools?.map(
+    const names = parsed.const?.remoteTools?.map(
       (tool: { name: string }) => tool.name,
     )
 
@@ -85,11 +85,11 @@ describe("schemas", () => {
     const parsed = JSON.parse(raw)
 
     expect(parsed.definitions.CurfewOAuthScope.enum).toEqual([
-      "curfew:read.status",
-      "curfew:read.devices",
-      "curfew:lock.device",
-      "curfew:lock.multiple",
-      "curfew:lock.all",
+      "curfew.read.status",
+      "curfew.read.devices",
+      "curfew.lock.device",
+      "curfew.lock.multiple",
+      "curfew.lock.all",
     ])
   })
 })

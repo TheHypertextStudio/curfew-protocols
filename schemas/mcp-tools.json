@@ -2,236 +2,154 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://schemas.hypertext.studio/curfew/mcp-tools.json",
   "title": "MCPToolRegistry",
-  "description": "The Curfew local and remote MCP tool registries. Local tools address the current Mac. Remote tools address account-enrolled devices through the Curfew coordinator.",
-  "type": "object",
-  "required": ["tools", "remoteTools"],
-  "additionalProperties": false,
-  "properties": {
-    "tools": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/MCPToolDefinition" }
-    },
-    "remoteTools": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/MCPToolDefinition" }
-    }
-  },
-  "definitions": {
-    "MCPToolDefinition": {
-      "type": "object",
-      "required": ["name", "description", "inputSchema"],
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Stable identifier sent in `tools/list` and matched in `tools/call`."
-        },
-        "description": {
-          "type": "string",
-          "description": "Human-readable description shown to the AI model when it enumerates tools."
-        },
+  "description": "Exact local and remote Curfew MCP registries. The const value is the versioned runtime manifest.",
+  "const": {
+    "tools": [
+      {
+        "name": "curfew.status",
+        "description": "Returns the current Curfew enforcement status for this Mac.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object" }
+      },
+      {
+        "name": "curfew.schedule",
+        "description": "Returns the full weekly Curfew schedule for this Mac.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object" }
+      },
+      {
+        "name": "curfew.budget",
+        "description": "Returns this week's local extension and override budget.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object" }
+      },
+      {
+        "name": "curfew.activity",
+        "description": "Returns recent activity events from this Mac.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "period": { "type": "string", "enum": ["today", "week"] } }, "required": [] },
+        "outputSchema": { "type": "object" }
+      },
+      {
+        "name": "curfew.get_time_remaining",
+        "description": "Returns the local machine's current lockout countdown.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object" }
+      },
+      {
+        "name": "curfew.get_weekly_summary",
+        "description": "Returns this Mac's weekly Curfew activity rollup.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object" }
+      },
+      {
+        "name": "curfew.request_extension",
+        "description": "Queues a local user-consent request for a work-session extension.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reason": { "type": "string", "minLength": 1, "maxLength": 500 } }, "required": ["reason"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "request_id": { "type": "string", "format": "uuid" } }, "required": ["request_id"] }
+      },
+      {
+        "name": "curfew.request_override",
+        "description": "Queues a local user-consent request for a timed override.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reason": { "type": "string", "minLength": 50, "maxLength": 500 } }, "required": ["reason"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "request_id": { "type": "string", "format": "uuid" } }, "required": ["request_id"] }
+      },
+      {
+        "name": "curfew.set_schedule",
+        "description": "Queues a local user-consent request to change one weekday's schedule.",
+        "requiredScopes": [],
         "inputSchema": {
           "type": "object",
-          "description": "JSON Schema describing the `arguments` payload the tool accepts."
-        }
+          "additionalProperties": false,
+          "properties": {
+            "weekday": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+            "lock_time": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+            "unlock_time": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+            "is_day_off": { "type": "boolean" }
+          },
+          "required": ["weekday", "lock_time"]
+        },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "request_id": { "type": "string", "format": "uuid" } }, "required": ["request_id"] }
+      },
+      {
+        "name": "curfew.request_status",
+        "description": "Returns the current state of a local pending request.",
+        "requiredScopes": [],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "request_id": { "type": "string", "format": "uuid" } }, "required": ["request_id"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "status": { "type": "string", "enum": ["pending", "approved", "denied"] } }, "required": ["status"] }
       }
-    }
-  },
-  "examples": [
-    {
-      "tools": [
-        {
-          "name": "curfew.status",
-          "description": "Returns the current Curfew enforcement status: phase (working, warning, locked, day_off), minutes remaining until lock, today's schedule window, and whether an extension can be requested right now.",
-          "inputSchema": { "type": "object", "properties": {}, "required": [] }
+    ],
+    "remoteTools": [
+      {
+        "name": "curfew_get_status",
+        "description": "Returns normalized Curfew status for one explicitly identified device.",
+        "requiredScopes": ["curfew.read.status"],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" } }, "required": ["device_id"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "phase": { "type": "string", "enum": ["working", "warning", "locked", "day_off", "unknown"] }, "status_version": { "type": "integer", "minimum": 0 }, "schedule_digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" }, "observed_at": { "type": "string", "format": "date-time" } }, "required": ["device_id", "phase", "status_version", "schedule_digest", "observed_at"] }
+      },
+      {
+        "name": "curfew_list_devices",
+        "description": "Lists enrolled devices, current status freshness, and local remote-lock eligibility.",
+        "requiredScopes": ["curfew.read.devices"],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "devices": { "type": "array", "items": { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "display_name": { "type": "string" }, "platform": { "type": "string" }, "remote_lock_eligible": { "type": "boolean" }, "all_devices_eligible": { "type": "boolean" }, "last_seen_at": { "type": ["string", "null"], "format": "date-time" } }, "required": ["device_id", "display_name", "platform", "remote_lock_eligible", "all_devices_eligible", "last_seen_at"] } } }, "required": ["devices"] }
+      },
+      {
+        "name": "curfew_lock_device",
+        "description": "Locks one locally eligible device. This cannot unlock or weaken Curfew.",
+        "requiredScopes": ["curfew.lock.device"],
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "device_id": { "type": "string", "format": "uuid" },
+            "deadline_policy": {
+              "oneOf": [
+                { "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "fixed_duration" }, "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 } }, "required": ["kind", "duration_seconds"] },
+                { "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "next_scheduled_unlock" }, "status_inputs": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "status_version": { "type": "integer", "minimum": 0 }, "schedule_digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" } }, "required": ["device_id", "status_version", "schedule_digest"] } } }, "required": ["kind", "status_inputs"] }
+              ]
+            }
+          },
+          "required": ["device_id", "deadline_policy"]
         },
-        {
-          "name": "curfew.schedule",
-          "description": "Returns the full weekly Curfew schedule: per-day lock and unlock times, which days are marked as day-off, and any pending schedule change that is waiting out a 24-hour anti-bypass cooldown.",
-          "inputSchema": { "type": "object", "properties": {}, "required": [] }
-        },
-        {
-          "name": "curfew.budget",
-          "description": "Returns this week's extension and override budget: weekly limits, how many have been used so far, remaining slots, and duration per slot. Useful for deciding whether to request an extension or escalate to an override.",
-          "inputSchema": { "type": "object", "properties": {}, "required": [] }
-        },
-        {
-          "name": "curfew.activity",
-          "description": "Returns recent activity events from the local log. Pass `{\"period\": \"today\"}` to limit to today's events or `{\"period\": \"week\"}` (default) for the full current week.",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "period": {
-                "type": "string",
-                "enum": ["today", "week"],
-                "description": "Time window: \"today\" or \"week\" (default)."
-              }
-            },
-            "required": []
-          }
-        },
-        {
-          "name": "curfew.get_time_remaining",
-          "description": "Returns a compact machine-readable countdown: minutes until lockout, the current curfew mode (\"time\", \"hours\", or \"combined\"), and which trigger is driving the countdown. Useful for small widgets, status bars, and assistants that just need the number.",
-          "inputSchema": { "type": "object", "properties": {}, "required": [] }
-        },
-        {
-          "name": "curfew.get_weekly_summary",
-          "description": "Returns this week's activity rollup: lockouts held, extensions and overrides used, and a current streak count. The device attribution field echoes the local device name today; multi-device aggregation lands when CloudKit device records ship.",
-          "inputSchema": { "type": "object", "properties": {}, "required": [] }
-        },
-        {
-          "name": "curfew.request_extension",
-          "description": "Queues a request for a work-session extension (default +15 min). The Curfew app will show the user a consent prompt; extensions are only granted during warning stages (T-30 and T-15). Returns a request ID you can poll with `curfew.request_status`.",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "reason": {
-                "type": "string",
-                "description": "Why more time is needed (shown to the user)."
-              }
-            },
-            "required": ["reason"]
-          }
-        },
-        {
-          "name": "curfew.request_override",
-          "description": "Queues a \"Convince Me\" override request. If approved by the user, Curfew temporarily suspends the lockout for the configured override duration (default 30 min). Requires a justification of at least 50 characters. Returns a request ID to poll with `curfew.request_status`.",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "reason": {
-                "type": "string",
-                "description": "Justification for the override (min 50 characters)."
-              }
-            },
-            "required": ["reason"]
-          }
-        },
-        {
-          "name": "curfew.set_schedule",
-          "description": "Queues a schedule change for a single weekday. Weakening changes (later lock time, adding a day off) wait out a 24-hour cooldown; strengthening changes apply at the next day boundary. Requires the user to approve the change in the Curfew app unless the AI consent policy is set to auto-approve.",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "weekday": {
-                "type": "string",
-                "enum": [
-                  "monday",
-                  "tuesday",
-                  "wednesday",
-                  "thursday",
-                  "friday",
-                  "saturday",
-                  "sunday"
-                ]
-              },
-              "lock_time": {
-                "type": "string",
-                "description": "24-hour time, HH:MM, e.g. \"18:00\"."
-              },
-              "unlock_time": {
-                "type": "string",
-                "description": "Optional. Defaults to the day's current unlock time."
-              },
-              "is_day_off": {
-                "type": "boolean",
-                "description": "Optional. Set true to mark the day off."
-              }
-            },
-            "required": ["weekday", "lock_time"]
-          }
-        },
-        {
-          "name": "curfew.request_status",
-          "description": "Returns the current approval status for a pending MCP write request. Pass the `request_id` returned by `curfew.request_extension` or `curfew.request_override`. Status is one of: pending, approved, denied.",
-          "inputSchema": {
-            "type": "object",
-            "properties": {
-              "request_id": {
-                "type": "string",
-                "description": "UUID returned by the write tool."
-              }
-            },
-            "required": ["request_id"]
-          }
-        }
-      ],
-      "remoteTools": [
-        {
-          "name": "curfew_get_status",
-          "description": "Returns normalized Curfew status for the requested eligible device, or all enrolled devices when no device ID is supplied.",
-          "inputSchema": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": { "device_id": { "type": "string", "format": "uuid" } },
-            "required": []
-          }
-        },
-        {
-          "name": "curfew_list_devices",
-          "description": "Lists enrolled devices, their current status freshness, and whether each device is locally eligible for remote locking and lock-all.",
-          "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] }
-        },
-        {
-          "name": "curfew_lock_device",
-          "description": "Locks one locally eligible device for a bounded duration or until its next scheduled unlock. This cannot unlock or weaken Curfew.",
-          "inputSchema": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "device_id": { "type": "string", "format": "uuid" },
-              "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 },
-              "until_next_scheduled_unlock": { "type": "boolean" },
-              "status_version": { "type": "integer", "minimum": 0 },
-              "schedule_digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
-            },
-            "required": ["device_id"],
-            "oneOf": [
-              { "required": ["duration_seconds"] },
-              { "required": ["until_next_scheduled_unlock", "status_version", "schedule_digest"] }
-            ]
-          }
-        },
-        {
-          "name": "curfew_lock_devices",
-          "description": "Locks an explicit set of locally eligible devices and returns a separate result for every target.",
-          "inputSchema": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "device_ids": { "type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "items": { "type": "string", "format": "uuid" } },
-              "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 }
-            },
-            "required": ["device_ids", "duration_seconds"]
-          }
-        },
-        {
-          "name": "curfew_lock_all_devices",
-          "description": "Locks every enrolled device that was locally opted into lock-all, returning a separate result for every target.",
-          "inputSchema": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": { "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 } },
-            "required": ["duration_seconds"]
-          }
-        },
-        {
-          "name": "curfew_get_command_status",
-          "description": "Returns queued, delivered, applied, rejected, or expired results for a previously submitted remote lock command.",
-          "inputSchema": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": { "command_id": { "type": "string", "format": "uuid" } },
-            "required": ["command_id"]
-          }
-        },
-        {
-          "name": "curfew_open_control_panel",
-          "description": "Opens the Curfew MCP App control panel with current device status and target-selection switches.",
-          "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] }
-        }
-      ]
-    }
-  ]
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "command_id": { "type": "string", "format": "uuid" }, "results": { "type": "array", "items": { "oneOf": [{ "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "queued" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "delivered" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "applied" }, "applied_deadline": { "type": "string", "format": "date-time" } }, "required": ["device_id", "stage", "applied_deadline"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "rejected" }, "rejection_code": { "type": "string", "enum": ["ineligible", "stale_status", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"] } }, "required": ["device_id", "stage", "rejection_code"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "expired" } }, "required": ["device_id", "stage"] }] } } }, "required": ["command_id", "results"] }
+      },
+      {
+        "name": "curfew_lock_devices",
+        "description": "Locks an explicit set of locally eligible devices and returns per-device results.",
+        "requiredScopes": ["curfew.lock.multiple"],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "device_ids": { "type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "items": { "type": "string", "format": "uuid" } }, "deadline_policy": { "oneOf": [{ "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "fixed_duration" }, "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 } }, "required": ["kind", "duration_seconds"] }, { "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "next_scheduled_unlock" }, "status_inputs": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "status_version": { "type": "integer", "minimum": 0 }, "schedule_digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" } }, "required": ["device_id", "status_version", "schedule_digest"] } } }, "required": ["kind", "status_inputs"] }] } }, "required": ["device_ids", "deadline_policy"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "command_id": { "type": "string", "format": "uuid" }, "results": { "type": "array", "items": { "oneOf": [{ "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "queued" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "delivered" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "applied" }, "applied_deadline": { "type": "string", "format": "date-time" } }, "required": ["device_id", "stage", "applied_deadline"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "rejected" }, "rejection_code": { "type": "string", "enum": ["ineligible", "stale_status", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"] } }, "required": ["device_id", "stage", "rejection_code"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "expired" } }, "required": ["device_id", "stage"] }] } } }, "required": ["command_id", "results"] }
+      },
+      {
+        "name": "curfew_lock_all_devices",
+        "description": "Locks every enrolled device locally opted into lock-all, with per-device results.",
+        "requiredScopes": ["curfew.lock.all"],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "deadline_policy": { "oneOf": [{ "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "fixed_duration" }, "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 } }, "required": ["kind", "duration_seconds"] }, { "type": "object", "additionalProperties": false, "properties": { "kind": { "const": "next_scheduled_unlock" }, "status_inputs": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "status_version": { "type": "integer", "minimum": 0 }, "schedule_digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" } }, "required": ["device_id", "status_version", "schedule_digest"] } } }, "required": ["kind", "status_inputs"] }] } }, "required": ["deadline_policy"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "command_id": { "type": "string", "format": "uuid" }, "results": { "type": "array", "items": { "oneOf": [{ "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "queued" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "delivered" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "applied" }, "applied_deadline": { "type": "string", "format": "date-time" } }, "required": ["device_id", "stage", "applied_deadline"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "rejected" }, "rejection_code": { "type": "string", "enum": ["ineligible", "stale_status", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"] } }, "required": ["device_id", "stage", "rejection_code"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "expired" } }, "required": ["device_id", "stage"] }] } } }, "required": ["command_id", "results"] }
+      },
+      {
+        "name": "curfew_get_command_status",
+        "description": "Returns queued, delivered, applied, rejected, or expired per-device results.",
+        "requiredScopes": ["curfew.read.status"],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "command_id": { "type": "string", "format": "uuid" } }, "required": ["command_id"] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "command_id": { "type": "string", "format": "uuid" }, "results": { "type": "array", "items": { "oneOf": [{ "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "queued" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "delivered" } }, "required": ["device_id", "stage"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "applied" }, "applied_deadline": { "type": "string", "format": "date-time" } }, "required": ["device_id", "stage", "applied_deadline"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "rejected" }, "rejection_code": { "type": "string", "enum": ["ineligible", "stale_status", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"] } }, "required": ["device_id", "stage", "rejection_code"] }, { "type": "object", "additionalProperties": false, "properties": { "device_id": { "type": "string", "format": "uuid" }, "stage": { "const": "expired" } }, "required": ["device_id", "stage"] }] } } }, "required": ["command_id", "results"] }
+      },
+      {
+        "name": "curfew_open_control_panel",
+        "description": "Opens the Curfew MCP App status and device-target control panel.",
+        "requiredScopes": ["curfew.read.status", "curfew.read.devices"],
+        "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] },
+        "outputSchema": { "type": "object", "additionalProperties": false, "properties": { "resource_uri": { "type": "string", "const": "ui://curfew/status-and-devices" } }, "required": ["resource_uri"] },
+        "_meta": { "ui": { "resourceUri": "ui://curfew/status-and-devices" } }
+      }
+    ]
+  }
 }
