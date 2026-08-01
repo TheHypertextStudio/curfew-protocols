@@ -4,24 +4,566 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
+//   let deviceSessionContract = try DeviceSessionContract(json)
+//   let deviceContract = try DeviceContract(json)
 //   let mCPToolRegistry = try MCPToolRegistry(json)
+//   let oAuthContract = try OAuthContract(json)
 //   let mCPPendingRequest = try MCPPendingRequest(json)
+//   let remoteCommandContract = try RemoteCommandContract(json)
 
 import Foundation
 
-/// The Curfew MCP tool registry. Each entry describes one tool exposed by `curfew-mcp` over
-/// the Model Context Protocol — its stable name, the human-readable description shown to AI
-/// clients in `tools/list`, and the JSON Schema for the `arguments` payload accepted by
-/// `tools/call`.
-///
-/// This manifest is extracted verbatim from `Sources/curfew-mcp/MCPTool.swift` in the Curfew
-/// repo at the same version tag. Adding or modifying a tool requires updating the Swift
-/// source first and re-extracting; the schema is the contract, not a separate truth.
+/// Device enrollment and proof-of-possession session messages.
+// MARK: - DeviceSessionContract
+public struct DeviceSessionContract: Codable {
+    public let credential: DeviceCredential?
+    public let enrollmentExchange: DeviceEnrollmentExchange?
+    public let enrollmentRequest: DeviceEnrollmentRequest?
+
+    public init(credential: DeviceCredential?, enrollmentExchange: DeviceEnrollmentExchange?, enrollmentRequest: DeviceEnrollmentRequest?) {
+        self.credential = credential
+        self.enrollmentExchange = enrollmentExchange
+        self.enrollmentRequest = enrollmentRequest
+    }
+}
+
+// MARK: DeviceSessionContract convenience initializers and mutators
+
+public extension DeviceSessionContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceSessionContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        credential: DeviceCredential?? = nil,
+        enrollmentExchange: DeviceEnrollmentExchange?? = nil,
+        enrollmentRequest: DeviceEnrollmentRequest?? = nil
+    ) -> DeviceSessionContract {
+        return DeviceSessionContract(
+            credential: credential ?? self.credential,
+            enrollmentExchange: enrollmentExchange ?? self.enrollmentExchange,
+            enrollmentRequest: enrollmentRequest ?? self.enrollmentRequest
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DeviceCredential
+public struct DeviceCredential: Codable {
+    public let accessToken: String
+    public let deviceID: String
+    public let expiresAt: Date
+    public let keyThumbprint: String
+    public let refreshToken: String
+
+    public enum CodingKeys: String, CodingKey {
+        case accessToken
+        case deviceID = "deviceId"
+        case expiresAt, keyThumbprint, refreshToken
+    }
+
+    public init(accessToken: String, deviceID: String, expiresAt: Date, keyThumbprint: String, refreshToken: String) {
+        self.accessToken = accessToken
+        self.deviceID = deviceID
+        self.expiresAt = expiresAt
+        self.keyThumbprint = keyThumbprint
+        self.refreshToken = refreshToken
+    }
+}
+
+// MARK: DeviceCredential convenience initializers and mutators
+
+public extension DeviceCredential {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceCredential.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        accessToken: String? = nil,
+        deviceID: String? = nil,
+        expiresAt: Date? = nil,
+        keyThumbprint: String? = nil,
+        refreshToken: String? = nil
+    ) -> DeviceCredential {
+        return DeviceCredential(
+            accessToken: accessToken ?? self.accessToken,
+            deviceID: deviceID ?? self.deviceID,
+            expiresAt: expiresAt ?? self.expiresAt,
+            keyThumbprint: keyThumbprint ?? self.keyThumbprint,
+            refreshToken: refreshToken ?? self.refreshToken
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DeviceEnrollmentExchange
+public struct DeviceEnrollmentExchange: Codable {
+    public let code: String
+    public let coordinatorNonce: String
+    public let deviceProof: DeviceProof
+    public let pkceVerifier: String
+
+    public init(code: String, coordinatorNonce: String, deviceProof: DeviceProof, pkceVerifier: String) {
+        self.code = code
+        self.coordinatorNonce = coordinatorNonce
+        self.deviceProof = deviceProof
+        self.pkceVerifier = pkceVerifier
+    }
+}
+
+// MARK: DeviceEnrollmentExchange convenience initializers and mutators
+
+public extension DeviceEnrollmentExchange {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceEnrollmentExchange.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        code: String? = nil,
+        coordinatorNonce: String? = nil,
+        deviceProof: DeviceProof? = nil,
+        pkceVerifier: String? = nil
+    ) -> DeviceEnrollmentExchange {
+        return DeviceEnrollmentExchange(
+            code: code ?? self.code,
+            coordinatorNonce: coordinatorNonce ?? self.coordinatorNonce,
+            deviceProof: deviceProof ?? self.deviceProof,
+            pkceVerifier: pkceVerifier ?? self.pkceVerifier
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DeviceProof
+public struct DeviceProof: Codable {
+    public let accessTokenHash, bodyDigest: String?
+    public let canonicalURL: String
+    public let httpMethod: String
+    public let issuedAt: Date
+    public let jti: String
+    public let jws: String
+    public let nonce: String
+
+    public enum CodingKeys: String, CodingKey {
+        case accessTokenHash, bodyDigest
+        case canonicalURL = "canonicalUrl"
+        case httpMethod, issuedAt, jti, jws, nonce
+    }
+
+    public init(accessTokenHash: String?, bodyDigest: String?, canonicalURL: String, httpMethod: String, issuedAt: Date, jti: String, jws: String, nonce: String) {
+        self.accessTokenHash = accessTokenHash
+        self.bodyDigest = bodyDigest
+        self.canonicalURL = canonicalURL
+        self.httpMethod = httpMethod
+        self.issuedAt = issuedAt
+        self.jti = jti
+        self.jws = jws
+        self.nonce = nonce
+    }
+}
+
+// MARK: DeviceProof convenience initializers and mutators
+
+public extension DeviceProof {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceProof.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        accessTokenHash: String?? = nil,
+        bodyDigest: String?? = nil,
+        canonicalURL: String? = nil,
+        httpMethod: String? = nil,
+        issuedAt: Date? = nil,
+        jti: String? = nil,
+        jws: String? = nil,
+        nonce: String? = nil
+    ) -> DeviceProof {
+        return DeviceProof(
+            accessTokenHash: accessTokenHash ?? self.accessTokenHash,
+            bodyDigest: bodyDigest ?? self.bodyDigest,
+            canonicalURL: canonicalURL ?? self.canonicalURL,
+            httpMethod: httpMethod ?? self.httpMethod,
+            issuedAt: issuedAt ?? self.issuedAt,
+            jti: jti ?? self.jti,
+            jws: jws ?? self.jws,
+            nonce: nonce ?? self.nonce
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DeviceEnrollmentRequest
+public struct DeviceEnrollmentRequest: Codable {
+    public let appVersion: String
+    public let coordinatorNonce, deviceKeyThumbprint: String
+    public let deviceProof: DeviceProof
+    public let devicePublicKeyJwk: [String: JSONAny]
+    public let displayName: String
+    public let pkceChallenge: String
+    public let platform: String
+    public let state: String
+
+    public init(appVersion: String, coordinatorNonce: String, deviceKeyThumbprint: String, deviceProof: DeviceProof, devicePublicKeyJwk: [String: JSONAny], displayName: String, pkceChallenge: String, platform: String, state: String) {
+        self.appVersion = appVersion
+        self.coordinatorNonce = coordinatorNonce
+        self.deviceKeyThumbprint = deviceKeyThumbprint
+        self.deviceProof = deviceProof
+        self.devicePublicKeyJwk = devicePublicKeyJwk
+        self.displayName = displayName
+        self.pkceChallenge = pkceChallenge
+        self.platform = platform
+        self.state = state
+    }
+}
+
+// MARK: DeviceEnrollmentRequest convenience initializers and mutators
+
+public extension DeviceEnrollmentRequest {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceEnrollmentRequest.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        appVersion: String? = nil,
+        coordinatorNonce: String? = nil,
+        deviceKeyThumbprint: String? = nil,
+        deviceProof: DeviceProof? = nil,
+        devicePublicKeyJwk: [String: JSONAny]? = nil,
+        displayName: String? = nil,
+        pkceChallenge: String? = nil,
+        platform: String? = nil,
+        state: String? = nil
+    ) -> DeviceEnrollmentRequest {
+        return DeviceEnrollmentRequest(
+            appVersion: appVersion ?? self.appVersion,
+            coordinatorNonce: coordinatorNonce ?? self.coordinatorNonce,
+            deviceKeyThumbprint: deviceKeyThumbprint ?? self.deviceKeyThumbprint,
+            deviceProof: deviceProof ?? self.deviceProof,
+            devicePublicKeyJwk: devicePublicKeyJwk ?? self.devicePublicKeyJwk,
+            displayName: displayName ?? self.displayName,
+            pkceChallenge: pkceChallenge ?? self.pkceChallenge,
+            platform: platform ?? self.platform,
+            state: state ?? self.state
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Platform-neutral device identity, eligibility, and normalized Curfew enforcement status.
+// MARK: - DeviceContract
+public struct DeviceContract: Codable {
+    public let descriptor: DeviceDescriptor?
+    public let status: DeviceStatusSnapshot?
+
+    public init(descriptor: DeviceDescriptor?, status: DeviceStatusSnapshot?) {
+        self.descriptor = descriptor
+        self.status = status
+    }
+}
+
+// MARK: DeviceContract convenience initializers and mutators
+
+public extension DeviceContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        descriptor: DeviceDescriptor?? = nil,
+        status: DeviceStatusSnapshot?? = nil
+    ) -> DeviceContract {
+        return DeviceContract(
+            descriptor: descriptor ?? self.descriptor,
+            status: status ?? self.status
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DeviceDescriptor
+public struct DeviceDescriptor: Codable {
+    public let allDevicesEligible: Bool
+    public let appVersion: String
+    public let capabilities: [String]
+    public let deviceID: String
+    public let displayName: String
+    /// Open string. Unknown platforms must be retained.
+    public let platform: String
+    public let remoteLockEligible: Bool
+    public let revokedAt: Date?
+
+    public enum CodingKeys: String, CodingKey {
+        case allDevicesEligible, appVersion, capabilities
+        case deviceID = "deviceId"
+        case displayName, platform, remoteLockEligible, revokedAt
+    }
+
+    public init(allDevicesEligible: Bool, appVersion: String, capabilities: [String], deviceID: String, displayName: String, platform: String, remoteLockEligible: Bool, revokedAt: Date?) {
+        self.allDevicesEligible = allDevicesEligible
+        self.appVersion = appVersion
+        self.capabilities = capabilities
+        self.deviceID = deviceID
+        self.displayName = displayName
+        self.platform = platform
+        self.remoteLockEligible = remoteLockEligible
+        self.revokedAt = revokedAt
+    }
+}
+
+// MARK: DeviceDescriptor convenience initializers and mutators
+
+public extension DeviceDescriptor {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceDescriptor.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        allDevicesEligible: Bool? = nil,
+        appVersion: String? = nil,
+        capabilities: [String]? = nil,
+        deviceID: String? = nil,
+        displayName: String? = nil,
+        platform: String? = nil,
+        remoteLockEligible: Bool? = nil,
+        revokedAt: Date?? = nil
+    ) -> DeviceDescriptor {
+        return DeviceDescriptor(
+            allDevicesEligible: allDevicesEligible ?? self.allDevicesEligible,
+            appVersion: appVersion ?? self.appVersion,
+            capabilities: capabilities ?? self.capabilities,
+            deviceID: deviceID ?? self.deviceID,
+            displayName: displayName ?? self.displayName,
+            platform: platform ?? self.platform,
+            remoteLockEligible: remoteLockEligible ?? self.remoteLockEligible,
+            revokedAt: revokedAt ?? self.revokedAt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DeviceStatusSnapshot
+public struct DeviceStatusSnapshot: Codable {
+    public let activeLockoutEndsAt: Date?
+    public let deviceID: String
+    public let nextTransitionAt: Date?
+    public let observedAt: Date
+    public let phase: DevicePhase
+    /// Unpadded base64url digest of the local schedule version.
+    public let scheduleDigest: String
+    public let statusVersion: Int
+    /// IANA timezone identifier, for example America/Los_Angeles.
+    public let timeZone: String
+
+    public enum CodingKeys: String, CodingKey {
+        case activeLockoutEndsAt
+        case deviceID = "deviceId"
+        case nextTransitionAt, observedAt, phase, scheduleDigest, statusVersion, timeZone
+    }
+
+    public init(activeLockoutEndsAt: Date?, deviceID: String, nextTransitionAt: Date?, observedAt: Date, phase: DevicePhase, scheduleDigest: String, statusVersion: Int, timeZone: String) {
+        self.activeLockoutEndsAt = activeLockoutEndsAt
+        self.deviceID = deviceID
+        self.nextTransitionAt = nextTransitionAt
+        self.observedAt = observedAt
+        self.phase = phase
+        self.scheduleDigest = scheduleDigest
+        self.statusVersion = statusVersion
+        self.timeZone = timeZone
+    }
+}
+
+// MARK: DeviceStatusSnapshot convenience initializers and mutators
+
+public extension DeviceStatusSnapshot {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceStatusSnapshot.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        activeLockoutEndsAt: Date?? = nil,
+        deviceID: String? = nil,
+        nextTransitionAt: Date?? = nil,
+        observedAt: Date? = nil,
+        phase: DevicePhase? = nil,
+        scheduleDigest: String? = nil,
+        statusVersion: Int? = nil,
+        timeZone: String? = nil
+    ) -> DeviceStatusSnapshot {
+        return DeviceStatusSnapshot(
+            activeLockoutEndsAt: activeLockoutEndsAt ?? self.activeLockoutEndsAt,
+            deviceID: deviceID ?? self.deviceID,
+            nextTransitionAt: nextTransitionAt ?? self.nextTransitionAt,
+            observedAt: observedAt ?? self.observedAt,
+            phase: phase ?? self.phase,
+            scheduleDigest: scheduleDigest ?? self.scheduleDigest,
+            statusVersion: statusVersion ?? self.statusVersion,
+            timeZone: timeZone ?? self.timeZone
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum DevicePhase: String, Codable {
+    case dayOff = "day_off"
+    case locked = "locked"
+    case unknown = "unknown"
+    case warning = "warning"
+    case working = "working"
+}
+
+/// The Curfew local and remote MCP tool registries. Local tools address the current Mac.
+/// Remote tools address account-enrolled devices through the Curfew coordinator.
 // MARK: - MCPToolRegistry
 public struct MCPToolRegistry: Codable {
-    public let tools: [MCPToolDefinition]
+    public let remoteTools, tools: [MCPToolDefinition]
 
-    public init(tools: [MCPToolDefinition]) {
+    public init(remoteTools: [MCPToolDefinition], tools: [MCPToolDefinition]) {
+        self.remoteTools = remoteTools
         self.tools = tools
     }
 }
@@ -45,9 +587,11 @@ public extension MCPToolRegistry {
     }
 
     func with(
+        remoteTools: [MCPToolDefinition]? = nil,
         tools: [MCPToolDefinition]? = nil
     ) -> MCPToolRegistry {
         return MCPToolRegistry(
+            remoteTools: remoteTools ?? self.remoteTools,
             tools: tools ?? self.tools
         )
     }
@@ -114,6 +658,67 @@ public extension MCPToolDefinition {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.
+// MARK: - OAuthContract
+public struct OAuthContract: Codable {
+    public let resource: Resource
+    public let scopes: [CurfewOAuthScope]
+
+    public init(resource: Resource, scopes: [CurfewOAuthScope]) {
+        self.resource = resource
+        self.scopes = scopes
+    }
+}
+
+// MARK: OAuthContract convenience initializers and mutators
+
+public extension OAuthContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(OAuthContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        resource: Resource? = nil,
+        scopes: [CurfewOAuthScope]? = nil
+    ) -> OAuthContract {
+        return OAuthContract(
+            resource: resource ?? self.resource,
+            scopes: scopes ?? self.scopes
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Resource: String, Codable {
+    case httpsCurfewMCPHypertextStudioMCP = "https://curfew-mcp.hypertext.studio/mcp"
+}
+
+public enum CurfewOAuthScope: String, Codable {
+    case curfewLockAll = "curfew:lock.all"
+    case curfewLockDevice = "curfew:lock.device"
+    case curfewLockMultiple = "curfew:lock.multiple"
+    case curfewReadDevices = "curfew:read.devices"
+    case curfewReadStatus = "curfew:read.status"
 }
 
 /// A write-tool request queued by `curfew-mcp` for user approval in the Curfew app.
@@ -244,6 +849,435 @@ public enum MCPWriteTool: String, Codable {
     case requestExtension = "curfew.request_extension"
     case requestOverride = "curfew.request_override"
     case setSchedule = "curfew.set_schedule"
+}
+
+/// Replay-safe, coordinator-signed remote lock commands and per-device results.
+// MARK: - RemoteCommandContract
+public struct RemoteCommandContract: Codable {
+    public let acknowledgement: RemoteCommandAcknowledgement?
+    public let envelope: SignedRemoteCommandEnvelope?
+    public let result: RemoteCommandResult?
+
+    public init(acknowledgement: RemoteCommandAcknowledgement?, envelope: SignedRemoteCommandEnvelope?, result: RemoteCommandResult?) {
+        self.acknowledgement = acknowledgement
+        self.envelope = envelope
+        self.result = result
+    }
+}
+
+// MARK: RemoteCommandContract convenience initializers and mutators
+
+public extension RemoteCommandContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        acknowledgement: RemoteCommandAcknowledgement?? = nil,
+        envelope: SignedRemoteCommandEnvelope?? = nil,
+        result: RemoteCommandResult?? = nil
+    ) -> RemoteCommandContract {
+        return RemoteCommandContract(
+            acknowledgement: acknowledgement ?? self.acknowledgement,
+            envelope: envelope ?? self.envelope,
+            result: result ?? self.result
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - RemoteCommandAcknowledgement
+public struct RemoteCommandAcknowledgement: Codable {
+    public let acknowledgedAt: Date
+    public let commandID, deviceID: String
+    public let sequence: Int
+    public let stage: RemoteCommandStage
+
+    public enum CodingKeys: String, CodingKey {
+        case acknowledgedAt
+        case commandID = "commandId"
+        case deviceID = "deviceId"
+        case sequence, stage
+    }
+
+    public init(acknowledgedAt: Date, commandID: String, deviceID: String, sequence: Int, stage: RemoteCommandStage) {
+        self.acknowledgedAt = acknowledgedAt
+        self.commandID = commandID
+        self.deviceID = deviceID
+        self.sequence = sequence
+        self.stage = stage
+    }
+}
+
+// MARK: RemoteCommandAcknowledgement convenience initializers and mutators
+
+public extension RemoteCommandAcknowledgement {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandAcknowledgement.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        acknowledgedAt: Date? = nil,
+        commandID: String? = nil,
+        deviceID: String? = nil,
+        sequence: Int? = nil,
+        stage: RemoteCommandStage? = nil
+    ) -> RemoteCommandAcknowledgement {
+        return RemoteCommandAcknowledgement(
+            acknowledgedAt: acknowledgedAt ?? self.acknowledgedAt,
+            commandID: commandID ?? self.commandID,
+            deviceID: deviceID ?? self.deviceID,
+            sequence: sequence ?? self.sequence,
+            stage: stage ?? self.stage
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum RemoteCommandStage: String, Codable {
+    case applied = "applied"
+    case delivered = "delivered"
+    case expired = "expired"
+    case queued = "queued"
+    case rejected = "rejected"
+}
+
+// MARK: - SignedRemoteCommandEnvelope
+public struct SignedRemoteCommandEnvelope: Codable {
+    public let compactJws: String
+    public let keyID: String
+    public let payload: RemoteLockCommand
+
+    public enum CodingKeys: String, CodingKey {
+        case compactJws
+        case keyID = "keyId"
+        case payload
+    }
+
+    public init(compactJws: String, keyID: String, payload: RemoteLockCommand) {
+        self.compactJws = compactJws
+        self.keyID = keyID
+        self.payload = payload
+    }
+}
+
+// MARK: SignedRemoteCommandEnvelope convenience initializers and mutators
+
+public extension SignedRemoteCommandEnvelope {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(SignedRemoteCommandEnvelope.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        compactJws: String? = nil,
+        keyID: String? = nil,
+        payload: RemoteLockCommand? = nil
+    ) -> SignedRemoteCommandEnvelope {
+        return SignedRemoteCommandEnvelope(
+            compactJws: compactJws ?? self.compactJws,
+            keyID: keyID ?? self.keyID,
+            payload: payload ?? self.payload
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - RemoteLockCommand
+public struct RemoteLockCommand: Codable {
+    public let commandID: String
+    public let coordinatorAudience: CoordinatorAudience
+    public let deadlinePolicy: RemoteDeadlinePolicy
+    public let deviceID: String
+    public let expiresAt: Date
+    public let idempotencyKey: String
+    public let issuedAt: Date
+    public let kind: RemoteCommandKind
+    public let nonce, scheduleDigest: String
+    public let sequence: Int
+    public let statusVersion: Int
+    public let userID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case commandID = "commandId"
+        case coordinatorAudience, deadlinePolicy
+        case deviceID = "deviceId"
+        case expiresAt, idempotencyKey, issuedAt, kind, nonce, scheduleDigest, sequence, statusVersion
+        case userID = "userId"
+    }
+
+    public init(commandID: String, coordinatorAudience: CoordinatorAudience, deadlinePolicy: RemoteDeadlinePolicy, deviceID: String, expiresAt: Date, idempotencyKey: String, issuedAt: Date, kind: RemoteCommandKind, nonce: String, scheduleDigest: String, sequence: Int, statusVersion: Int, userID: String) {
+        self.commandID = commandID
+        self.coordinatorAudience = coordinatorAudience
+        self.deadlinePolicy = deadlinePolicy
+        self.deviceID = deviceID
+        self.expiresAt = expiresAt
+        self.idempotencyKey = idempotencyKey
+        self.issuedAt = issuedAt
+        self.kind = kind
+        self.nonce = nonce
+        self.scheduleDigest = scheduleDigest
+        self.sequence = sequence
+        self.statusVersion = statusVersion
+        self.userID = userID
+    }
+}
+
+// MARK: RemoteLockCommand convenience initializers and mutators
+
+public extension RemoteLockCommand {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteLockCommand.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        commandID: String? = nil,
+        coordinatorAudience: CoordinatorAudience? = nil,
+        deadlinePolicy: RemoteDeadlinePolicy? = nil,
+        deviceID: String? = nil,
+        expiresAt: Date? = nil,
+        idempotencyKey: String? = nil,
+        issuedAt: Date? = nil,
+        kind: RemoteCommandKind? = nil,
+        nonce: String? = nil,
+        scheduleDigest: String? = nil,
+        sequence: Int? = nil,
+        statusVersion: Int? = nil,
+        userID: String? = nil
+    ) -> RemoteLockCommand {
+        return RemoteLockCommand(
+            commandID: commandID ?? self.commandID,
+            coordinatorAudience: coordinatorAudience ?? self.coordinatorAudience,
+            deadlinePolicy: deadlinePolicy ?? self.deadlinePolicy,
+            deviceID: deviceID ?? self.deviceID,
+            expiresAt: expiresAt ?? self.expiresAt,
+            idempotencyKey: idempotencyKey ?? self.idempotencyKey,
+            issuedAt: issuedAt ?? self.issuedAt,
+            kind: kind ?? self.kind,
+            nonce: nonce ?? self.nonce,
+            scheduleDigest: scheduleDigest ?? self.scheduleDigest,
+            sequence: sequence ?? self.sequence,
+            statusVersion: statusVersion ?? self.statusVersion,
+            userID: userID ?? self.userID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum CoordinatorAudience: String, Codable {
+    case curfewDeviceAgent = "curfew-device-agent"
+}
+
+// MARK: - RemoteDeadlinePolicy
+public struct RemoteDeadlinePolicy: Codable {
+    public let durationSeconds: Int?
+    public let kind: Kind
+
+    public init(durationSeconds: Int?, kind: Kind) {
+        self.durationSeconds = durationSeconds
+        self.kind = kind
+    }
+}
+
+// MARK: RemoteDeadlinePolicy convenience initializers and mutators
+
+public extension RemoteDeadlinePolicy {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteDeadlinePolicy.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        durationSeconds: Int?? = nil,
+        kind: Kind? = nil
+    ) -> RemoteDeadlinePolicy {
+        return RemoteDeadlinePolicy(
+            durationSeconds: durationSeconds ?? self.durationSeconds,
+            kind: kind ?? self.kind
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Kind: String, Codable {
+    case fixedDuration = "fixed_duration"
+    case nextScheduledUnlock = "next_scheduled_unlock"
+}
+
+public enum RemoteCommandKind: String, Codable {
+    case lockDevice = "lock_device"
+}
+
+// MARK: - RemoteCommandResult
+public struct RemoteCommandResult: Codable {
+    public let appliedDeadline: Date?
+    public let commandID, deviceID: String
+    public let rejectionCode: RejectionCode?
+    public let resolvedAt: Date
+    public let sequence: Int
+    public let stage: RemoteCommandStage
+
+    public enum CodingKeys: String, CodingKey {
+        case appliedDeadline
+        case commandID = "commandId"
+        case deviceID = "deviceId"
+        case rejectionCode, resolvedAt, sequence, stage
+    }
+
+    public init(appliedDeadline: Date?, commandID: String, deviceID: String, rejectionCode: RejectionCode?, resolvedAt: Date, sequence: Int, stage: RemoteCommandStage) {
+        self.appliedDeadline = appliedDeadline
+        self.commandID = commandID
+        self.deviceID = deviceID
+        self.rejectionCode = rejectionCode
+        self.resolvedAt = resolvedAt
+        self.sequence = sequence
+        self.stage = stage
+    }
+}
+
+// MARK: RemoteCommandResult convenience initializers and mutators
+
+public extension RemoteCommandResult {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandResult.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        appliedDeadline: Date?? = nil,
+        commandID: String? = nil,
+        deviceID: String? = nil,
+        rejectionCode: RejectionCode?? = nil,
+        resolvedAt: Date? = nil,
+        sequence: Int? = nil,
+        stage: RemoteCommandStage? = nil
+    ) -> RemoteCommandResult {
+        return RemoteCommandResult(
+            appliedDeadline: appliedDeadline ?? self.appliedDeadline,
+            commandID: commandID ?? self.commandID,
+            deviceID: deviceID ?? self.deviceID,
+            rejectionCode: rejectionCode ?? self.rejectionCode,
+            resolvedAt: resolvedAt ?? self.resolvedAt,
+            sequence: sequence ?? self.sequence,
+            stage: stage ?? self.stage
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum RejectionCode: String, Codable {
+    case deviceUnavailable = "device_unavailable"
+    case expired = "expired"
+    case ineligible = "ineligible"
+    case invalidDeadline = "invalid_deadline"
+    case invalidSignature = "invalid_signature"
+    case outOfOrder = "out_of_order"
+    case staleStatus = "stale_status"
 }
 
 // MARK: - Helper functions for creating encoders and decoders

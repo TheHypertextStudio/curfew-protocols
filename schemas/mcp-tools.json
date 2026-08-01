@@ -2,12 +2,16 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://schemas.hypertext.studio/curfew/mcp-tools.json",
   "title": "MCPToolRegistry",
-  "description": "The Curfew MCP tool registry. Each entry describes one tool exposed by `curfew-mcp` over the Model Context Protocol — its stable name, the human-readable description shown to AI clients in `tools/list`, and the JSON Schema for the `arguments` payload accepted by `tools/call`.\n\nThis manifest is extracted verbatim from `Sources/curfew-mcp/MCPTool.swift` in the Curfew repo at the same version tag. Adding or modifying a tool requires updating the Swift source first and re-extracting; the schema is the contract, not a separate truth.",
+  "description": "The Curfew local and remote MCP tool registries. Local tools address the current Mac. Remote tools address account-enrolled devices through the Curfew coordinator.",
   "type": "object",
-  "required": ["tools"],
+  "required": ["tools", "remoteTools"],
   "additionalProperties": false,
   "properties": {
     "tools": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/MCPToolDefinition" }
+    },
+    "remoteTools": {
       "type": "array",
       "items": { "$ref": "#/definitions/MCPToolDefinition" }
     }
@@ -151,6 +155,81 @@
             },
             "required": ["request_id"]
           }
+        }
+      ],
+      "remoteTools": [
+        {
+          "name": "curfew_get_status",
+          "description": "Returns normalized Curfew status for the requested eligible device, or all enrolled devices when no device ID is supplied.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "device_id": { "type": "string", "format": "uuid" } },
+            "required": []
+          }
+        },
+        {
+          "name": "curfew_list_devices",
+          "description": "Lists enrolled devices, their current status freshness, and whether each device is locally eligible for remote locking and lock-all.",
+          "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] }
+        },
+        {
+          "name": "curfew_lock_device",
+          "description": "Locks one locally eligible device for a bounded duration or until its next scheduled unlock. This cannot unlock or weaken Curfew.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "device_id": { "type": "string", "format": "uuid" },
+              "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 },
+              "until_next_scheduled_unlock": { "type": "boolean" },
+              "status_version": { "type": "integer", "minimum": 0 },
+              "schedule_digest": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
+            },
+            "required": ["device_id"],
+            "oneOf": [
+              { "required": ["duration_seconds"] },
+              { "required": ["until_next_scheduled_unlock", "status_version", "schedule_digest"] }
+            ]
+          }
+        },
+        {
+          "name": "curfew_lock_devices",
+          "description": "Locks an explicit set of locally eligible devices and returns a separate result for every target.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "device_ids": { "type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "items": { "type": "string", "format": "uuid" } },
+              "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 }
+            },
+            "required": ["device_ids", "duration_seconds"]
+          }
+        },
+        {
+          "name": "curfew_lock_all_devices",
+          "description": "Locks every enrolled device that was locally opted into lock-all, returning a separate result for every target.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "duration_seconds": { "type": "integer", "minimum": 300, "maximum": 43200 } },
+            "required": ["duration_seconds"]
+          }
+        },
+        {
+          "name": "curfew_get_command_status",
+          "description": "Returns queued, delivered, applied, rejected, or expired results for a previously submitted remote lock command.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "command_id": { "type": "string", "format": "uuid" } },
+            "required": ["command_id"]
+          }
+        },
+        {
+          "name": "curfew_open_control_panel",
+          "description": "Opens the Curfew MCP App control panel with current device status and target-selection switches.",
+          "inputSchema": { "type": "object", "additionalProperties": false, "properties": {}, "required": [] }
         }
       ]
     }

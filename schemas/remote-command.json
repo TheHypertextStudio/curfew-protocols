@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.hypertext.studio/curfew/remote-command.json",
+  "title": "RemoteCommandContract",
+  "description": "Replay-safe, coordinator-signed remote lock commands and per-device results.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "envelope": { "$ref": "#/definitions/SignedRemoteCommandEnvelope" },
+    "acknowledgement": { "$ref": "#/definitions/RemoteCommandAcknowledgement" },
+    "result": { "$ref": "#/definitions/RemoteCommandResult" }
+  },
+  "definitions": {
+    "RemoteCommandKind": {
+      "type": "string",
+      "enum": ["lock_device"]
+    },
+    "FixedDurationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "durationSeconds"],
+      "properties": {
+        "kind": { "const": "fixed_duration" },
+        "durationSeconds": { "type": "integer", "minimum": 300, "maximum": 43200 }
+      }
+    },
+    "NextScheduledUnlockPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "const": "next_scheduled_unlock" }
+      }
+    },
+    "RemoteDeadlinePolicy": {
+      "oneOf": [
+        { "$ref": "#/definitions/FixedDurationPolicy" },
+        { "$ref": "#/definitions/NextScheduledUnlockPolicy" }
+      ]
+    },
+    "RemoteLockCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commandId",
+        "idempotencyKey",
+        "userId",
+        "deviceId",
+        "sequence",
+        "kind",
+        "deadlinePolicy",
+        "issuedAt",
+        "expiresAt",
+        "nonce",
+        "coordinatorAudience",
+        "statusVersion",
+        "scheduleDigest"
+      ],
+      "properties": {
+        "commandId": { "type": "string", "format": "uuid" },
+        "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "deviceId": { "type": "string", "format": "uuid" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "kind": { "$ref": "#/definitions/RemoteCommandKind" },
+        "deadlinePolicy": { "$ref": "#/definitions/RemoteDeadlinePolicy" },
+        "issuedAt": { "type": "string", "format": "date-time" },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "coordinatorAudience": { "type": "string", "const": "curfew-device-agent" },
+        "statusVersion": { "type": "integer", "minimum": 0 },
+        "scheduleDigest": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
+      }
+    },
+    "SignedRemoteCommandEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compactJws", "keyId", "payload"],
+      "properties": {
+        "compactJws": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$" },
+        "keyId": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "payload": { "$ref": "#/definitions/RemoteLockCommand" }
+      }
+    },
+    "RemoteCommandStage": {
+      "type": "string",
+      "enum": ["queued", "delivered", "applied", "rejected", "expired"]
+    },
+    "RemoteCommandAcknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "sequence", "stage", "acknowledgedAt"],
+      "properties": {
+        "commandId": { "type": "string", "format": "uuid" },
+        "deviceId": { "type": "string", "format": "uuid" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "stage": { "$ref": "#/definitions/RemoteCommandStage" },
+        "acknowledgedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "RemoteCommandResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "sequence", "stage", "resolvedAt"],
+      "properties": {
+        "commandId": { "type": "string", "format": "uuid" },
+        "deviceId": { "type": "string", "format": "uuid" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "stage": { "$ref": "#/definitions/RemoteCommandStage" },
+        "resolvedAt": { "type": "string", "format": "date-time" },
+        "appliedDeadline": { "type": ["string", "null"], "format": "date-time" },
+        "rejectionCode": {
+          "type": ["string", "null"],
+          "enum": [null, "ineligible", "stale_status", "expired", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"]
+        }
+      }
+    }
+  }
+}

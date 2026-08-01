@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.hypertext.studio/curfew/device.json",
+  "title": "DeviceContract",
+  "description": "Platform-neutral device identity, eligibility, and normalized Curfew enforcement status.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "descriptor": { "$ref": "#/definitions/DeviceDescriptor" },
+    "status": { "$ref": "#/definitions/DeviceStatusSnapshot" }
+  },
+  "definitions": {
+    "DeviceDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deviceId",
+        "displayName",
+        "platform",
+        "appVersion",
+        "capabilities",
+        "remoteLockEligible",
+        "allDevicesEligible"
+      ],
+      "properties": {
+        "deviceId": { "type": "string", "format": "uuid" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Open string. Unknown platforms must be retained."
+        },
+        "appVersion": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Open string. Behavior is capability-gated rather than platform-gated."
+          }
+        },
+        "remoteLockEligible": { "type": "boolean" },
+        "allDevicesEligible": { "type": "boolean" },
+        "revokedAt": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "DevicePhase": {
+      "type": "string",
+      "enum": ["working", "warning", "locked", "day_off", "unknown"]
+    },
+    "DeviceStatusSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deviceId",
+        "phase",
+        "timeZone",
+        "scheduleDigest",
+        "statusVersion",
+        "observedAt"
+      ],
+      "properties": {
+        "deviceId": { "type": "string", "format": "uuid" },
+        "phase": { "$ref": "#/definitions/DevicePhase" },
+        "timeZone": {
+          "type": "string",
+          "pattern": "^[A-Za-z_+-]+(?:/[A-Za-z0-9_+-]+)+$",
+          "description": "IANA timezone identifier, for example America/Los_Angeles."
+        },
+        "scheduleDigest": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "Unpadded base64url digest of the local schedule version."
+        },
+        "statusVersion": { "type": "integer", "minimum": 0 },
+        "observedAt": { "type": "string", "format": "date-time" },
+        "nextTransitionAt": { "type": ["string", "null"], "format": "date-time" },
+        "activeLockoutEndsAt": { "type": ["string", "null"], "format": "date-time" }
+      }
+    }
+  }
+}
