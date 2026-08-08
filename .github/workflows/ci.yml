@@ -29,6 +29,9 @@ jobs:
             exit 1
           fi
       - run: pnpm typecheck
+      # Compiles the emitted .d.ts itself; `pnpm typecheck` runs with
+      # skipLibCheck and would not see a duplicate identifier in the bundle.
+      - run: pnpm typecheck:consumer
       - run: pnpm test
 
   swift:

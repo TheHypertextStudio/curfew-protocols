@@ -27,7 +27,8 @@ This repo is the versioned wire-format contract between the Curfew macOS app and
 pnpm install
 pnpm codegen     # regenerate TS + Swift outputs
 pnpm test        # vitest contract tests
-pnpm typecheck   # tsc --noEmit
+pnpm typecheck   # tsc --noEmit (skipLibCheck: does not check generated/ .d.ts internals)
+pnpm typecheck:consumer  # compiles the emitted .d.ts itself, lib checking on
 pnpm publish     # publish to npm (runs prepublishOnly)
 ```
 
@@ -46,6 +47,7 @@ pnpm publish     # publish to npm (runs prepublishOnly)
 - `pnpm codegen` produces zero diff against committed `generated/` (i.e. you remembered to commit the regen).
 - `pnpm test` green.
 - `pnpm typecheck` clean.
+- `pnpm typecheck:consumer` clean (catches duplicate identifiers and other defects inside the emitted bundle that `pnpm typecheck` skips).
 - `CHANGELOG.md` has an entry under the new version.
 - `package.json` version bumped.
 - Swift consumers (`swift build` against this package's `Package.swift`) succeed.

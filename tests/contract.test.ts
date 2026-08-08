@@ -103,6 +103,24 @@ describe("generated outputs", () => {
     expect(after.length).toBeGreaterThan(100)
   })
 
+  it("typescript output declares every top-level name exactly once", () => {
+    const source = readGenerated("typescript/index.d.ts")
+    const counts = new Map<string, number>()
+    for (const name of topLevelDeclarationNames(source)) {
+      counts.set(name, (counts.get(name) ?? 0) + 1)
+    }
+    const duplicates = [...counts]
+      .filter(([, count]) => count > 1)
+      .map(([name, count]) => `${name} (declared ${count}x)`)
+      .sort()
+
+    expect(
+      duplicates,
+      "index.d.ts bundles every schema into one module, so a name emitted by " +
+        "two schemas becomes a duplicate identifier that collides for importers",
+    ).toEqual([])
+  })
+
   it("swift output exists and re-running codegen is a no-op", () => {
     const before = readGeneratedSwift()
     execSync("pnpm exec tsx codegen/swift.ts", { cwd: repoRoot, stdio: "pipe" })
@@ -116,6 +134,18 @@ describe("generated outputs", () => {
 
 function readGenerated(relative: string): string {
   return readFileSyncSafe(join(repoRoot, "generated", relative))
+}
+
+// A top-level declaration in the emitted bundle always starts at column 0;
+// json-schema-to-typescript indents every member of an interface or union.
+const TOP_LEVEL_DECLARATION =
+  /^export (?:declare )?(?:abstract )?(?:const enum|type|interface|enum|const|let|var|class|function|namespace) ([A-Za-z_$][\w$]*)/
+
+function topLevelDeclarationNames(source: string): string[] {
+  return source
+    .split("\n")
+    .map((line) => TOP_LEVEL_DECLARATION.exec(line)?.[1])
+    .filter((name): name is string => name !== undefined)
 }
 
 function readGeneratedSwift(): Record<string, string> {

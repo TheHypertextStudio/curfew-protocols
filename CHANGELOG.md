@@ -22,6 +22,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Made the MCP manifest itself validator-enforced, including tool inputs, outputs, OAuth scopes, and App metadata.
 - Made 1.0 a breaking release because the 0.1 registry did not describe remote provenance, targets, results, or the runtime tool naming boundary.
 
+### Fixed
+
+- `codegen/typescript.ts` compiles each schema in isolation and concatenated the results, so a definition declared by two schemas was emitted twice. `CanonicalUUID` and `UTCInstant` — declared in both `remote-command.json` and `sync.json` — each appeared twice in `generated/typescript/index.d.ts`, a duplicate identifier that fails to compile for any importer. Codegen now emits each top-level name once and fails loudly if two schemas emit the same name with different bodies. `pnpm test` asserts the emitted bundle declares every name exactly once, and `pnpm typecheck:consumer` compiles the bundle with lib checking on (`pnpm typecheck` runs with `skipLibCheck`, which hid this).
+
 ### Security
 
 - The command enum is restricted to strengthening `lock_device`; remote unlock, override, schedule weakening, scripts, and arbitrary executable paths are not representable.

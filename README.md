@@ -57,6 +57,7 @@ pnpm install
 pnpm codegen     # regenerate generated/typescript/ and generated/swift/
 pnpm test        # schema and deterministic-codegen contract tests
 pnpm typecheck
+pnpm typecheck:consumer   # compile the emitted .d.ts as a consumer would (no skipLibCheck)
 swift test       # generated Swift decoder tests
 dotnet run --project tests/dotnet/CurfewProtocols.Decoder.csproj
 ```

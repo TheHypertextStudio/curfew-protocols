@@ -45,6 +45,7 @@ export interface DeviceCredential {
   keyThumbprint: string
   expiresAt: string
 }
+
 /**
  * Post-verification view of the claims embedded in DeviceProof.compactJws. Never accepted beside a JWS on the wire.
  */
@@ -825,6 +826,7 @@ export interface RemoteCommandContract {
 export interface SignedRemoteCommandEnvelope {
   compactJws: string
 }
+
 /**
  * Post-verification payload decoded only from SignedRemoteCommandEnvelope.compactJws.
  */
@@ -901,13 +903,10 @@ export type DeviceSyncContract =
   | RemoteCommandResultPublication
 export type CompactJWS = string
 export type Cursor = string
-export type UTCInstant = string
-export type CanonicalUUID = string
 export type RemoteCommandResultPublication =
   | AppliedResultPublication
   | RejectedResultPublication
   | ExpiredResultPublication
-
 export interface DeviceSocketHello {
   type: "hello"
   identityAssertion: InternalDeviceIdentityAssertion

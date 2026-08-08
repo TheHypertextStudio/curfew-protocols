@@ -22,7 +22,8 @@
     "codegen": "tsx codegen/typescript.ts && tsx codegen/swift.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm codegen && pnpm typecheck && pnpm test"
+    "typecheck:consumer": "tsc --noEmit --skipLibCheck false tests/consumer-smoke.ts",
+    "prepublishOnly": "pnpm codegen && pnpm typecheck && pnpm typecheck:consumer && pnpm test"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
