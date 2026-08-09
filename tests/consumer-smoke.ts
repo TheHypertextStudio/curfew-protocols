@@ -14,6 +14,7 @@ import type {
   CanonicalUUID,
   DeviceDescriptor,
   DevicePresence,
+  DevicePresenceState,
   DeviceStatusPublication,
   DeviceSyncContract,
   RemoteCommandDelivery,
@@ -53,9 +54,22 @@ export const command: RemoteLockCommand = {
 // `DevicePresence` is declared once even though device.json and sync.json both
 // define it; importing it here fails the build if the dedupe ever regresses.
 const presence: DevicePresence = {
-  state: "present",
+  state: "present_idle",
   observedAt: "2026-01-01T00:00:00Z",
 }
+
+// A total map over the presence states. If a state is added, removed, or
+// respelled in the schema, this stops compiling — which is the point: a
+// consumer switching on presence should be forced to revisit its branches
+// rather than silently fall through on a value it has never heard of.
+const PRESENCE_MEANING: Record<DevicePresenceState, string> = {
+  working: "at the Mac and using it; work time accrues here",
+  present_idle: "at the desk but not working; the only state a nudge targets",
+  absent: "the camera looked and saw nobody",
+  unknown: "quiet machine, no camera signal, and the device will not guess",
+}
+
+export const presenceLegend = Object.entries(PRESENCE_MEANING)
 
 // A publisher that predates desk presence omits the field entirely. This
 // assignment not compiling would mean the field became required.

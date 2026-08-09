@@ -673,8 +673,11 @@ public enum DevicePhase: String, Codable {
     case working = "working"
 }
 
-/// Fused desk-presence verdict. The device fuses camera person-detection with HID idle
+/// Fused desk-presence verdict. The device crosses camera person-detection with HID idle
 /// locally and publishes only this verdict; raw sensor signals never cross the wire.
+/// 'working' appears both here and in the enclosing snapshot's phase, meaning different
+/// things: phase is where the enforcement schedule stands, state is what the human at the
+/// desk is doing.
 // MARK: - StatusPresence
 public struct StatusPresence: Codable {
     /// When the fusion was computed. Carried separately from the enclosing snapshot because
@@ -725,12 +728,23 @@ public extension StatusPresence {
     }
 }
 
-/// Whether the human is at the desk. 'unknown' means the device evaluated presence and could
-/// not decide; an absent presence object means the publisher does not report presence at all.
+/// Mirrors CurfewKit's PresenceState (Sources/CurfewKit/Domain/PresenceState.swift) value
+/// for value, so a verdict written by the macOS app decodes here unchanged. 'working': input
+/// arrived inside the idle threshold — somebody is at the Mac and using it, and this is the
+/// state work time accrues in. 'present_idle': no input past the idle threshold but the
+/// camera sees a person — reading, thinking, or on a call; present but not working, and the
+/// only state a distraction nudge is aimed at. 'absent': no input past the threshold and the
+/// camera positively saw nobody — an observation, never an inference drawn from silence.
+/// 'unknown': the machine is quiet and there is no camera signal to disambiguate, so the
+/// device declines to guess; this is the steady state on a default install, where camera
+/// presence detection is off. 'unknown' therefore means the device would not guess, not that
+/// presence reporting failed — a publisher that does not report presence at all omits the
+/// enclosing object instead.
 public enum DevicePresenceState: String, Codable {
-    case away = "away"
-    case present = "present"
+    case absent = "absent"
+    case presentButIdle = "present_idle"
     case unknown = "unknown"
+    case working = "working"
 }
 
 /// Curfew status-and-devices resources/read HTML content using MCP Apps _meta.ui policy.
@@ -1885,8 +1899,11 @@ public extension InternalDeviceIdentityAssertion {
     }
 }
 
-/// Fused desk-presence verdict. The device fuses camera person-detection with HID idle
+/// Fused desk-presence verdict. The device crosses camera person-detection with HID idle
 /// locally and publishes only this verdict; raw sensor signals never cross the wire.
+/// 'working' appears both here and in the enclosing snapshot's phase, meaning different
+/// things: phase is where the enforcement schedule stands, state is what the human at the
+/// desk is doing.
 // MARK: - DeviceSyncContractPresence
 public struct DeviceSyncContractPresence: Codable {
     /// When the fusion was computed. Carried separately from the enclosing snapshot because

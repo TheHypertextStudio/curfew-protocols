@@ -216,11 +216,19 @@ async function main() {
 // no `--enum-cases-as` option in quicktype-core that gets us this exact
 // mapping. So we rename here. Raw values are unchanged — wire format is
 // preserved bit-for-bit.
+//
+// `present_idle` is the same situation from the other direction. CurfewKit's
+// `PresenceState` spells that case `presentButIdle` with an explicit
+// `"present_idle"` raw value; quicktype would derive `presentIdle` from the
+// raw value alone. Renaming makes the generated enum read identically to the
+// one in the app that produces these values, so the two can be matched over
+// side by side without a mental translation step.
 function postprocess(swift: string): string {
   const renames: Array<[RegExp, string]> = [
     [/case curfewRequestExtension\b/g, "case requestExtension"],
     [/case curfewRequestOverride\b/g, "case requestOverride"],
     [/case curfewSetSchedule\b/g, "case setSchedule"],
+    [/case presentIdle\b/g, "case presentButIdle"],
   ]
   let out = swift
   for (const [pattern, replacement] of renames) {

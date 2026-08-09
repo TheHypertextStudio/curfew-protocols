@@ -1,9 +1,17 @@
 // tests/presence-contract.test.ts — the desk-presence field on the device
 // status publication.
 //
-// Presence answers exactly one product question: is the human at the desk
-// right now. The device fuses camera person-detection with HID idle locally
-// and publishes only the fused verdict — never the raw sensor signal.
+// Presence answers two halves of one product question: am I at my desk, and
+// am I distracted. The device crosses camera person-detection with HID idle
+// locally and publishes only the fused verdict — never the raw sensor signal.
+//
+// The four states mirror CurfewKit's `PresenceState` value for value, because
+// that enum is what actually produces the data. Collapsing `working` and
+// `present_idle` into one "present" value would answer the first half of the
+// question and destroy the second: `present_idle` is the only state a
+// distraction nudge is aimed at, so a consumer that cannot see it cannot ask
+// whether the user is distracted. `absent` rather than "away" because the
+// value carries a specific claim — the camera looked and saw nobody.
 //
 // The field is optional on purpose. Publishers that shipped before presence
 // existed (the macOS app's enforcement-status reporting) send a status frame
@@ -36,7 +44,15 @@ const statusSnapshot = {
   observedAt: statusPublication.observedAt,
 }
 
-const presence = { state: "present", observedAt: "2026-08-01T20:00:04Z" }
+const presence = { state: "present_idle", observedAt: "2026-08-01T20:00:04Z" }
+
+/**
+ * Every value CurfewKit's `PresenceState` can put on the wire, in the order it
+ * declares them. Read off Sources/CurfewKit/Domain/PresenceState.swift: three
+ * cases take Swift's default raw value and `presentButIdle` carries an
+ * explicit `"present_idle"`.
+ */
+const PRESENCE_STATES = ["working", "present_idle", "absent", "unknown"]
 
 describe("device presence", () => {
   it("models presence as a closed enum, not a free-form string", async () => {
@@ -44,13 +60,23 @@ describe("device presence", () => {
       const schema = await readSchema(name)
       const state = schema.definitions.DevicePresenceState
 
-      expect(state.enum, `${name} must close the presence enum`).toEqual([
-        "present",
-        "away",
-        "unknown",
-      ])
+      expect(state.enum, `${name} must close the presence enum`).toEqual(
+        PRESENCE_STATES,
+      )
       expect(state.type).toBe("string")
     }
+  })
+
+  it("keeps working and present_idle as separate states", async () => {
+    // The distinction is the whole point of the signal: both mean a person is
+    // at the desk, and only one of them means they are working. A contract
+    // that folds them together cannot answer "am I distracted".
+    const schema = await readSchema("sync.json")
+    const states: string[] = schema.definitions.DevicePresenceState.enum
+
+    expect(states).toContain("working")
+    expect(states).toContain("present_idle")
+    expect(new Set(states).size).toBe(4)
   })
 
   it("carries a fused verdict and its own observation instant, not raw signals", async () => {
@@ -67,21 +93,33 @@ describe("device presence", () => {
     }
   })
 
-  it("round-trips presence on a status publication", async () => {
-    const check = await definitionValidator("sync.json", "DeviceStatusPublication")
-    const frame = { ...statusPublication, presence }
+  it.each(PRESENCE_STATES)(
+    "round-trips presence state %s on a status publication",
+    async (state) => {
+      const check = await definitionValidator(
+        "sync.json",
+        "DeviceStatusPublication",
+      )
+      const frame = { ...statusPublication, presence: { ...presence, state } }
 
-    expect(check(frame), JSON.stringify(check.errors)).toBe(true)
-    expect(JSON.parse(JSON.stringify(frame)).presence).toEqual(presence)
-  })
+      expect(check(frame), JSON.stringify(check.errors)).toBe(true)
+      expect(JSON.parse(JSON.stringify(frame)).presence.state).toBe(state)
+    },
+  )
 
-  it("round-trips presence on a normalized status snapshot", async () => {
-    const check = await definitionValidator("device.json", "DeviceStatusSnapshot")
-    const snapshot = { ...statusSnapshot, presence }
+  it.each(PRESENCE_STATES)(
+    "round-trips presence state %s on a normalized status snapshot",
+    async (state) => {
+      const check = await definitionValidator(
+        "device.json",
+        "DeviceStatusSnapshot",
+      )
+      const snapshot = { ...statusSnapshot, presence: { ...presence, state } }
 
-    expect(check(snapshot), JSON.stringify(check.errors)).toBe(true)
-    expect(JSON.parse(JSON.stringify(snapshot)).presence).toEqual(presence)
-  })
+      expect(check(snapshot), JSON.stringify(check.errors)).toBe(true)
+      expect(JSON.parse(JSON.stringify(snapshot)).presence.state).toBe(state)
+    },
+  )
 
   it("still validates a publication with no presence field", async () => {
     const check = await definitionValidator("sync.json", "DeviceStatusPublication")
@@ -107,10 +145,59 @@ describe("device presence", () => {
     ).toBe(true)
   })
 
-  it("rejects a presence state outside the enum", async () => {
+  it.each(
+    Object.entries({
+      // Per state, the spellings a consumer might plausibly reach for: the
+      // Swift case name, the wrong separator, the wrong case, a typo. Curfew
+      // puts the raw value on the wire, so only the raw value may decode.
+      working: ["Working", "WORKING", "work", "workign", "working "],
+      present_idle: [
+        "presentIdle",
+        "presentButIdle",
+        "present-idle",
+        "PRESENT_IDLE",
+        "present idle",
+        "present_Idle",
+      ],
+      absent: ["Absent", "ABSENT", "absnet", "absent "],
+      unknown: ["Unknown", "UNKNOWN", "unkown", "unknwon"],
+    }),
+  )("rejects misspellings of presence state %s", async (state, wrong) => {
+    const publication = await definitionValidator(
+      "sync.json",
+      "DeviceStatusPublication",
+    )
+    const snapshot = await definitionValidator(
+      "device.json",
+      "DeviceStatusSnapshot",
+    )
+
+    // The correct spelling is accepted, so each rejection below is about the
+    // spelling and not about some unrelated part of the frame.
+    expect(
+      publication({ ...statusPublication, presence: { ...presence, state } }),
+      JSON.stringify(publication.errors),
+    ).toBe(true)
+
+    for (const bad of wrong) {
+      expect(
+        publication({ ...statusPublication, presence: { ...presence, state: bad } }),
+        `presence.state "${bad}" must be rejected on a publication`,
+      ).toBe(false)
+      expect(
+        snapshot({ ...statusSnapshot, presence: { ...presence, state: bad } }),
+        `presence.state "${bad}" must be rejected on a snapshot`,
+      ).toBe(false)
+    }
+  })
+
+  it("rejects the collapsed three-state vocabulary this contract replaced", async () => {
+    // An earlier draft of this field shipped `present | away | unknown`, which
+    // could not express the difference between working and distracted. Those
+    // spellings are not aliases; they are gone.
     const check = await definitionValidator("sync.json", "DeviceStatusPublication")
 
-    for (const state of ["at_desk", "maybe", "PRESENT", "", "idle"]) {
+    for (const state of ["present", "away", "at_desk", "maybe", "", "idle"]) {
       expect(
         check({ ...statusPublication, presence: { ...presence, state } }),
         `presence.state "${state}" must be rejected`,
@@ -118,20 +205,12 @@ describe("device presence", () => {
     }
   })
 
-  it("rejects a presence state outside the enum on a status snapshot", async () => {
-    const check = await definitionValidator("device.json", "DeviceStatusSnapshot")
-
-    expect(
-      check({ ...statusSnapshot, presence: { ...presence, state: "at_desk" } }),
-    ).toBe(false)
-  })
-
   it("rejects presence without its observation instant, and raw sensor smuggling", async () => {
     const check = await definitionValidator("sync.json", "DeviceStatusPublication")
 
-    expect(check({ ...statusPublication, presence: { state: "present" } })).toBe(
-      false,
-    )
+    expect(
+      check({ ...statusPublication, presence: { state: "present_idle" } }),
+    ).toBe(false)
     expect(
       check({
         ...statusPublication,

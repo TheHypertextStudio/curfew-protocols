@@ -170,19 +170,63 @@ final class RemoteCommandTests: XCTestCase {
         let bare = try DeviceSyncContract(withoutPresence).validated()
         XCTAssertNil(bare.presence)
 
-        let withPresence = withoutPresence.replacingOccurrences(
-            of: #""observedAt":"2026-08-01T20:00:00Z""#,
-            with: #""observedAt":"2026-08-01T20:00:00Z","presence":{"state":"present","observedAt":"2026-08-01T20:00:04Z"}"#
-        )
-        let fused = try DeviceSyncContract(withPresence).validated()
-        XCTAssertEqual(fused.presence?.state, .present)
-        XCTAssertEqual(fused.presence?.observedAt, "2026-08-01T20:00:04Z")
+        // Every wire string CurfewKit's PresenceState can write, paired with
+        // the case it has to land on. Both columns are copied from
+        // Sources/CurfewKit/Domain/PresenceState.swift: three cases take
+        // Swift's default raw value, and presentButIdle declares
+        // `= "present_idle"` explicitly.
+        let states: [(wire: String, decoded: DevicePresenceState)] = [
+            ("working", .working),
+            ("present_idle", .presentButIdle),
+            ("absent", .absent),
+            ("unknown", .unknown),
+        ]
 
-        let unknownState = withPresence.replacingOccurrences(
-            of: #""state":"present""#,
-            with: #""state":"at_desk""#
-        )
-        XCTAssertThrowsError(try DeviceSyncContract(unknownState))
+        for (wire, decoded) in states {
+            let fused = try DeviceSyncContract(
+                Self.statusFrame(presenceState: wire)
+            ).validated()
+
+            XCTAssertEqual(fused.presence?.state, decoded, "\(wire) must decode")
+            XCTAssertEqual(fused.presence?.observedAt, "2026-08-01T20:00:04Z")
+            // The round trip back out has to reproduce the app's spelling, or
+            // a value this package re-encodes stops decoding in Curfew.
+            XCTAssertEqual(fused.presence?.state.rawValue, wire)
+        }
+    }
+
+    func testRejectsMisspelledPresenceStates() throws {
+        // `present` and `away` are here because an earlier draft of this
+        // contract used them. They are not accepted as aliases.
+        let misspellings = [
+            "present", "away", "at_desk",
+            "presentIdle", "presentButIdle", "present-idle", "PRESENT_IDLE",
+            "Working", "work", "ABSENT", "absnet", "unkown", "",
+        ]
+
+        for bad in misspellings {
+            XCTAssertThrowsError(
+                try DeviceSyncContract(Self.statusFrame(presenceState: bad)),
+                "presence.state \"\(bad)\" must not decode"
+            )
+        }
+    }
+
+    /// A status frame carrying `presenceState` as its fused presence verdict.
+    private static func statusFrame(presenceState: String) -> String {
+        #"""
+        {
+          "type":"status",
+          "cursor":"Fb17b59pB_k3RG7VSz0hEw",
+          "deviceId":"018f4f45-7a98-7f53-89af-a4805f705d20",
+          "phase":"working",
+          "timeZone":"America/Chicago",
+          "scheduleDigest":"1BN0HhSBcM0b-aUkD2kgSzT_eSQQRXTqJD4ZtwhPL7g",
+          "statusVersion":8,
+          "observedAt":"2026-08-01T20:00:00Z",
+          "presence":{"state":"\#(presenceState)","observedAt":"2026-08-01T20:00:04Z"}
+        }
+        """#
     }
 
     func testRejectsPresenceOnNonStatusFrames() throws {
@@ -191,7 +235,7 @@ final class RemoteCommandTests: XCTestCase {
           "type":"welcome",
           "cursor":"Fb17b59pB_k3RG7VSz0hEw",
           "serverTime":"2026-08-01T20:00:00Z",
-          "presence":{"state":"present","observedAt":"2026-08-01T20:00:04Z"}
+          "presence":{"state":"present_idle","observedAt":"2026-08-01T20:00:04Z"}
         }
         """#
         XCTAssertThrowsError(
