@@ -4,6 +4,19 @@ All notable changes to `@hypertext/curfew-protocols` are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-08-09
+
+### Added
+
+- Optional `presence` on the device status publication (`sync.json` `DeviceStatusPublication`) and on the normalized status snapshot (`device.json` `DeviceStatusSnapshot`). It carries a closed `DevicePresenceState` of `present` / `away` / `unknown` plus its own `observedAt` instant, and answers exactly one question: is the human at the desk right now.
+- Generated Swift sync-frame validation now treats `presence` as status-only: a `hello`, `welcome`, `command`, `delivered`, or `result` frame carrying presence fails `validated()` with `invalidSyncFrame`, and a status frame's `presence.observedAt` must be a UTC instant.
+
+### Compatibility
+
+- `presence` is optional on both shapes. Publishers that predate it — including the macOS app's existing enforcement-status reporting — remain valid without changing a line, and `tests/presence-contract.test.ts` asserts that a publication with no `presence` key still validates.
+- The device fuses camera person-detection with HID idle locally and publishes only the fused verdict. `presence` is a closed enum, never a free-form string, and `additionalProperties: false` keeps raw sensor signals off the wire.
+- `unknown` and an absent `presence` are deliberately different: `unknown` means the device evaluated presence and could not decide, an absent object means the publisher does not report presence at all.
+
 ## [1.0.0] — 2026-08-01
 
 ### Added

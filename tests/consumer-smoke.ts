@@ -13,6 +13,8 @@
 import type {
   CanonicalUUID,
   DeviceDescriptor,
+  DevicePresence,
+  DeviceStatusPublication,
   DeviceSyncContract,
   RemoteCommandDelivery,
   RemoteLockCommand,
@@ -47,6 +49,28 @@ export const command: RemoteLockCommand = {
   statusVersion: 3,
   scheduleDigest: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU",
 }
+
+// `DevicePresence` is declared once even though device.json and sync.json both
+// define it; importing it here fails the build if the dedupe ever regresses.
+const presence: DevicePresence = {
+  state: "present",
+  observedAt: "2026-01-01T00:00:00Z",
+}
+
+// A publisher that predates desk presence omits the field entirely. This
+// assignment not compiling would mean the field became required.
+export const legacyStatus: DeviceStatusPublication = {
+  type: "status",
+  cursor: "Fb17b59pB_k3RG7VSz0hEw",
+  deviceId,
+  phase: "working",
+  timeZone: "America/Chicago",
+  scheduleDigest: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU",
+  statusVersion: 3,
+  observedAt: issuedAt,
+}
+
+export const presentStatus: DeviceStatusPublication = { ...legacyStatus, presence }
 
 // Narrowing the sync frame union proves the discriminants survived codegen.
 export function deliveredJws(frame: DeviceSyncContract): string | null {

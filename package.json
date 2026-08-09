@@ -1,6 +1,6 @@
 {
   "name": "@hypertext/curfew-protocols",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Versioned, platform-neutral wire contract for Curfew local MCP, remote MCP, device enrollment, and signed lock commands.",
   "type": "module",
   "main": "./generated/typescript/index.js",

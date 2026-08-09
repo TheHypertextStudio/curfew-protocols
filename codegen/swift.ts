@@ -398,7 +398,8 @@ public extension DeviceSyncContract {
                   resumeCursor.map({ CurfewProtocolPattern.matches($0, CurfewProtocolPattern.cursor) }) ?? true,
                   cursor == nil, serverTime == nil, activeLockoutEndsAt == nil,
                   deviceID == nil, nextTransitionAt == nil, observedAt == nil,
-                  phase == nil, scheduleDigest == nil, statusVersion == nil,
+                  phase == nil, presence == nil, scheduleDigest == nil,
+                  statusVersion == nil,
                   timeZone == nil, commandEnvelope == nil, acknowledgedAt == nil,
                   commandID == nil, sequence == nil, appliedDeadline == nil,
                   resolvedAt == nil, stage == nil, rejectionCode == nil
@@ -409,6 +410,7 @@ public extension DeviceSyncContract {
                   identityAssertion == nil, resumeCursor == nil,
                   activeLockoutEndsAt == nil, deviceID == nil,
                   nextTransitionAt == nil, observedAt == nil, phase == nil,
+                  presence == nil,
                   scheduleDigest == nil, statusVersion == nil, timeZone == nil,
                   commandEnvelope == nil, acknowledgedAt == nil, commandID == nil,
                   sequence == nil, appliedDeadline == nil, resolvedAt == nil,
@@ -423,6 +425,9 @@ public extension DeviceSyncContract {
                   timeZone?.contains("/") == true,
                   activeLockoutEndsAt.map({ CurfewProtocolPattern.date($0) != nil }) ?? true,
                   nextTransitionAt.map({ CurfewProtocolPattern.date($0) != nil }) ?? true,
+                  // Presence is optional: publishers that predate desk presence
+                  // omit it entirely, and that frame stays valid.
+                  presence.map({ CurfewProtocolPattern.date($0.observedAt) != nil }) ?? true,
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   commandEnvelope == nil, acknowledgedAt == nil, commandID == nil,
                   sequence == nil, appliedDeadline == nil, resolvedAt == nil,
@@ -434,6 +439,7 @@ public extension DeviceSyncContract {
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   activeLockoutEndsAt == nil, deviceID == nil,
                   nextTransitionAt == nil, observedAt == nil, phase == nil,
+                  presence == nil,
                   scheduleDigest == nil, statusVersion == nil, timeZone == nil,
                   acknowledgedAt == nil, commandID == nil, sequence == nil,
                   appliedDeadline == nil, resolvedAt == nil, stage == nil,
@@ -445,7 +451,8 @@ public extension DeviceSyncContract {
                   acknowledgedAt.map({ CurfewProtocolPattern.date($0) != nil }) == true,
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   activeLockoutEndsAt == nil, nextTransitionAt == nil,
-                  observedAt == nil, phase == nil, scheduleDigest == nil,
+                  observedAt == nil, phase == nil, presence == nil,
+                  scheduleDigest == nil,
                   statusVersion == nil, timeZone == nil, commandEnvelope == nil,
                   appliedDeadline == nil, resolvedAt == nil, stage == nil,
                   rejectionCode == nil
@@ -457,7 +464,8 @@ public extension DeviceSyncContract {
                   let stage,
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   activeLockoutEndsAt == nil, nextTransitionAt == nil,
-                  observedAt == nil, phase == nil, scheduleDigest == nil,
+                  observedAt == nil, phase == nil, presence == nil,
+                  scheduleDigest == nil,
                   statusVersion == nil, timeZone == nil, commandEnvelope == nil,
                   acknowledgedAt == nil
             else { throw CurfewProtocolValidationError.invalidSyncFrame }

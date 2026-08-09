@@ -152,6 +152,55 @@ final class RemoteCommandTests: XCTestCase {
         }
     }
 
+    func testDecodesStatusFrameWithAndWithoutPresence() throws {
+        let withoutPresence = #"""
+        {
+          "type":"status",
+          "cursor":"Fb17b59pB_k3RG7VSz0hEw",
+          "deviceId":"018f4f45-7a98-7f53-89af-a4805f705d20",
+          "phase":"working",
+          "timeZone":"America/Chicago",
+          "scheduleDigest":"1BN0HhSBcM0b-aUkD2kgSzT_eSQQRXTqJD4ZtwhPL7g",
+          "statusVersion":8,
+          "observedAt":"2026-08-01T20:00:00Z"
+        }
+        """#
+
+        // The shape every publisher that predates desk presence still sends.
+        let bare = try DeviceSyncContract(withoutPresence).validated()
+        XCTAssertNil(bare.presence)
+
+        let withPresence = withoutPresence.replacingOccurrences(
+            of: #""observedAt":"2026-08-01T20:00:00Z""#,
+            with: #""observedAt":"2026-08-01T20:00:00Z","presence":{"state":"present","observedAt":"2026-08-01T20:00:04Z"}"#
+        )
+        let fused = try DeviceSyncContract(withPresence).validated()
+        XCTAssertEqual(fused.presence?.state, .present)
+        XCTAssertEqual(fused.presence?.observedAt, "2026-08-01T20:00:04Z")
+
+        let unknownState = withPresence.replacingOccurrences(
+            of: #""state":"present""#,
+            with: #""state":"at_desk""#
+        )
+        XCTAssertThrowsError(try DeviceSyncContract(unknownState))
+    }
+
+    func testRejectsPresenceOnNonStatusFrames() throws {
+        let welcomeWithPresence = #"""
+        {
+          "type":"welcome",
+          "cursor":"Fb17b59pB_k3RG7VSz0hEw",
+          "serverTime":"2026-08-01T20:00:00Z",
+          "presence":{"state":"present","observedAt":"2026-08-01T20:00:04Z"}
+        }
+        """#
+        XCTAssertThrowsError(
+            try DeviceSyncContract(welcomeWithPresence).validated()
+        ) {
+            XCTAssertEqual($0 as? CurfewProtocolValidationError, .invalidSyncFrame)
+        }
+    }
+
     func testRetainsUnknownPlatformAndCapabilities() throws {
         let json = #"""
         {

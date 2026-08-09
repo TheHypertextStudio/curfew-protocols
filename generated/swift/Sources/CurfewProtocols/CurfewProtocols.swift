@@ -588,6 +588,7 @@ public struct DeviceStatusSnapshot: Codable {
     public let nextTransitionAt: String?
     public let observedAt: String
     public let phase: DevicePhase
+    public let presence: StatusPresence?
     /// Unpadded base64url digest of the local schedule version.
     public let scheduleDigest: String
     public let statusVersion: Int
@@ -597,15 +598,16 @@ public struct DeviceStatusSnapshot: Codable {
     public enum CodingKeys: String, CodingKey {
         case activeLockoutEndsAt
         case deviceID = "deviceId"
-        case nextTransitionAt, observedAt, phase, scheduleDigest, statusVersion, timeZone
+        case nextTransitionAt, observedAt, phase, presence, scheduleDigest, statusVersion, timeZone
     }
 
-    public init(activeLockoutEndsAt: String?, deviceID: String, nextTransitionAt: String?, observedAt: String, phase: DevicePhase, scheduleDigest: String, statusVersion: Int, timeZone: String) {
+    public init(activeLockoutEndsAt: String?, deviceID: String, nextTransitionAt: String?, observedAt: String, phase: DevicePhase, presence: StatusPresence?, scheduleDigest: String, statusVersion: Int, timeZone: String) {
         self.activeLockoutEndsAt = activeLockoutEndsAt
         self.deviceID = deviceID
         self.nextTransitionAt = nextTransitionAt
         self.observedAt = observedAt
         self.phase = phase
+        self.presence = presence
         self.scheduleDigest = scheduleDigest
         self.statusVersion = statusVersion
         self.timeZone = timeZone
@@ -636,6 +638,7 @@ public extension DeviceStatusSnapshot {
         nextTransitionAt: String?? = nil,
         observedAt: String? = nil,
         phase: DevicePhase? = nil,
+        presence: StatusPresence?? = nil,
         scheduleDigest: String? = nil,
         statusVersion: Int? = nil,
         timeZone: String? = nil
@@ -646,6 +649,7 @@ public extension DeviceStatusSnapshot {
             nextTransitionAt: nextTransitionAt ?? self.nextTransitionAt,
             observedAt: observedAt ?? self.observedAt,
             phase: phase ?? self.phase,
+            presence: presence ?? self.presence,
             scheduleDigest: scheduleDigest ?? self.scheduleDigest,
             statusVersion: statusVersion ?? self.statusVersion,
             timeZone: timeZone ?? self.timeZone
@@ -667,6 +671,66 @@ public enum DevicePhase: String, Codable {
     case unknown = "unknown"
     case warning = "warning"
     case working = "working"
+}
+
+/// Fused desk-presence verdict. The device fuses camera person-detection with HID idle
+/// locally and publishes only this verdict; raw sensor signals never cross the wire.
+// MARK: - StatusPresence
+public struct StatusPresence: Codable {
+    /// When the fusion was computed. Carried separately from the enclosing snapshot because
+    /// presence can be staler than the enforcement phase.
+    public let observedAt: String
+    public let state: DevicePresenceState
+
+    public init(observedAt: String, state: DevicePresenceState) {
+        self.observedAt = observedAt
+        self.state = state
+    }
+}
+
+// MARK: StatusPresence convenience initializers and mutators
+
+public extension StatusPresence {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(StatusPresence.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        observedAt: String? = nil,
+        state: DevicePresenceState? = nil
+    ) -> StatusPresence {
+        return StatusPresence(
+            observedAt: observedAt ?? self.observedAt,
+            state: state ?? self.state
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Whether the human is at the desk. 'unknown' means the device evaluated presence and could
+/// not decide; an absent presence object means the publisher does not report presence at all.
+public enum DevicePresenceState: String, Codable {
+    case away = "away"
+    case present = "present"
+    case unknown = "unknown"
 }
 
 /// Curfew status-and-devices resources/read HTML content using MCP Apps _meta.ui policy.
@@ -1610,6 +1674,7 @@ public struct DeviceSyncContract: Codable {
     public let nextTransitionAt: String?
     public let observedAt: String?
     public let phase: DevicePhase?
+    public let presence: DeviceSyncContractPresence?
     public let scheduleDigest: String?
     public let statusVersion: Int?
     public let timeZone: String?
@@ -1624,12 +1689,12 @@ public struct DeviceSyncContract: Codable {
     public enum CodingKeys: String, CodingKey {
         case identityAssertion, resumeCursor, type, cursor, serverTime, activeLockoutEndsAt
         case deviceID = "deviceId"
-        case nextTransitionAt, observedAt, phase, scheduleDigest, statusVersion, timeZone, commandEnvelope, acknowledgedAt
+        case nextTransitionAt, observedAt, phase, presence, scheduleDigest, statusVersion, timeZone, commandEnvelope, acknowledgedAt
         case commandID = "commandId"
         case sequence, appliedDeadline, resolvedAt, stage, rejectionCode
     }
 
-    public init(identityAssertion: InternalDeviceIdentityAssertion?, resumeCursor: String?, type: TypeEnum, cursor: String?, serverTime: String?, activeLockoutEndsAt: String?, deviceID: String?, nextTransitionAt: String?, observedAt: String?, phase: DevicePhase?, scheduleDigest: String?, statusVersion: Int?, timeZone: String?, commandEnvelope: CommandEnvelope?, acknowledgedAt: String?, commandID: String?, sequence: Int?, appliedDeadline: String?, resolvedAt: String?, stage: RemoteCommandResultStage?, rejectionCode: RejectionCode?) {
+    public init(identityAssertion: InternalDeviceIdentityAssertion?, resumeCursor: String?, type: TypeEnum, cursor: String?, serverTime: String?, activeLockoutEndsAt: String?, deviceID: String?, nextTransitionAt: String?, observedAt: String?, phase: DevicePhase?, presence: DeviceSyncContractPresence?, scheduleDigest: String?, statusVersion: Int?, timeZone: String?, commandEnvelope: CommandEnvelope?, acknowledgedAt: String?, commandID: String?, sequence: Int?, appliedDeadline: String?, resolvedAt: String?, stage: RemoteCommandResultStage?, rejectionCode: RejectionCode?) {
         self.identityAssertion = identityAssertion
         self.resumeCursor = resumeCursor
         self.type = type
@@ -1640,6 +1705,7 @@ public struct DeviceSyncContract: Codable {
         self.nextTransitionAt = nextTransitionAt
         self.observedAt = observedAt
         self.phase = phase
+        self.presence = presence
         self.scheduleDigest = scheduleDigest
         self.statusVersion = statusVersion
         self.timeZone = timeZone
@@ -1683,6 +1749,7 @@ public extension DeviceSyncContract {
         nextTransitionAt: String?? = nil,
         observedAt: String?? = nil,
         phase: DevicePhase?? = nil,
+        presence: DeviceSyncContractPresence?? = nil,
         scheduleDigest: String?? = nil,
         statusVersion: Int?? = nil,
         timeZone: String?? = nil,
@@ -1706,6 +1773,7 @@ public extension DeviceSyncContract {
             nextTransitionAt: nextTransitionAt ?? self.nextTransitionAt,
             observedAt: observedAt ?? self.observedAt,
             phase: phase ?? self.phase,
+            presence: presence ?? self.presence,
             scheduleDigest: scheduleDigest ?? self.scheduleDigest,
             statusVersion: statusVersion ?? self.statusVersion,
             timeZone: timeZone ?? self.timeZone,
@@ -1805,6 +1873,58 @@ public extension InternalDeviceIdentityAssertion {
     ) -> InternalDeviceIdentityAssertion {
         return InternalDeviceIdentityAssertion(
             compactJws: compactJws ?? self.compactJws
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Fused desk-presence verdict. The device fuses camera person-detection with HID idle
+/// locally and publishes only this verdict; raw sensor signals never cross the wire.
+// MARK: - DeviceSyncContractPresence
+public struct DeviceSyncContractPresence: Codable {
+    /// When the fusion was computed. Carried separately from the enclosing snapshot because
+    /// presence can be staler than the enforcement phase.
+    public let observedAt: String
+    public let state: DevicePresenceState
+
+    public init(observedAt: String, state: DevicePresenceState) {
+        self.observedAt = observedAt
+        self.state = state
+    }
+}
+
+// MARK: DeviceSyncContractPresence convenience initializers and mutators
+
+public extension DeviceSyncContractPresence {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceSyncContractPresence.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        observedAt: String? = nil,
+        state: DevicePresenceState? = nil
+    ) -> DeviceSyncContractPresence {
+        return DeviceSyncContractPresence(
+            observedAt: observedAt ?? self.observedAt,
+            state: state ?? self.state
         )
     }
 
@@ -2256,7 +2376,8 @@ public extension DeviceSyncContract {
                   resumeCursor.map({ CurfewProtocolPattern.matches($0, CurfewProtocolPattern.cursor) }) ?? true,
                   cursor == nil, serverTime == nil, activeLockoutEndsAt == nil,
                   deviceID == nil, nextTransitionAt == nil, observedAt == nil,
-                  phase == nil, scheduleDigest == nil, statusVersion == nil,
+                  phase == nil, presence == nil, scheduleDigest == nil,
+                  statusVersion == nil,
                   timeZone == nil, commandEnvelope == nil, acknowledgedAt == nil,
                   commandID == nil, sequence == nil, appliedDeadline == nil,
                   resolvedAt == nil, stage == nil, rejectionCode == nil
@@ -2267,6 +2388,7 @@ public extension DeviceSyncContract {
                   identityAssertion == nil, resumeCursor == nil,
                   activeLockoutEndsAt == nil, deviceID == nil,
                   nextTransitionAt == nil, observedAt == nil, phase == nil,
+                  presence == nil,
                   scheduleDigest == nil, statusVersion == nil, timeZone == nil,
                   commandEnvelope == nil, acknowledgedAt == nil, commandID == nil,
                   sequence == nil, appliedDeadline == nil, resolvedAt == nil,
@@ -2281,6 +2403,9 @@ public extension DeviceSyncContract {
                   timeZone?.contains("/") == true,
                   activeLockoutEndsAt.map({ CurfewProtocolPattern.date($0) != nil }) ?? true,
                   nextTransitionAt.map({ CurfewProtocolPattern.date($0) != nil }) ?? true,
+                  // Presence is optional: publishers that predate desk presence
+                  // omit it entirely, and that frame stays valid.
+                  presence.map({ CurfewProtocolPattern.date($0.observedAt) != nil }) ?? true,
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   commandEnvelope == nil, acknowledgedAt == nil, commandID == nil,
                   sequence == nil, appliedDeadline == nil, resolvedAt == nil,
@@ -2292,6 +2417,7 @@ public extension DeviceSyncContract {
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   activeLockoutEndsAt == nil, deviceID == nil,
                   nextTransitionAt == nil, observedAt == nil, phase == nil,
+                  presence == nil,
                   scheduleDigest == nil, statusVersion == nil, timeZone == nil,
                   acknowledgedAt == nil, commandID == nil, sequence == nil,
                   appliedDeadline == nil, resolvedAt == nil, stage == nil,
@@ -2303,7 +2429,8 @@ public extension DeviceSyncContract {
                   acknowledgedAt.map({ CurfewProtocolPattern.date($0) != nil }) == true,
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   activeLockoutEndsAt == nil, nextTransitionAt == nil,
-                  observedAt == nil, phase == nil, scheduleDigest == nil,
+                  observedAt == nil, phase == nil, presence == nil,
+                  scheduleDigest == nil,
                   statusVersion == nil, timeZone == nil, commandEnvelope == nil,
                   appliedDeadline == nil, resolvedAt == nil, stage == nil,
                   rejectionCode == nil
@@ -2315,7 +2442,8 @@ public extension DeviceSyncContract {
                   let stage,
                   identityAssertion == nil, resumeCursor == nil, serverTime == nil,
                   activeLockoutEndsAt == nil, nextTransitionAt == nil,
-                  observedAt == nil, phase == nil, scheduleDigest == nil,
+                  observedAt == nil, phase == nil, presence == nil,
+                  scheduleDigest == nil,
                   statusVersion == nil, timeZone == nil, commandEnvelope == nil,
                   acknowledgedAt == nil
             else { throw CurfewProtocolValidationError.invalidSyncFrame }

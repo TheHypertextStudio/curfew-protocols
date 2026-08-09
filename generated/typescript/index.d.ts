@@ -64,6 +64,11 @@ export interface DeviceProofClaims {
 export type DevicePhase = "working" | "warning" | "locked" | "day_off" | "unknown"
 
 /**
+ * Whether the human is at the desk. 'unknown' means the device evaluated presence and could not decide; an absent presence object means the publisher does not report presence at all.
+ */
+export type DevicePresenceState = "present" | "away" | "unknown"
+
+/**
  * Platform-neutral device identity, eligibility, and normalized Curfew enforcement status.
  */
 export interface DeviceContract {
@@ -96,8 +101,20 @@ export interface DeviceStatusSnapshot {
   scheduleDigest: string
   statusVersion: number
   observedAt: string
+  presence?: DevicePresence
   nextTransitionAt?: string | null
   activeLockoutEndsAt?: string | null
+}
+
+/**
+ * Fused desk-presence verdict. The device fuses camera person-detection with HID idle locally and publishes only this verdict; raw sensor signals never cross the wire.
+ */
+export interface DevicePresence {
+  state: DevicePresenceState
+  /**
+   * When the fusion was computed. Carried separately from the enclosing snapshot because presence can be staler than the enforcement phase.
+   */
+  observedAt: string
 }
 
 // From mcp-app.json
@@ -929,6 +946,7 @@ export interface DeviceStatusPublication {
   scheduleDigest: string
   statusVersion: number
   observedAt: UTCInstant
+  presence?: DevicePresence
   nextTransitionAt?: UTCInstant | null
   activeLockoutEndsAt?: UTCInstant | null
 }
