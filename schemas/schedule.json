@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/schedule.json",
+  "title": "CurfewScheduleContract",
+  "description": "Curfew v2 schedule and migration shapes. A day has exactly one morning release authority: a legacy fixed unlock or an account wake campaign. Stricter changes apply at the next local midnight; weaker changes wait 24 hours and cannot apply during an active lockout.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "releasePolicy": { "$ref": "#/definitions/ReleasePolicy" },
+    "changePolicy": { "$ref": "#/definitions/ScheduleChangeApplicationPolicy" },
+    "migration": { "$ref": "#/definitions/LegacyScheduleMigration" }
+  },
+  "definitions": {
+    "CanonicalUUID": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "IANATimeZone": {
+      "type": "string",
+      "pattern": "^[A-Za-z_+-]+(?:/[A-Za-z0-9_+-]+)+$",
+      "description": "Explicit IANA timezone identifier. Fixed-offset abbreviations are not accepted."
+    },
+    "LocalTime": {
+      "type": "string",
+      "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+    },
+    "DSTResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gap", "overlap"],
+      "properties": {
+        "gap": {
+          "type": "string",
+          "const": "first_valid_instant",
+          "description": "A nonexistent local time advances to the first valid instant after the DST gap."
+        },
+        "overlap": {
+          "type": "string",
+          "const": "first_occurrence",
+          "description": "An ambiguous repeated local time resolves to its first occurrence."
+        }
+      }
+    },
+    "FixedUnlockReleasePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "timeZone", "localUnlockTime", "dstResolution"],
+      "properties": {
+        "kind": { "type": "string", "const": "fixed_unlock" },
+        "timeZone": { "$ref": "#/definitions/IANATimeZone" },
+        "localUnlockTime": { "$ref": "#/definitions/LocalTime" },
+        "dstResolution": { "$ref": "#/definitions/DSTResolution" }
+      }
+    },
+    "AccountWakeCampaignReleasePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "campaignTemplateId", "timeZone", "localStartTime", "dstResolution"],
+      "properties": {
+        "kind": { "type": "string", "const": "wake_campaign" },
+        "campaignTemplateId": { "$ref": "#/definitions/CanonicalUUID" },
+        "timeZone": { "$ref": "#/definitions/IANATimeZone" },
+        "localStartTime": { "$ref": "#/definitions/LocalTime" },
+        "dstResolution": { "$ref": "#/definitions/DSTResolution" }
+      }
+    },
+    "ReleasePolicy": {
+      "description": "Mutually exclusive release authority. A wake-enabled day cannot carry or edit a fixed unlock.",
+      "oneOf": [
+        { "$ref": "#/definitions/FixedUnlockReleasePolicy" },
+        { "$ref": "#/definitions/AccountWakeCampaignReleasePolicy" }
+      ]
+    },
+    "StrengtheningScheduleChangePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strictness", "applyAt", "mustNotApplyDuringActiveLockout"],
+      "properties": {
+        "strictness": { "type": "string", "const": "strengthening" },
+        "applyAt": { "type": "string", "const": "next_local_midnight" },
+        "mustNotApplyDuringActiveLockout": { "type": "boolean", "const": false }
+      }
+    },
+    "WeakeningScheduleChangePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strictness", "applyAt", "mustNotApplyDuringActiveLockout"],
+      "properties": {
+        "strictness": { "type": "string", "const": "weakening" },
+        "applyAt": { "type": "string", "const": "after_24_hours" },
+        "mustNotApplyDuringActiveLockout": { "type": "boolean", "const": true }
+      }
+    },
+    "ScheduleChangeApplicationPolicy": {
+      "description": "Executable anti-bypass policy. Strengthening begins at the next local midnight. Weakening waits at least 24 hours and never begins while a lockout is active.",
+      "oneOf": [
+        { "$ref": "#/definitions/StrengtheningScheduleChangePolicy" },
+        { "$ref": "#/definitions/WeakeningScheduleChangePolicy" }
+      ]
+    },
+    "LegacyScheduleDay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["weekday", "lockTime", "unlockTime", "isDayOff"],
+      "properties": {
+        "weekday": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+        "lockTime": { "$ref": "#/definitions/LocalTime" },
+        "unlockTime": { "$ref": "#/definitions/LocalTime" },
+        "isDayOff": { "type": "boolean" }
+      }
+    },
+    "ScheduleDayV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["weekday", "lockTime", "isDayOff", "releasePolicy"],
+      "properties": {
+        "weekday": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+        "lockTime": { "$ref": "#/definitions/LocalTime" },
+        "isDayOff": { "type": "boolean" },
+        "releasePolicy": { "$ref": "#/definitions/ReleasePolicy" }
+      }
+    },
+    "LegacyScheduleMigration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["migrationVersion", "legacy", "migrated"],
+      "properties": {
+        "migrationVersion": { "type": "integer", "const": 2 },
+        "legacy": { "$ref": "#/definitions/LegacyScheduleDay" },
+        "migrated": { "$ref": "#/definitions/ScheduleDayV2" }
+      }
+    }
+  }
+}

@@ -4,6 +4,32 @@ All notable changes to `@hypertext/curfew-protocols` are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] — 2026-08-10
+
+### Added
+
+- Mutually exclusive fixed-unlock and account wake-campaign schedule policies with explicit IANA timezone and deterministic DST gap/overlap behavior.
+- Perpetual Alarm recurrence, selected-device configuration, persisted campaign and attempt state, deterministic offline deadlines, and satisfied, exhausted, or remotely overridden outcomes. Defaults are three two-minute attempts separated by five-minute quiet intervals. Campaign duration is derived exactly from those three user knobs and capped at two hours.
+- Generic HTTPS callback definitions and canonical nonce-bound HMAC challenges/receipts. Request and response keys are independently HKDF-derived, every poll uses a fresh challenge time and nonce, and post-verification shapes make stale timestamps, bad MACs, mismatched campaigns, and replay rejection explicit.
+- AES-256-GCM encrypted-record envelopes with optimistic versions, monotonic writer counters, key epochs, low-S ES256-P1363 device signatures, conflict responses, RFC 9180 P-256 HPKE account-root-key delivery, and separate Curfew Recovery Key wrapping. Canonical AAD, signature, HPKE, and recovery inputs are normative.
+- Privacy-minimal account device public-key enrollment/revocation, server-readable device/wake status, entitlement provenance and lifecycle, per-client direct-unlock authorizations bounded by device, duration, and 30-day validity, append-only audit metadata, and reasoned 5–60 minute remote override requests and grants. Device names remain encrypted.
+- Kotlin/JVM codegen under package `studio.hypertext.curfew.protocols`, Maven coordinates `studio.hypertext.curfew:curfew-protocols:2.0.0`, a Gradle build, and native shared-vector tests.
+- Language-neutral golden vectors covering valid and malformed payloads, legacy migration, release-policy exclusion, derived-duration mismatch, writer rollback, callback replay and staleness, DST gaps and overlaps, remote override bounds, and fixed callback/E2EE cryptographic outputs verified independently by TypeScript, Swift, and Kotlin.
+- A generated TypeScript custom-keyword helper for the cross-field alarm-duration invariant.
+- Curfew schema identifiers on the approved `curfew-protocols.hypertext.studio` host plus a repository host allow-list that rejects retired/invalid service-host forms while allowing the Android reverse-DNS package name.
+
+### Changed
+
+- JSON Schemas remain the only wire-format authority and now generate committed TypeScript, Swift/SPM, and Kotlin/JVM faces.
+- Kotlin Maven module metadata is generated from package metadata alongside its DTOs; generated artifacts are never hand-edited.
+- Schedule prose now matches Curfew's executable anti-bypass behavior: strengthening applies at the next local midnight; weakening waits 24 hours and cannot apply during an active lockout.
+- v2 is a major release because wake-enabled days replace their editable fixed unlock with a campaign release authority, and account-enabled consumers gain encrypted record/version requirements.
+
+### Security
+
+- Callback MACs use HMAC-SHA256 over RFC 8785 canonical JSON with `mac` omitted. HKDF-SHA256 uses the decoded callback secret, callback identifier salt, and distinct `curfew-callback-request-v1` / `curfew-callback-response-v1` purpose strings.
+- Coordinators cannot merge or decrypt ciphertext. Stale record versions, writer rollback, old key epochs, tampered signatures, replayed callback nonces, and out-of-bounds override durations are rejected by the normative contract and vectors.
+
 ## [1.1.0] — 2026-08-09
 
 ### Added

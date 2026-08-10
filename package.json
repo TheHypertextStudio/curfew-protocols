@@ -1,7 +1,7 @@
 {
   "name": "@hypertext/curfew-protocols",
-  "version": "1.1.0",
-  "description": "Versioned, platform-neutral wire contract for Curfew local MCP, remote MCP, device enrollment, and signed lock commands.",
+  "version": "2.0.0",
+  "description": "Versioned cross-platform Curfew contract for schedules, wake campaigns, E2EE sync, accounts, callbacks, devices, and MCP.",
   "type": "module",
   "main": "./generated/typescript/index.js",
   "types": "./generated/typescript/index.d.ts",
@@ -10,20 +10,27 @@
       "types": "./generated/typescript/index.d.ts",
       "import": "./generated/typescript/index.js"
     },
+    "./validation": {
+      "types": "./generated/typescript/validation.d.ts",
+      "import": "./generated/typescript/validation.js"
+    },
     "./schemas/*": "./schemas/*.json"
   },
   "files": [
     "schemas",
     "generated/typescript",
+    "generated/kotlin/build.gradle.kts",
+    "generated/kotlin/src/main",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "codegen": "tsx codegen/typescript.ts && tsx codegen/swift.ts",
+    "codegen": "tsx codegen/typescript.ts && tsx codegen/swift.ts && tsx codegen/kotlin.ts && tsx codegen/golden-tests.ts",
     "test": "vitest run",
+    "test:kotlin": "./gradlew :generated:kotlin:test",
     "typecheck": "tsc --noEmit",
     "typecheck:consumer": "tsc --noEmit --skipLibCheck false tests/consumer-smoke.ts",
-    "prepublishOnly": "pnpm codegen && pnpm typecheck && pnpm typecheck:consumer && pnpm test"
+    "prepublishOnly": "pnpm codegen && pnpm typecheck && pnpm typecheck:consumer && pnpm test && swift test && pnpm test:kotlin"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -50,6 +57,9 @@
     "curfew",
     "mcp",
     "protocols",
-    "schemas"
+    "schemas",
+    "android",
+    "e2ee",
+    "alarm"
   ]
 }

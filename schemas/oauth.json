@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.hypertext.studio/curfew/oauth.json",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/oauth.json",
   "title": "OAuthContract",
   "description": "OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.",
   "type": "object",

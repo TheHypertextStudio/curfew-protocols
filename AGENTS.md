@@ -6,14 +6,14 @@ This repo is the versioned wire-format contract between the Curfew macOS app and
 
 - **`curfew`** — Swift macOS app, license-issuer Worker, landing. Consumes this package via SPM.
 - **`curfew-sync`** — Cloudflare Worker coordinator. Consumes this package via npm.
-- **`curfew-protocols`** (this repo) — JSON Schemas + emitted TypeScript and Swift types.
+- **`curfew-protocols`** (this repo) — JSON Schemas + emitted TypeScript, Swift, and Kotlin/JVM types.
 
 ## Non-negotiable rules
 
 1. **JSON Schemas in `schemas/` are the source of truth.** Never hand-edit anything under `generated/`. If a generated file is wrong, fix the schema or the codegen, never the output.
 2. **Every schema change is a four-step changeset:**
    - Edit the schema.
-   - Run `pnpm codegen` and commit the regenerated `generated/typescript/` and `generated/swift/Sources/CurfewProtocols/` outputs.
+   - Run `pnpm codegen` and commit the regenerated TypeScript, Swift, Kotlin, and native golden-test outputs under `generated/`.
    - Run `pnpm test` (contract tests roundtrip every schema through both codegens; failure means the codegens disagree about a field shape).
    - Bump `package.json` version (semver: additive = minor, breaking = major) and add an entry to `CHANGELOG.md`.
    All four happen in the same PR.
@@ -25,10 +25,11 @@ This repo is the versioned wire-format contract between the Curfew macOS app and
 
 ```sh
 pnpm install
-pnpm codegen     # regenerate TS + Swift outputs
+pnpm codegen     # regenerate TS + Swift + Kotlin outputs and native golden tests
 pnpm test        # vitest contract tests
 pnpm typecheck   # tsc --noEmit (skipLibCheck: does not check generated/ .d.ts internals)
 pnpm typecheck:consumer  # compiles the emitted .d.ts itself, lib checking on
+pnpm test:kotlin # generated Kotlin/JVM compile and shared-vector tests
 pnpm publish     # publish to npm (runs prepublishOnly)
 ```
 
@@ -51,3 +52,4 @@ pnpm publish     # publish to npm (runs prepublishOnly)
 - `CHANGELOG.md` has an entry under the new version.
 - `package.json` version bumped.
 - Swift consumers (`swift build` against this package's `Package.swift`) succeed.
+- Kotlin consumers (`pnpm test:kotlin`) compile and pass the shared vector corpus.

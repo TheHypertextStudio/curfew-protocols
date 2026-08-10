@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.hypertext.studio/curfew/mcp-app.json",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/mcp-app.json",
   "title": "MCPAppResource",
   "description": "Curfew status-and-devices resources/read HTML content using MCP Apps _meta.ui policy.",
   "type": "object",

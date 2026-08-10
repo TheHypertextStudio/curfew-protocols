@@ -1,0 +1,402 @@
+{
+  "formatVersion": 1,
+  "description": "Language-neutral Curfew v2 contract vectors. TypeScript validates these directly; Swift and Kotlin smoke tests are generated from this same corpus.",
+  "cryptography": {
+    "secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    "callbackId": "018f4f45-cafe-7f00-9a82-e47805fb4d34",
+    "challengeUnsigned": {
+      "campaignId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+      "callbackId": "018f4f45-cafe-7f00-9a82-e47805fb4d34",
+      "campaignStartedAt": "2026-08-10T14:00:00Z",
+      "nonce": "Fb17b59pB_k3RG7VSz0hEw",
+      "challengedAt": "2026-08-10T14:00:05Z",
+      "expiresAt": "2026-08-10T14:00:10Z"
+    },
+    "challengeCanonical": "{\"callbackId\":\"018f4f45-cafe-7f00-9a82-e47805fb4d34\",\"campaignId\":\"018f4f45-7a98-7f53-89af-a4805f705d20\",\"campaignStartedAt\":\"2026-08-10T14:00:00Z\",\"challengedAt\":\"2026-08-10T14:00:05Z\",\"expiresAt\":\"2026-08-10T14:00:10Z\",\"nonce\":\"Fb17b59pB_k3RG7VSz0hEw\"}",
+    "requestKey": "Si5XE27DY98XPXF-mVJBR0gI7SDsnYCqjOQT4KWzdyc",
+    "challengeMac": "ltfHvXBz1jt8Vt8d5lRHzKc6jv-52_-UiXDpda0_VUo",
+    "receiptUnsigned": {
+      "campaignId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+      "nonce": "Fb17b59pB_k3RG7VSz0hEw",
+      "status": "satisfied",
+      "observedAt": "2026-08-10T14:00:06Z",
+      "expiresAt": "2026-08-10T14:00:20Z"
+    },
+    "receiptCanonical": "{\"campaignId\":\"018f4f45-7a98-7f53-89af-a4805f705d20\",\"expiresAt\":\"2026-08-10T14:00:20Z\",\"nonce\":\"Fb17b59pB_k3RG7VSz0hEw\",\"observedAt\":\"2026-08-10T14:00:06Z\",\"status\":\"satisfied\"}",
+    "responseKey": "CHQURvt7SQSzxVSvThktbCYeDj3MDdbCW515whOwPn0",
+    "receiptMac": "QX7X_95wB6aQjro_mBnT3SybkuyKftBj1CSgvYpWszw",
+    "encryptedRecord": {
+      "rootKey": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+      "namespaceKeySalt": "curfew-encrypted-record-v2",
+      "namespaceKeyInfo": "namespace=alarms;keyEpoch=1",
+      "namespaceKey": "LdrZW3QfbykGe51EIxEfqSe75vIwvihVJbO69Pua83U",
+      "plaintextCanonical": "{\"enabled\":true,\"maximumAttempts\":3}",
+      "nonce": "oKGio6Slpqeoqaqr",
+      "aadUnsigned": {
+        "cipherSuite": "AES-256-GCM",
+        "keyEpoch": 1,
+        "namespace": "alarms",
+        "recordId": "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+        "updatedAt": "2026-08-10T14:00:00Z",
+        "version": 2,
+        "writerCounter": 5,
+        "writerDeviceId": "018f4f45-a055-7502-8b0c-7276bfe16c8f"
+      },
+      "aadCanonical": "{\"cipherSuite\":\"AES-256-GCM\",\"keyEpoch\":1,\"namespace\":\"alarms\",\"recordId\":\"018f4f45-4d34-7d98-a6c5-4de1bd63a21c\",\"updatedAt\":\"2026-08-10T14:00:00Z\",\"version\":2,\"writerCounter\":5,\"writerDeviceId\":\"018f4f45-a055-7502-8b0c-7276bfe16c8f\"}",
+      "aadDigest": "lb4wTNW2IMZvw-Edpk5hkvOTIBjDQZPhMguDRw5wO_8",
+      "ciphertext": "rAFROPRUKHtul1u9zY01tEnLqlGiA69cDs3fqY1F-VBomvh6u3283OdbNmbueEy0vWu6lg",
+      "signingPrivateKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAE",
+      "signingPublicKeyJwk": {
+        "kty": "EC",
+        "crv": "P-256",
+        "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+        "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
+      },
+      "signatureUnsigned": {
+        "aadDigest": "lb4wTNW2IMZvw-Edpk5hkvOTIBjDQZPhMguDRw5wO_8",
+        "cipherSuite": "AES-256-GCM",
+        "ciphertext": "rAFROPRUKHtul1u9zY01tEnLqlGiA69cDs3fqY1F-VBomvh6u3283OdbNmbueEy0vWu6lg",
+        "keyEpoch": 1,
+        "namespace": "alarms",
+        "nonce": "oKGio6Slpqeoqaqr",
+        "recordId": "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+        "signatureAlgorithm": "ES256-P1363-SHA256",
+        "updatedAt": "2026-08-10T14:00:00Z",
+        "version": 2,
+        "writerCounter": 5,
+        "writerDeviceId": "018f4f45-a055-7502-8b0c-7276bfe16c8f"
+      },
+      "signatureCanonical": "{\"aadDigest\":\"lb4wTNW2IMZvw-Edpk5hkvOTIBjDQZPhMguDRw5wO_8\",\"cipherSuite\":\"AES-256-GCM\",\"ciphertext\":\"rAFROPRUKHtul1u9zY01tEnLqlGiA69cDs3fqY1F-VBomvh6u3283OdbNmbueEy0vWu6lg\",\"keyEpoch\":1,\"namespace\":\"alarms\",\"nonce\":\"oKGio6Slpqeoqaqr\",\"recordId\":\"018f4f45-4d34-7d98-a6c5-4de1bd63a21c\",\"signatureAlgorithm\":\"ES256-P1363-SHA256\",\"updatedAt\":\"2026-08-10T14:00:00Z\",\"version\":2,\"writerCounter\":5,\"writerDeviceId\":\"018f4f45-a055-7502-8b0c-7276bfe16c8f\"}",
+      "signature": "_S6fPnls-yzxJQKaeU-ZMrPlmaRtuGssZy29frmsQz09S-9oQAgdb_yQC2bGhlNzHgdbCNaL28QcmJCnnaBT6A"
+    },
+    "hpkeEnvelope": {
+      "recipientPrivateKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAI",
+      "recipientPublicKey": "BHzyexiNA09-ilI4AwS1GsPAiWnid_IbNaYLSPxHZpl4B3dVENuO0EApPZrGn3Qw27p9reY86YIpngS3nSJ4c9E",
+      "ephemeralPrivateKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM",
+      "encapsulatedKey": "BF7L5NGmMwpEyPfvlR1L8WXmxrch762phftBZhvG5_1shzRkDEmY_343SwbOGmSi7NgqsDY4T7g9mnmxJ6J9UDI",
+      "info": "curfew-root-key-envelope-v2",
+      "aadUnsigned": {
+        "createdAt": "2026-08-10T14:00:00Z",
+        "keyEpoch": 1,
+        "recipientDeviceId": "018f4f45-a055-7502-8b0c-7276bfe16c8f"
+      },
+      "aadCanonical": "{\"createdAt\":\"2026-08-10T14:00:00Z\",\"keyEpoch\":1,\"recipientDeviceId\":\"018f4f45-a055-7502-8b0c-7276bfe16c8f\"}",
+      "sharedSecret": "7QR4TtUxQ2lPI1WNRqyWPo_gYct9WYHPLDmd67lcf04",
+      "key": "W8J58yGsRmBZBu6hEIRraEfBYk7qsMeX1xurZCYe4f8",
+      "baseNonce": "mqAVZJmjJoNNm9GC",
+      "ciphertext": "zR1Y5Z8iG09FOfMi_3cmndteDPYsKv7_03STWS4C8yvY5ZGpGoYkTqHTjy-lXrpD"
+    },
+    "recoveryEnvelope": {
+      "recoveryKey": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+      "salt": "cHFyc3R1dnd4eXp7fH1-fw",
+      "info": "curfew-recovery-wrap-v2",
+      "wrappingKey": "-wM4XC3KT3WtO-NGE_gmmiPnasYAyMOSquDUrrp0g0s",
+      "nonce": "wMHCw8TFxsfIycrL",
+      "aadUnsigned": {
+        "createdAt": "2026-08-10T14:00:00Z",
+        "keyEpoch": 1
+      },
+      "aadCanonical": "{\"createdAt\":\"2026-08-10T14:00:00Z\",\"keyEpoch\":1}",
+      "ciphertext": "N6oVk0-PT81sLWLarss4ZZHylio7YefIplqMkP6SOaCY2lhGAJNpCgA4VM6PfX12"
+    }
+  },
+  "timeResolution": [
+    {
+      "id": "dst-gap-first-valid-instant",
+      "kind": "local_time",
+      "timeZone": "America/Los_Angeles",
+      "localDateTime": "2026-03-08T02:30:00",
+      "expectedInstant": "2026-03-08T10:00:00Z"
+    },
+    {
+      "id": "dst-overlap-first-occurrence",
+      "kind": "local_time",
+      "timeZone": "America/Los_Angeles",
+      "localDateTime": "2026-11-01T01:30:00",
+      "expectedInstant": "2026-11-01T08:30:00Z"
+    },
+    {
+      "id": "default-campaign-final-deadline",
+      "kind": "final_deadline",
+      "scheduledAt": "2026-08-10T14:00:00Z",
+      "campaignDurationSeconds": 960,
+      "expectedInstant": "2026-08-10T14:16:00Z"
+    }
+  ],
+  "cases": [
+    {
+      "id": "fixed-unlock-release",
+      "schema": "schedule.json",
+      "definition": "ReleasePolicy",
+      "valid": true,
+      "payload": {
+        "kind": "fixed_unlock",
+        "timeZone": "America/Los_Angeles",
+        "localUnlockTime": "07:00",
+        "dstResolution": { "gap": "first_valid_instant", "overlap": "first_occurrence" }
+      }
+    },
+    {
+      "id": "wake-campaign-release",
+      "schema": "schedule.json",
+      "definition": "ReleasePolicy",
+      "valid": true,
+      "payload": {
+        "kind": "wake_campaign",
+        "campaignTemplateId": "018f4f45-badc-71ef-bd8e-87cb745aac4d",
+        "timeZone": "America/Los_Angeles",
+        "localStartTime": "07:00",
+        "dstResolution": { "gap": "first_valid_instant", "overlap": "first_occurrence" }
+      }
+    },
+    {
+      "id": "release-policy-mutual-exclusion",
+      "schema": "schedule.json",
+      "definition": "ReleasePolicy",
+      "valid": false,
+      "payload": {
+        "kind": "fixed_unlock",
+        "campaignTemplateId": "018f4f45-badc-71ef-bd8e-87cb745aac4d",
+        "timeZone": "America/Los_Angeles",
+        "localUnlockTime": "07:00",
+        "localStartTime": "07:00",
+        "dstResolution": { "gap": "first_valid_instant", "overlap": "first_occurrence" }
+      }
+    },
+    {
+      "id": "legacy-schedule-migration",
+      "schema": "schedule.json",
+      "definition": "LegacyScheduleMigration",
+      "valid": true,
+      "payload": {
+        "migrationVersion": 2,
+        "legacy": { "weekday": "monday", "lockTime": "22:00", "unlockTime": "07:00", "isDayOff": false },
+        "migrated": {
+          "weekday": "monday",
+          "lockTime": "22:00",
+          "isDayOff": false,
+          "releasePolicy": {
+            "kind": "fixed_unlock",
+            "timeZone": "America/Los_Angeles",
+            "localUnlockTime": "07:00",
+            "dstResolution": { "gap": "first_valid_instant", "overlap": "first_occurrence" }
+          }
+        }
+      }
+    },
+    {
+      "id": "default-three-attempt-alarm",
+      "schema": "alarm.json",
+      "definition": "AlarmConfiguration",
+      "valid": true,
+      "payload": {
+        "maximumAttempts": 3,
+        "ringDurationSeconds": 120,
+        "quietIntervalSeconds": 300,
+        "campaignDurationSeconds": 960,
+        "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
+      }
+    },
+    {
+      "id": "campaign-over-two-hours",
+      "schema": "alarm.json",
+      "definition": "AlarmConfiguration",
+      "valid": false,
+      "payload": {
+        "maximumAttempts": 3,
+        "ringDurationSeconds": 120,
+        "quietIntervalSeconds": 300,
+        "campaignDurationSeconds": 7201,
+        "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
+      }
+    },
+    {
+      "id": "campaign-computed-duration-over-two-hours",
+      "schema": "alarm.json",
+      "definition": "AlarmConfiguration",
+      "valid": false,
+      "payload": {
+        "maximumAttempts": 24,
+        "ringDurationSeconds": 600,
+        "quietIntervalSeconds": 300,
+        "campaignDurationSeconds": 7200,
+        "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
+      }
+    },
+    {
+      "id": "malformed-callback",
+      "schema": "callback.json",
+      "definition": "CallbackDefinition",
+      "valid": false,
+      "payload": {
+        "callbackId": "018f4f45-cafe-7f00-9a82-e47805fb4d34",
+        "displayLabel": "Start working",
+        "endpoint": "http://127.0.0.1/condition",
+        "secret": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "pollPolicy": { "intervalSeconds": 15, "requestTimeoutSeconds": 5, "maximumBackoffSeconds": 60 }
+      }
+    },
+    {
+      "id": "callback-replay",
+      "schema": "callback.json",
+      "definition": "CallbackReceiptAcceptance",
+      "valid": false,
+      "payload": {
+        "receipt": {
+          "campaignId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+          "nonce": "Fb17b59pB_k3RG7VSz0hEw",
+          "status": "satisfied",
+          "observedAt": "2026-08-10T14:00:05Z",
+          "expiresAt": "2026-08-10T14:00:20Z",
+          "mac": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "campaignDisposition": "matched",
+        "nonceDisposition": "replayed",
+        "timestampDisposition": "fresh",
+        "macDisposition": "valid"
+      }
+    },
+    {
+      "id": "stale-callback-observation",
+      "schema": "callback.json",
+      "definition": "CallbackReceiptAcceptance",
+      "valid": false,
+      "payload": {
+        "receipt": {
+          "campaignId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+          "nonce": "Fb17b59pB_k3RG7VSz0hEw",
+          "status": "pending",
+          "observedAt": "2026-08-10T13:00:00Z",
+          "expiresAt": "2026-08-10T13:00:15Z",
+          "mac": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        },
+        "campaignDisposition": "matched",
+        "nonceDisposition": "fresh",
+        "timestampDisposition": "stale",
+        "macDisposition": "valid"
+      }
+    },
+    {
+      "id": "encrypted-record-current-writer",
+      "schema": "e2ee.json",
+      "definition": "EncryptedRecordAcceptance",
+      "valid": true,
+      "payload": {
+        "record": {
+          "namespace": "alarms",
+          "recordId": "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+          "version": 2,
+          "writerDeviceId": "018f4f45-a055-7502-8b0c-7276bfe16c8f",
+          "writerCounter": 5,
+          "keyEpoch": 1,
+          "cipherSuite": "AES-256-GCM",
+          "nonce": "AAAAAAAAAAAAAAAA",
+          "aadDigest": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "ciphertext": "AAAAAAAAAAAAAAAAAAAAAA",
+          "signatureAlgorithm": "ES256-P1363-SHA256",
+          "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "updatedAt": "2026-08-10T14:00:00Z"
+        },
+        "versionDisposition": "next_version",
+        "writerDisposition": "monotonic",
+        "epochDisposition": "current",
+        "signatureDisposition": "valid"
+      }
+    },
+    {
+      "id": "stale-writer-version",
+      "schema": "e2ee.json",
+      "definition": "EncryptedRecordAcceptance",
+      "valid": false,
+      "payload": {
+        "record": {
+          "namespace": "alarms",
+          "recordId": "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+          "version": 1,
+          "writerDeviceId": "018f4f45-a055-7502-8b0c-7276bfe16c8f",
+          "writerCounter": 4,
+          "keyEpoch": 1,
+          "cipherSuite": "AES-256-GCM",
+          "nonce": "AAAAAAAAAAAAAAAA",
+          "aadDigest": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "ciphertext": "AAAAAAAAAAAAAAAAAAAAAA",
+          "signatureAlgorithm": "ES256-P1363-SHA256",
+          "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "updatedAt": "2026-08-10T13:59:00Z"
+        },
+        "versionDisposition": "stale",
+        "writerDisposition": "rollback",
+        "epochDisposition": "current",
+        "signatureDisposition": "valid"
+      }
+    },
+    {
+      "id": "dst-gap",
+      "schema": "schedule.json",
+      "definition": "ReleasePolicy",
+      "valid": true,
+      "payload": {
+        "kind": "wake_campaign",
+        "campaignTemplateId": "018f4f45-badc-71ef-bd8e-87cb745aac4d",
+        "timeZone": "America/Los_Angeles",
+        "localStartTime": "02:30",
+        "dstResolution": { "gap": "first_valid_instant", "overlap": "first_occurrence" }
+      }
+    },
+    {
+      "id": "dst-overlap",
+      "schema": "schedule.json",
+      "definition": "ReleasePolicy",
+      "valid": true,
+      "payload": {
+        "kind": "wake_campaign",
+        "campaignTemplateId": "018f4f45-badc-71ef-bd8e-87cb745aac4d",
+        "timeZone": "America/Los_Angeles",
+        "localStartTime": "01:30",
+        "dstResolution": { "gap": "first_valid_instant", "overlap": "first_occurrence" }
+      }
+    },
+    {
+      "id": "remote-override-five-minutes",
+      "schema": "account.json",
+      "definition": "RemoteOverrideRequest",
+      "valid": true,
+      "payload": {
+        "requestId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+        "targetDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"],
+        "reason": "Urgent access needed for an incident",
+        "durationMinutes": 5,
+        "requestedAt": "2026-08-10T19:00:00Z",
+        "approvalMode": "approval_required"
+      }
+    },
+    {
+      "id": "remote-override-too-short",
+      "schema": "account.json",
+      "definition": "RemoteOverrideRequest",
+      "valid": false,
+      "payload": {
+        "requestId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+        "targetDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"],
+        "reason": "Urgent access needed for an incident",
+        "durationMinutes": 4,
+        "requestedAt": "2026-08-10T19:00:00Z",
+        "approvalMode": "approval_required"
+      }
+    },
+    {
+      "id": "remote-override-too-long",
+      "schema": "account.json",
+      "definition": "RemoteOverrideRequest",
+      "valid": false,
+      "payload": {
+        "requestId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+        "targetDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"],
+        "reason": "Urgent access needed for an incident",
+        "durationMinutes": 61,
+        "requestedAt": "2026-08-10T19:00:00Z",
+        "approvalMode": "preauthorized_direct"
+      }
+    }
+  ]
+}

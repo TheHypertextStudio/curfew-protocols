@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/e2ee.json",
+  "title": "CurfewE2EEContract",
+  "description": "Opaque encrypted synchronization records and account-root-key distribution. Coordinators store ciphertext and monotonic headers but never receive account root keys or plaintext settings.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "record": { "$ref": "#/definitions/EncryptedRecord" },
+    "conflict": { "$ref": "#/definitions/EncryptedRecordConflict" },
+    "acceptance": { "$ref": "#/definitions/EncryptedRecordAcceptance" },
+    "rootKeyEnvelope": { "$ref": "#/definitions/RootKeyEnvelope" },
+    "recoveryEnvelope": { "$ref": "#/definitions/RecoveryKeyEnvelope" }
+  },
+  "definitions": {
+    "CanonicalUUID": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "UTCInstant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+    },
+    "Base64URLSHA256": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "EncryptedRecordNamespace": {
+      "type": "string",
+      "enum": ["policy", "alarms", "callbacks", "campaigns", "device_state", "account_settings"]
+    },
+    "EncryptedRecord": {
+      "description": "AES-256-GCM sealed record. Derive the 32-byte namespace key with HKDF-SHA256 using the decoded 32-byte account root key as IKM, UTF-8 `curfew-encrypted-record-v2` as salt, and UTF-8 `namespace=<namespace>;keyEpoch=<base-10 keyEpoch>` as info. AAD is the RFC 8785 JCS UTF-8 encoding of exactly {cipherSuite,keyEpoch,namespace,recordId,updatedAt,version,writerCounter,writerDeviceId}; aadDigest is unpadded base64url SHA-256 of those bytes. ciphertext is ciphertext || the 16-byte GCM tag, unpadded base64url. Signature input is the RFC 8785 JCS UTF-8 encoding of exactly {aadDigest,cipherSuite,ciphertext,keyEpoch,namespace,nonce,recordId,signatureAlgorithm,updatedAt,version,writerCounter,writerDeviceId}. signature is ES256 over those bytes using SHA-256, encoded as the 64-byte IEEE P1363 r || s form with a low-S value, then unpadded base64url. Stale versions or writer-counter rollback conflict; the coordinator never merges ciphertext.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "recordId", "version", "writerDeviceId", "writerCounter", "keyEpoch", "cipherSuite", "nonce", "aadDigest", "ciphertext", "signatureAlgorithm", "signature", "updatedAt"],
+      "properties": {
+        "namespace": { "$ref": "#/definitions/EncryptedRecordNamespace" },
+        "recordId": { "$ref": "#/definitions/CanonicalUUID" },
+        "version": { "type": "integer", "minimum": 1 },
+        "writerDeviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "writerCounter": { "type": "integer", "minimum": 1 },
+        "keyEpoch": { "type": "integer", "minimum": 1 },
+        "cipherSuite": { "type": "string", "const": "AES-256-GCM" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16}$" },
+        "aadDigest": { "$ref": "#/definitions/Base64URLSHA256" },
+        "ciphertext": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,}$" },
+        "signatureAlgorithm": { "type": "string", "const": "ES256-P1363-SHA256" },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]{86}$" },
+        "updatedAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "EncryptedRecordConflict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordId", "attemptedVersion", "currentVersion", "attemptedWriterCounter", "currentWriterCounter"],
+      "properties": {
+        "recordId": { "$ref": "#/definitions/CanonicalUUID" },
+        "attemptedVersion": { "type": "integer", "minimum": 1 },
+        "currentVersion": { "type": "integer", "minimum": 1 },
+        "attemptedWriterCounter": { "type": "integer", "minimum": 1 },
+        "currentWriterCounter": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "EncryptedRecordAcceptance": {
+      "description": "Post-verification view emitted only after optimistic version, writer monotonicity, key epoch, signature, and ciphertext-header binding checks succeed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record", "versionDisposition", "writerDisposition", "epochDisposition", "signatureDisposition"],
+      "properties": {
+        "record": { "$ref": "#/definitions/EncryptedRecord" },
+        "versionDisposition": { "type": "string", "const": "next_version" },
+        "writerDisposition": { "type": "string", "const": "monotonic" },
+        "epochDisposition": { "type": "string", "const": "current" },
+        "signatureDisposition": { "type": "string", "const": "valid" }
+      }
+    },
+    "RootKeyEnvelope": {
+      "description": "The sole canonical device root-key envelope. RFC 9180 HPKE base mode uses DHKEM(P-256,HKDF-SHA256) KEM ID 0x0010, HKDF-SHA256 KDF ID 0x0001, and AES-256-GCM AEAD ID 0x0002. info is UTF-8 `curfew-root-key-envelope-v2`; AAD is RFC 8785 JCS UTF-8 of exactly {createdAt,keyEpoch,recipientDeviceId}; plaintext is exactly the random 32-byte account root key. encapsulatedKey is the 65-byte SEC1 uncompressed P-256 point and ciphertext is the 32-byte plaintext plus 16-byte tag, both unpadded base64url. Namespace keys are independently derived from the root.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recipientDeviceId", "keyEpoch", "kem", "kdf", "aead", "info", "encapsulatedKey", "ciphertext", "createdAt"],
+      "properties": {
+        "recipientDeviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "keyEpoch": { "type": "integer", "minimum": 1 },
+        "kem": { "type": "string", "const": "DHKEM(P-256,HKDF-SHA256)" },
+        "kdf": { "type": "string", "const": "HKDF-SHA256" },
+        "aead": { "type": "string", "const": "AES-256-GCM" },
+        "info": { "type": "string", "const": "curfew-root-key-envelope-v2" },
+        "encapsulatedKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{87}$" },
+        "ciphertext": { "type": "string", "pattern": "^[A-Za-z0-9_-]{64}$" },
+        "createdAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "RecoveryKeyEnvelope": {
+      "description": "Account root key wrapped using the separately generated mandatory 32-byte Curfew Recovery Key. Derive the 32-byte AES key with HKDF-SHA256 using the decoded Recovery Key as IKM, the decoded 16-byte salt as salt, and UTF-8 `curfew-recovery-wrap-v2` as info. AES-256-GCM plaintext is exactly the 32-byte account root key; AAD is RFC 8785 JCS UTF-8 of exactly {createdAt,keyEpoch}; ciphertext is ciphertext || the 16-byte tag, unpadded base64url. Authentication backup codes do not decrypt this envelope; restoration requires AAL2 plus the Curfew Recovery Key.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyEpoch", "kdf", "aead", "info", "salt", "nonce", "ciphertext", "createdAt"],
+      "properties": {
+        "keyEpoch": { "type": "integer", "minimum": 1 },
+        "kdf": { "type": "string", "const": "HKDF-SHA256" },
+        "aead": { "type": "string", "const": "AES-256-GCM" },
+        "info": { "type": "string", "const": "curfew-recovery-wrap-v2" },
+        "salt": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22}$" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{16}$" },
+        "ciphertext": { "type": "string", "pattern": "^[A-Za-z0-9_-]{64}$" },
+        "createdAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    }
+  }
+}

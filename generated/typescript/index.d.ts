@@ -1,6 +1,366 @@
 // AUTO-GENERATED from schemas/*.json by codegen/typescript.ts.
 // Do not edit by hand. Re-run `pnpm codegen` after schema changes.
 
+// From account.json
+
+export type CanonicalUUID = string
+export type Base64URLSHA256 = string
+export type UTCInstant = string
+
+/**
+ * Minimal server-readable Curfew account metadata: device public-key enrollment and revocation, routing status, entitlements, bounded remote overrides, and append-only audit records. Device names and decrypted settings are intentionally absent and belong in E2EE account settings.
+ */
+export interface CurfewAccountContract {
+  enrollment?: AccountDeviceEnrollment
+  revocation?: DeviceRevocation
+  deviceStatus?: DeviceStatus
+  wakeStatus?: WakeStatus
+  entitlement?: Entitlement
+  directUnlockAuthorization?: DirectUnlockAuthorization
+  overrideRequest?: RemoteOverrideRequest
+  override?: RemoteOverride
+  audit?: AuditRecord
+}
+
+/**
+ * Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only public keys and epoch/timing metadata here. Device names and presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded separately for this deviceId.
+ */
+export interface AccountDeviceEnrollment {
+  deviceId: CanonicalUUID
+  encryptionPublicKeyJwk: AccountPublicKeyJWK
+  signingPublicKeyJwk: AccountPublicKeyJWK
+  keyEpoch: number
+  enrolledAt: UTCInstant
+}
+export interface AccountPublicKeyJWK {
+  kty: "EC"
+  crv: "P-256"
+  x: Base64URLSHA256
+  y: Base64URLSHA256
+}
+
+/**
+ * Revoking a device requires account key-epoch rotation before later records are synchronized.
+ */
+export interface DeviceRevocation {
+  deviceId: CanonicalUUID
+  revokedAt: UTCInstant
+  newKeyEpoch: number
+  reason: string
+}
+
+/**
+ * Minimal routing and release state for a device. Human-readable device presentation stays in encrypted account settings.
+ */
+export interface DeviceStatus {
+  deviceId: CanonicalUUID
+  connectivity: "online" | "offline"
+  wakeGate: "not_configured" | "locked" | "released"
+  activeCampaignId?: CanonicalUUID | null
+  statusVersion: number
+  observedAt: UTCInstant
+}
+
+/**
+ * Minimal server-readable campaign state for routing, convergence, deterministic offline release, and the get_wake_status control surface. Callback definitions and alarm settings remain encrypted.
+ */
+export interface WakeStatus {
+  campaignId: CanonicalUUID
+  state: "scheduled" | "ringing_attempt" | "quiet_interval" | "satisfied" | "exhausted" | "overridden"
+  attemptNumber: number
+  maximumAttempts: number
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  selectedDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+  finalDeadlineAt: UTCInstant
+  statusVersion: number
+  updatedAt: UTCInstant
+}
+
+/**
+ * Account-optional lifetime or subscription entitlement metadata. Signed offline license envelopes remain independently usable and claimable.
+ */
+export interface Entitlement {
+  entitlementId: CanonicalUUID
+  kind: "lifetime" | "subscription"
+  status: "active" | "grace_period" | "cancelled" | "expired" | "refunded" | "revoked"
+  productId: string
+  provenance:
+    | "signed_in_checkout"
+    | "guest_checkout"
+    | "signed_license_claim"
+    | "verified_checkout_claim"
+    | "legacy_email_match"
+  issuedAt: UTCInstant
+  validUntil?: UTCInstant | null
+  claimedAt?: UTCInstant | null
+}
+
+/**
+ * Explicit per-OAuth-client authorization for direct unlock. It is restricted to named devices, at most 60 minutes per override, and at most 30 days of validity; revocation is immediate. The validity deadline is derived exclusively as grantedAt plus validitySeconds, so no competing expiry field exists.
+ */
+export interface DirectUnlockAuthorization {
+  authorizationId: CanonicalUUID
+  oauthClientId: string
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  targetDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+  maximumOverrideMinutes: number
+  validitySeconds: number
+  grantedAt: UTCInstant
+  status: "active" | "revoked" | "expired"
+  revokedAt?: UTCInstant | null
+}
+
+/**
+ * Request for a reasoned time-bounded release. Approval-required is the MCP default; direct mode is valid only when a separate client policy authorizes the exact devices and time window.
+ */
+export interface RemoteOverrideRequest {
+  requestId: CanonicalUUID
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  targetDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+  reason: string
+  durationMinutes: number
+  requestedAt: UTCInstant
+  approvalMode: "approval_required" | "preauthorized_direct"
+  oauthClientId?: string | null
+}
+
+/**
+ * Applied release interval. The expiry instant is derived exclusively as startsAt plus durationMinutes, avoiding contradictory clocks.
+ */
+export interface RemoteOverride {
+  overrideId: CanonicalUUID
+  requestId: CanonicalUUID
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  targetDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+  reason: string
+  durationMinutes: number
+  startsAt: UTCInstant
+  authorizedBy: "fresh_web_aal2" | "mcp_user_approval" | "mcp_preauthorized_client"
+  status: "active" | "expired" | "cancelled"
+}
+
+/**
+ * Append-only server-readable audit record. The encrypted settings that led to an action are not copied into audit metadata.
+ */
+export interface AuditRecord {
+  auditId: CanonicalUUID
+  actorKind: "user" | "device" | "oauth_client" | "system"
+  actorId?: string | null
+  action:
+    | "device_enrolled"
+    | "device_revoked"
+    | "remote_override_requested"
+    | "remote_override_approved"
+    | "remote_override_denied"
+    | "remote_override_cancelled"
+    | "remote_override_expired"
+    | "entitlement_claimed"
+    | "entitlement_revoked"
+  /**
+   * @maxItems 32
+   */
+  targetDeviceIds: CanonicalUUID[]
+  reason: string
+  occurredAt: UTCInstant
+}
+
+// From alarm.json
+
+export type AlarmRecurrence = WeeklyAlarmRecurrence | OneTimeAlarmRecurrence
+
+/**
+ * Explicit IANA timezone identifier. Fixed-offset abbreviations are not accepted.
+ */
+export type IANATimeZone = string
+export type WakeCampaignState =
+  | "scheduled"
+  | "ringing_attempt"
+  | "quiet_interval"
+  | "satisfied"
+  | "exhausted"
+  | "overridden"
+
+/**
+ * Perpetual Alarm recurrence, selected devices, persisted campaign attempts, deterministic deadlines, and terminal wake outcomes.
+ */
+export interface CurfewAlarmContract {
+  alarm?: AlarmDefinition
+  campaign?: WakeCampaign
+  attempt?: WakeAttempt
+  outcome?: WakeOutcome
+}
+export interface AlarmDefinition {
+  alarmId: CanonicalUUID
+  displayLabel: string
+  enabled: boolean
+  recurrence: AlarmRecurrence
+  configuration: AlarmConfiguration
+  callbackId?: CanonicalUUID | null
+}
+export interface WeeklyAlarmRecurrence {
+  kind: "weekly"
+  timeZone: IANATimeZone
+  localTime: string
+  /**
+   * @minItems 1
+   */
+  weekdays: [
+    "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday",
+    ...("monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday")[]
+  ]
+  dstResolution: DSTResolution
+}
+export interface DSTResolution {
+  /**
+   * A nonexistent local time advances to the first valid instant after the DST gap.
+   */
+  gap: "first_valid_instant"
+  /**
+   * An ambiguous repeated local time resolves to its first occurrence.
+   */
+  overlap: "first_occurrence"
+}
+export interface OneTimeAlarmRecurrence {
+  kind: "one_time"
+  scheduledAt: UTCInstant
+  timeZone: IANATimeZone
+}
+
+/**
+ * campaignDurationSeconds is derived, never independently configured: it must equal maximumAttempts * ringDurationSeconds + (maximumAttempts - 1) * quietIntervalSeconds and must not exceed 7200 seconds. Defaults produce three two-minute attempts and two five-minute quiet intervals: 960 seconds total.
+ */
+export interface AlarmConfiguration {
+  maximumAttempts: number
+  ringDurationSeconds: number
+  quietIntervalSeconds: number
+  campaignDurationSeconds: number
+  /**
+   * Android alarm devices selected for this alarm; clients default to the primary alarm phone.
+   *
+   * @minItems 1
+   * @maxItems 32
+   */
+  selectedDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+}
+
+/**
+ * Persisted campaign state. finalDeadlineAt must equal scheduledAt plus the validated AlarmConfiguration campaignDurationSeconds. Every device therefore derives one deadline, and an offline Mac releases at that instant without coordinator contact.
+ */
+export interface WakeCampaign {
+  campaignId: CanonicalUUID
+  alarmId: CanonicalUUID
+  timeZone: IANATimeZone
+  scheduledAt: UTCInstant
+  startedAt?: UTCInstant | null
+  finalDeadlineAt: UTCInstant
+  state: WakeCampaignState
+  attemptNumber: number
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  selectedDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+  recordVersion: number
+  writerCounter: number
+}
+export interface WakeAttempt {
+  campaignId: CanonicalUUID
+  attemptNumber: number
+  state: "ringing" | "quiet" | "satisfied" | "failed"
+  startedAt: UTCInstant
+  ringEndsAt: UTCInstant
+  quietEndsAt?: UTCInstant | null
+  completedAt?: UTCInstant | null
+}
+
+/**
+ * Every terminal outcome releases the morning gate. Exhaustion records a factual missed wake-up; it never strands a device.
+ */
+export interface WakeOutcome {
+  campaignId: CanonicalUUID
+  result: "satisfied" | "exhausted" | "remote_override"
+  releasedAt: UTCInstant
+  satisfyingDeviceId?: CanonicalUUID | null
+  attemptsCompleted?: number
+}
+
+// From callback.json
+
+/**
+ * Generic HTTPS wake-condition callback definitions and nonce-bound canonical HMAC request and response messages. For both messages, mac is unpadded base64url HMAC-SHA256 over RFC 8785 JCS canonical UTF-8 JSON with the mac property omitted. HKDF-SHA256 uses the decoded 32-byte callback secret as IKM, UTF-8 callbackId as salt, and the message-purpose label as info to derive a 32-byte key. Product-specific names, DTOs, presets, and scopes do not belong in this contract.
+ */
+export interface CurfewCallbackContract {
+  definition?: CallbackDefinition
+  challenge?: CallbackChallenge
+  receipt?: CallbackReceipt
+  acceptance?: CallbackReceiptAcceptance
+}
+
+/**
+ * Stored locally or inside an encrypted record. The secret is random key material from which clients independently derive request and response HMAC keys.
+ */
+export interface CallbackDefinition {
+  callbackId: CanonicalUUID
+  displayLabel: string
+  endpoint: string
+  secret: Base64URLSHA256
+  pollPolicy: CallbackPollPolicy
+  actionUrl?: string | null
+}
+export interface CallbackPollPolicy {
+  intervalSeconds: number
+  requestTimeoutSeconds: number
+  maximumBackoffSeconds: number
+}
+
+/**
+ * Canonical JSON POST challenge authenticated with the HKDF-derived curfew-callback-request-v1 key. Redirects are not followed. campaignStartedAt lets a condition prove its observation began after this campaign; challengedAt and nonce are newly generated for every poll; campaignId and nonce bind the response to exactly one poll.
+ */
+export interface CallbackChallenge {
+  campaignId: CanonicalUUID
+  callbackId: CanonicalUUID
+  campaignStartedAt: UTCInstant
+  nonce: string
+  challengedAt: UTCInstant
+  expiresAt: UTCInstant
+  mac: Base64URLSHA256
+}
+
+/**
+ * Canonical JSON receipt authenticated with the independently HKDF-derived curfew-callback-response-v1 key. The campaign and nonce must echo the challenge; observations and expiry must be fresh; invalid MACs and replayed nonces fail closed.
+ */
+export interface CallbackReceipt {
+  campaignId: CanonicalUUID
+  nonce: string
+  status: "pending" | "satisfied"
+  observedAt: UTCInstant
+  expiresAt: UTCInstant
+  mac: Base64URLSHA256
+}
+
+/**
+ * Post-verification view. Consumers construct this only after matching campaign and nonce, checking timestamp freshness and expiry, verifying the response-purpose MAC, and atomically consuming the nonce.
+ */
+export interface CallbackReceiptAcceptance {
+  receipt: CallbackReceipt
+  campaignDisposition: "matched"
+  nonceDisposition: "fresh"
+  timestampDisposition: "fresh"
+  macDisposition: "valid"
+}
+
 // From device-session.json
 
 /**
@@ -115,6 +475,93 @@ export interface DevicePresence {
    * When the fusion was computed. Carried separately from the enclosing snapshot because presence can be staler than the enforcement phase.
    */
   observedAt: string
+}
+
+// From e2ee.json
+
+export type EncryptedRecordNamespace =
+  | "policy"
+  | "alarms"
+  | "callbacks"
+  | "campaigns"
+  | "device_state"
+  | "account_settings"
+
+/**
+ * Opaque encrypted synchronization records and account-root-key distribution. Coordinators store ciphertext and monotonic headers but never receive account root keys or plaintext settings.
+ */
+export interface CurfewE2EEContract {
+  record?: EncryptedRecord
+  conflict?: EncryptedRecordConflict
+  acceptance?: EncryptedRecordAcceptance
+  rootKeyEnvelope?: RootKeyEnvelope
+  recoveryEnvelope?: RecoveryKeyEnvelope
+}
+
+/**
+ * AES-256-GCM sealed record. Derive the 32-byte namespace key with HKDF-SHA256 using the decoded 32-byte account root key as IKM, UTF-8 `curfew-encrypted-record-v2` as salt, and UTF-8 `namespace=<namespace>;keyEpoch=<base-10 keyEpoch>` as info. AAD is the RFC 8785 JCS UTF-8 encoding of exactly {cipherSuite,keyEpoch,namespace,recordId,updatedAt,version,writerCounter,writerDeviceId}; aadDigest is unpadded base64url SHA-256 of those bytes. ciphertext is ciphertext || the 16-byte GCM tag, unpadded base64url. Signature input is the RFC 8785 JCS UTF-8 encoding of exactly {aadDigest,cipherSuite,ciphertext,keyEpoch,namespace,nonce,recordId,signatureAlgorithm,updatedAt,version,writerCounter,writerDeviceId}. signature is ES256 over those bytes using SHA-256, encoded as the 64-byte IEEE P1363 r || s form with a low-S value, then unpadded base64url. Stale versions or writer-counter rollback conflict; the coordinator never merges ciphertext.
+ */
+export interface EncryptedRecord {
+  namespace: EncryptedRecordNamespace
+  recordId: CanonicalUUID
+  version: number
+  writerDeviceId: CanonicalUUID
+  writerCounter: number
+  keyEpoch: number
+  cipherSuite: "AES-256-GCM"
+  nonce: string
+  aadDigest: Base64URLSHA256
+  ciphertext: string
+  signatureAlgorithm: "ES256-P1363-SHA256"
+  signature: string
+  updatedAt: UTCInstant
+}
+export interface EncryptedRecordConflict {
+  recordId: CanonicalUUID
+  attemptedVersion: number
+  currentVersion: number
+  attemptedWriterCounter: number
+  currentWriterCounter: number
+}
+
+/**
+ * Post-verification view emitted only after optimistic version, writer monotonicity, key epoch, signature, and ciphertext-header binding checks succeed.
+ */
+export interface EncryptedRecordAcceptance {
+  record: EncryptedRecord
+  versionDisposition: "next_version"
+  writerDisposition: "monotonic"
+  epochDisposition: "current"
+  signatureDisposition: "valid"
+}
+
+/**
+ * The sole canonical device root-key envelope. RFC 9180 HPKE base mode uses DHKEM(P-256,HKDF-SHA256) KEM ID 0x0010, HKDF-SHA256 KDF ID 0x0001, and AES-256-GCM AEAD ID 0x0002. info is UTF-8 `curfew-root-key-envelope-v2`; AAD is RFC 8785 JCS UTF-8 of exactly {createdAt,keyEpoch,recipientDeviceId}; plaintext is exactly the random 32-byte account root key. encapsulatedKey is the 65-byte SEC1 uncompressed P-256 point and ciphertext is the 32-byte plaintext plus 16-byte tag, both unpadded base64url. Namespace keys are independently derived from the root.
+ */
+export interface RootKeyEnvelope {
+  recipientDeviceId: CanonicalUUID
+  keyEpoch: number
+  kem: "DHKEM(P-256,HKDF-SHA256)"
+  kdf: "HKDF-SHA256"
+  aead: "AES-256-GCM"
+  info: "curfew-root-key-envelope-v2"
+  encapsulatedKey: string
+  ciphertext: string
+  createdAt: UTCInstant
+}
+
+/**
+ * Account root key wrapped using the separately generated mandatory 32-byte Curfew Recovery Key. Derive the 32-byte AES key with HKDF-SHA256 using the decoded Recovery Key as IKM, the decoded 16-byte salt as salt, and UTF-8 `curfew-recovery-wrap-v2` as info. AES-256-GCM plaintext is exactly the 32-byte account root key; AAD is RFC 8785 JCS UTF-8 of exactly {createdAt,keyEpoch}; ciphertext is ciphertext || the 16-byte tag, unpadded base64url. Authentication backup codes do not decrypt this envelope; restoration requires AAL2 plus the Curfew Recovery Key.
+ */
+export interface RecoveryKeyEnvelope {
+  keyEpoch: number
+  kdf: "HKDF-SHA256"
+  aead: "AES-256-GCM"
+  info: "curfew-recovery-wrap-v2"
+  salt: string
+  nonce: string
+  ciphertext: string
+  createdAt: UTCInstant
 }
 
 // From mcp-app.json
@@ -823,11 +1270,8 @@ export interface MCPPendingRequest {
 
 // From remote-command.json
 
-export type CanonicalUUID = string
 export type RemoteCommandKind = "lock_device"
 export type RemoteDeadlinePolicy = FixedDurationPolicy | NextScheduledUnlockPolicy
-export type UTCInstant = string
-export type Base64URLSHA256 = string
 export type RemoteCommandAcknowledgement = DeliveredAcknowledgement
 export type RemoteCommandResult = AppliedCommandResult | RejectedCommandResult | ExpiredCommandResult
 
@@ -904,6 +1348,68 @@ export interface ExpiredCommandResult {
   sequence: number
   stage: "expired"
   resolvedAt: UTCInstant
+}
+
+// From schedule.json
+
+/**
+ * Mutually exclusive release authority. A wake-enabled day cannot carry or edit a fixed unlock.
+ */
+export type ReleasePolicy = FixedUnlockReleasePolicy | AccountWakeCampaignReleasePolicy
+export type LocalTime = string
+
+/**
+ * Executable anti-bypass policy. Strengthening begins at the next local midnight. Weakening waits at least 24 hours and never begins while a lockout is active.
+ */
+export type ScheduleChangeApplicationPolicy = StrengtheningScheduleChangePolicy | WeakeningScheduleChangePolicy
+
+/**
+ * Curfew v2 schedule and migration shapes. A day has exactly one morning release authority: a legacy fixed unlock or an account wake campaign. Stricter changes apply at the next local midnight; weaker changes wait 24 hours and cannot apply during an active lockout.
+ */
+export interface CurfewScheduleContract {
+  releasePolicy?: ReleasePolicy
+  changePolicy?: ScheduleChangeApplicationPolicy
+  migration?: LegacyScheduleMigration
+}
+export interface FixedUnlockReleasePolicy {
+  kind: "fixed_unlock"
+  timeZone: IANATimeZone
+  localUnlockTime: LocalTime
+  dstResolution: DSTResolution
+}
+export interface AccountWakeCampaignReleasePolicy {
+  kind: "wake_campaign"
+  campaignTemplateId: CanonicalUUID
+  timeZone: IANATimeZone
+  localStartTime: LocalTime
+  dstResolution: DSTResolution
+}
+export interface StrengtheningScheduleChangePolicy {
+  strictness: "strengthening"
+  applyAt: "next_local_midnight"
+  mustNotApplyDuringActiveLockout: false
+}
+export interface WeakeningScheduleChangePolicy {
+  strictness: "weakening"
+  applyAt: "after_24_hours"
+  mustNotApplyDuringActiveLockout: true
+}
+export interface LegacyScheduleMigration {
+  migrationVersion: 2
+  legacy: LegacyScheduleDay
+  migrated: ScheduleDayV2
+}
+export interface LegacyScheduleDay {
+  weekday: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+  lockTime: LocalTime
+  unlockTime: LocalTime
+  isDayOff: boolean
+}
+export interface ScheduleDayV2 {
+  weekday: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+  lockTime: LocalTime
+  isDayOff: boolean
+  releasePolicy: ReleasePolicy
 }
 
 // From sync.json

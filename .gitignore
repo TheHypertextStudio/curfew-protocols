@@ -8,5 +8,8 @@ node_modules/
 DerivedData/
 coverage/
 *.tsbuildinfo
+.gradle/
+.kotlin/
+**/build/
 **/bin/
 **/obj/

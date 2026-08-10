@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.hypertext.studio/curfew/pending-request.json",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/pending-request.json",
   "title": "MCPPendingRequest",
   "description": "A write-tool request queued by `curfew-mcp` for user approval in the Curfew app.\n\nLifecycle:\n1. `curfew-mcp` creates a pending request with `status = pending` and appends it to the request queue.\n2. The Curfew app's `MCPRequestMonitor` detects the new entry and shows a consent sheet.\n3. The user approves or denies. The app updates `status` in-place and sets `resolvedAt`.\n4. `curfew-mcp` polls the queue file until the entry's `status` changes from `pending`, then responds to the MCP client accordingly. Timeout after 120 seconds → \"timed out\" error to the client.",
   "type": "object",

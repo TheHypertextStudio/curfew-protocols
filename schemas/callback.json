@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/callback.json",
+  "title": "CurfewCallbackContract",
+  "description": "Generic HTTPS wake-condition callback definitions and nonce-bound canonical HMAC request and response messages. For both messages, mac is unpadded base64url HMAC-SHA256 over RFC 8785 JCS canonical UTF-8 JSON with the mac property omitted. HKDF-SHA256 uses the decoded 32-byte callback secret as IKM, UTF-8 callbackId as salt, and the message-purpose label as info to derive a 32-byte key. Product-specific names, DTOs, presets, and scopes do not belong in this contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "definition": { "$ref": "#/definitions/CallbackDefinition" },
+    "challenge": { "$ref": "#/definitions/CallbackChallenge" },
+    "receipt": { "$ref": "#/definitions/CallbackReceipt" },
+    "acceptance": { "$ref": "#/definitions/CallbackReceiptAcceptance" }
+  },
+  "definitions": {
+    "CanonicalUUID": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "UTCInstant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+    },
+    "Base64URLSHA256": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "CallbackPollPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intervalSeconds", "requestTimeoutSeconds", "maximumBackoffSeconds"],
+      "properties": {
+        "intervalSeconds": { "type": "integer", "minimum": 5, "maximum": 300, "default": 15 },
+        "requestTimeoutSeconds": { "type": "integer", "minimum": 1, "maximum": 30, "default": 5 },
+        "maximumBackoffSeconds": { "type": "integer", "minimum": 15, "maximum": 60, "default": 60 }
+      }
+    },
+    "CallbackDefinition": {
+      "description": "Stored locally or inside an encrypted record. The secret is random key material from which clients independently derive request and response HMAC keys.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["callbackId", "displayLabel", "endpoint", "secret", "pollPolicy"],
+      "properties": {
+        "callbackId": { "$ref": "#/definitions/CanonicalUUID" },
+        "displayLabel": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "endpoint": { "type": "string", "format": "uri", "pattern": "^https://", "maxLength": 2048 },
+        "secret": { "$ref": "#/definitions/Base64URLSHA256" },
+        "pollPolicy": { "$ref": "#/definitions/CallbackPollPolicy" },
+        "actionUrl": { "type": ["string", "null"], "format": "uri", "maxLength": 2048 }
+      }
+    },
+    "CallbackChallenge": {
+      "description": "Canonical JSON POST challenge authenticated with the HKDF-derived curfew-callback-request-v1 key. Redirects are not followed. campaignStartedAt lets a condition prove its observation began after this campaign; challengedAt and nonce are newly generated for every poll; campaignId and nonce bind the response to exactly one poll.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaignId", "callbackId", "campaignStartedAt", "nonce", "challengedAt", "expiresAt", "mac"],
+      "properties": {
+        "campaignId": { "$ref": "#/definitions/CanonicalUUID" },
+        "callbackId": { "$ref": "#/definitions/CanonicalUUID" },
+        "campaignStartedAt": { "$ref": "#/definitions/UTCInstant" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
+        "challengedAt": { "$ref": "#/definitions/UTCInstant" },
+        "expiresAt": { "$ref": "#/definitions/UTCInstant" },
+        "mac": { "$ref": "#/definitions/Base64URLSHA256" }
+      }
+    },
+    "CallbackReceipt": {
+      "description": "Canonical JSON receipt authenticated with the independently HKDF-derived curfew-callback-response-v1 key. The campaign and nonce must echo the challenge; observations and expiry must be fresh; invalid MACs and replayed nonces fail closed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaignId", "nonce", "status", "observedAt", "expiresAt", "mac"],
+      "properties": {
+        "campaignId": { "$ref": "#/definitions/CanonicalUUID" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
+        "status": { "type": "string", "enum": ["pending", "satisfied"] },
+        "observedAt": { "$ref": "#/definitions/UTCInstant" },
+        "expiresAt": { "$ref": "#/definitions/UTCInstant" },
+        "mac": { "$ref": "#/definitions/Base64URLSHA256" }
+      }
+    },
+    "CallbackReceiptAcceptance": {
+      "description": "Post-verification view. Consumers construct this only after matching campaign and nonce, checking timestamp freshness and expiry, verifying the response-purpose MAC, and atomically consuming the nonce.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["receipt", "campaignDisposition", "nonceDisposition", "timestampDisposition", "macDisposition"],
+      "properties": {
+        "receipt": { "$ref": "#/definitions/CallbackReceipt" },
+        "campaignDisposition": { "type": "string", "const": "matched" },
+        "nonceDisposition": { "type": "string", "const": "fresh" },
+        "timestampDisposition": { "type": "string", "const": "fresh" },
+        "macDisposition": { "type": "string", "const": "valid" }
+      }
+    }
+  }
+}

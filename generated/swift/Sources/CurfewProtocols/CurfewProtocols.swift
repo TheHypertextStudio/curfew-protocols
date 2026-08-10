@@ -4,16 +4,1949 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
+//   let curfewAccountContract = try CurfewAccountContract(json)
+//   let curfewAlarmContract = try CurfewAlarmContract(json)
+//   let curfewCallbackContract = try CurfewCallbackContract(json)
 //   let deviceSessionContract = try DeviceSessionContract(json)
 //   let deviceContract = try DeviceContract(json)
+//   let curfewE2EEContract = try CurfewE2EEContract(json)
 //   let mCPAppResource = try MCPAppResource(json)
 //   let mCPToolRegistry = try MCPToolRegistry(json)
 //   let oAuthContract = try OAuthContract(json)
 //   let mCPPendingRequest = try MCPPendingRequest(json)
 //   let remoteCommandContract = try RemoteCommandContract(json)
+//   let curfewScheduleContract = try CurfewScheduleContract(json)
 //   let deviceSyncContract = try DeviceSyncContract(json)
 
 import Foundation
+
+/// Minimal server-readable Curfew account metadata: device public-key enrollment and
+/// revocation, routing status, entitlements, bounded remote overrides, and append-only audit
+/// records. Device names and decrypted settings are intentionally absent and belong in E2EE
+/// account settings.
+// MARK: - CurfewAccountContract
+public struct CurfewAccountContract: Codable {
+    public let audit: AuditRecord?
+    public let deviceStatus: DeviceStatus?
+    public let directUnlockAuthorization: DirectUnlockAuthorization?
+    public let enrollment: AccountDeviceEnrollment?
+    public let entitlement: Entitlement?
+    public let curfewAccountContractOverride: RemoteOverride?
+    public let overrideRequest: RemoteOverrideRequest?
+    public let revocation: DeviceRevocation?
+    public let wakeStatus: WakeStatus?
+
+    public enum CodingKeys: String, CodingKey {
+        case audit, deviceStatus, directUnlockAuthorization, enrollment, entitlement
+        case curfewAccountContractOverride = "override"
+        case overrideRequest, revocation, wakeStatus
+    }
+
+    public init(audit: AuditRecord?, deviceStatus: DeviceStatus?, directUnlockAuthorization: DirectUnlockAuthorization?, enrollment: AccountDeviceEnrollment?, entitlement: Entitlement?, curfewAccountContractOverride: RemoteOverride?, overrideRequest: RemoteOverrideRequest?, revocation: DeviceRevocation?, wakeStatus: WakeStatus?) {
+        self.audit = audit
+        self.deviceStatus = deviceStatus
+        self.directUnlockAuthorization = directUnlockAuthorization
+        self.enrollment = enrollment
+        self.entitlement = entitlement
+        self.curfewAccountContractOverride = curfewAccountContractOverride
+        self.overrideRequest = overrideRequest
+        self.revocation = revocation
+        self.wakeStatus = wakeStatus
+    }
+}
+
+// MARK: CurfewAccountContract convenience initializers and mutators
+
+public extension CurfewAccountContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CurfewAccountContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        audit: AuditRecord?? = nil,
+        deviceStatus: DeviceStatus?? = nil,
+        directUnlockAuthorization: DirectUnlockAuthorization?? = nil,
+        enrollment: AccountDeviceEnrollment?? = nil,
+        entitlement: Entitlement?? = nil,
+        curfewAccountContractOverride: RemoteOverride?? = nil,
+        overrideRequest: RemoteOverrideRequest?? = nil,
+        revocation: DeviceRevocation?? = nil,
+        wakeStatus: WakeStatus?? = nil
+    ) -> CurfewAccountContract {
+        return CurfewAccountContract(
+            audit: audit ?? self.audit,
+            deviceStatus: deviceStatus ?? self.deviceStatus,
+            directUnlockAuthorization: directUnlockAuthorization ?? self.directUnlockAuthorization,
+            enrollment: enrollment ?? self.enrollment,
+            entitlement: entitlement ?? self.entitlement,
+            curfewAccountContractOverride: curfewAccountContractOverride ?? self.curfewAccountContractOverride,
+            overrideRequest: overrideRequest ?? self.overrideRequest,
+            revocation: revocation ?? self.revocation,
+            wakeStatus: wakeStatus ?? self.wakeStatus
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Append-only server-readable audit record. The encrypted settings that led to an action
+/// are not copied into audit metadata.
+// MARK: - AuditRecord
+public struct AuditRecord: Codable {
+    public let action: Action
+    public let actorID: String?
+    public let actorKind: ActorKind
+    public let auditID: String
+    public let occurredAt: String
+    public let reason: String
+    public let targetDeviceIDS: [String]
+
+    public enum CodingKeys: String, CodingKey {
+        case action
+        case actorID = "actorId"
+        case actorKind
+        case auditID = "auditId"
+        case occurredAt, reason
+        case targetDeviceIDS = "targetDeviceIds"
+    }
+
+    public init(action: Action, actorID: String?, actorKind: ActorKind, auditID: String, occurredAt: String, reason: String, targetDeviceIDS: [String]) {
+        self.action = action
+        self.actorID = actorID
+        self.actorKind = actorKind
+        self.auditID = auditID
+        self.occurredAt = occurredAt
+        self.reason = reason
+        self.targetDeviceIDS = targetDeviceIDS
+    }
+}
+
+// MARK: AuditRecord convenience initializers and mutators
+
+public extension AuditRecord {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AuditRecord.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        action: Action? = nil,
+        actorID: String?? = nil,
+        actorKind: ActorKind? = nil,
+        auditID: String? = nil,
+        occurredAt: String? = nil,
+        reason: String? = nil,
+        targetDeviceIDS: [String]? = nil
+    ) -> AuditRecord {
+        return AuditRecord(
+            action: action ?? self.action,
+            actorID: actorID ?? self.actorID,
+            actorKind: actorKind ?? self.actorKind,
+            auditID: auditID ?? self.auditID,
+            occurredAt: occurredAt ?? self.occurredAt,
+            reason: reason ?? self.reason,
+            targetDeviceIDS: targetDeviceIDS ?? self.targetDeviceIDS
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Action: String, Codable {
+    case deviceEnrolled = "device_enrolled"
+    case deviceRevoked = "device_revoked"
+    case entitlementClaimed = "entitlement_claimed"
+    case entitlementRevoked = "entitlement_revoked"
+    case remoteOverrideApproved = "remote_override_approved"
+    case remoteOverrideCancelled = "remote_override_cancelled"
+    case remoteOverrideDenied = "remote_override_denied"
+    case remoteOverrideExpired = "remote_override_expired"
+    case remoteOverrideRequested = "remote_override_requested"
+}
+
+public enum ActorKind: String, Codable {
+    case device = "device"
+    case oauthClient = "oauth_client"
+    case system = "system"
+    case user = "user"
+}
+
+/// Applied release interval. The expiry instant is derived exclusively as startsAt plus
+/// durationMinutes, avoiding contradictory clocks.
+// MARK: - RemoteOverride
+public struct RemoteOverride: Codable {
+    public let authorizedBy: AuthorizedBy
+    public let durationMinutes: Int
+    public let overrideID: String
+    public let reason: String
+    public let requestID: String
+    public let startsAt: String
+    public let status: OverrideStatus
+    public let targetDeviceIDS: [String]
+
+    public enum CodingKeys: String, CodingKey {
+        case authorizedBy, durationMinutes
+        case overrideID = "overrideId"
+        case reason
+        case requestID = "requestId"
+        case startsAt, status
+        case targetDeviceIDS = "targetDeviceIds"
+    }
+
+    public init(authorizedBy: AuthorizedBy, durationMinutes: Int, overrideID: String, reason: String, requestID: String, startsAt: String, status: OverrideStatus, targetDeviceIDS: [String]) {
+        self.authorizedBy = authorizedBy
+        self.durationMinutes = durationMinutes
+        self.overrideID = overrideID
+        self.reason = reason
+        self.requestID = requestID
+        self.startsAt = startsAt
+        self.status = status
+        self.targetDeviceIDS = targetDeviceIDS
+    }
+}
+
+// MARK: RemoteOverride convenience initializers and mutators
+
+public extension RemoteOverride {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteOverride.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        authorizedBy: AuthorizedBy? = nil,
+        durationMinutes: Int? = nil,
+        overrideID: String? = nil,
+        reason: String? = nil,
+        requestID: String? = nil,
+        startsAt: String? = nil,
+        status: OverrideStatus? = nil,
+        targetDeviceIDS: [String]? = nil
+    ) -> RemoteOverride {
+        return RemoteOverride(
+            authorizedBy: authorizedBy ?? self.authorizedBy,
+            durationMinutes: durationMinutes ?? self.durationMinutes,
+            overrideID: overrideID ?? self.overrideID,
+            reason: reason ?? self.reason,
+            requestID: requestID ?? self.requestID,
+            startsAt: startsAt ?? self.startsAt,
+            status: status ?? self.status,
+            targetDeviceIDS: targetDeviceIDS ?? self.targetDeviceIDS
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum AuthorizedBy: String, Codable {
+    case freshWebAal2 = "fresh_web_aal2"
+    case mcpPreauthorizedClient = "mcp_preauthorized_client"
+    case mcpUserApproval = "mcp_user_approval"
+}
+
+public enum OverrideStatus: String, Codable {
+    case active = "active"
+    case cancelled = "cancelled"
+    case expired = "expired"
+}
+
+/// Minimal routing and release state for a device. Human-readable device presentation stays
+/// in encrypted account settings.
+// MARK: - DeviceStatus
+public struct DeviceStatus: Codable {
+    public let activeCampaignID: String?
+    public let connectivity: Connectivity
+    public let deviceID: String
+    public let observedAt: String
+    public let statusVersion: Int
+    public let wakeGate: WakeGate
+
+    public enum CodingKeys: String, CodingKey {
+        case activeCampaignID = "activeCampaignId"
+        case connectivity
+        case deviceID = "deviceId"
+        case observedAt, statusVersion, wakeGate
+    }
+
+    public init(activeCampaignID: String?, connectivity: Connectivity, deviceID: String, observedAt: String, statusVersion: Int, wakeGate: WakeGate) {
+        self.activeCampaignID = activeCampaignID
+        self.connectivity = connectivity
+        self.deviceID = deviceID
+        self.observedAt = observedAt
+        self.statusVersion = statusVersion
+        self.wakeGate = wakeGate
+    }
+}
+
+// MARK: DeviceStatus convenience initializers and mutators
+
+public extension DeviceStatus {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceStatus.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        activeCampaignID: String?? = nil,
+        connectivity: Connectivity? = nil,
+        deviceID: String? = nil,
+        observedAt: String? = nil,
+        statusVersion: Int? = nil,
+        wakeGate: WakeGate? = nil
+    ) -> DeviceStatus {
+        return DeviceStatus(
+            activeCampaignID: activeCampaignID ?? self.activeCampaignID,
+            connectivity: connectivity ?? self.connectivity,
+            deviceID: deviceID ?? self.deviceID,
+            observedAt: observedAt ?? self.observedAt,
+            statusVersion: statusVersion ?? self.statusVersion,
+            wakeGate: wakeGate ?? self.wakeGate
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Connectivity: String, Codable {
+    case offline = "offline"
+    case online = "online"
+}
+
+public enum WakeGate: String, Codable {
+    case locked = "locked"
+    case notConfigured = "not_configured"
+    case released = "released"
+}
+
+/// Explicit per-OAuth-client authorization for direct unlock. It is restricted to named
+/// devices, at most 60 minutes per override, and at most 30 days of validity; revocation is
+/// immediate. The validity deadline is derived exclusively as grantedAt plus
+/// validitySeconds, so no competing expiry field exists.
+// MARK: - DirectUnlockAuthorization
+public struct DirectUnlockAuthorization: Codable {
+    public let authorizationID: String
+    public let grantedAt: String
+    public let maximumOverrideMinutes: Int
+    public let oauthClientID: String
+    public let revokedAt: String?
+    public let status: DirectUnlockAuthorizationStatus
+    public let targetDeviceIDS: [String]
+    public let validitySeconds: Int
+
+    public enum CodingKeys: String, CodingKey {
+        case authorizationID = "authorizationId"
+        case grantedAt, maximumOverrideMinutes
+        case oauthClientID = "oauthClientId"
+        case revokedAt, status
+        case targetDeviceIDS = "targetDeviceIds"
+        case validitySeconds
+    }
+
+    public init(authorizationID: String, grantedAt: String, maximumOverrideMinutes: Int, oauthClientID: String, revokedAt: String?, status: DirectUnlockAuthorizationStatus, targetDeviceIDS: [String], validitySeconds: Int) {
+        self.authorizationID = authorizationID
+        self.grantedAt = grantedAt
+        self.maximumOverrideMinutes = maximumOverrideMinutes
+        self.oauthClientID = oauthClientID
+        self.revokedAt = revokedAt
+        self.status = status
+        self.targetDeviceIDS = targetDeviceIDS
+        self.validitySeconds = validitySeconds
+    }
+}
+
+// MARK: DirectUnlockAuthorization convenience initializers and mutators
+
+public extension DirectUnlockAuthorization {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DirectUnlockAuthorization.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        authorizationID: String? = nil,
+        grantedAt: String? = nil,
+        maximumOverrideMinutes: Int? = nil,
+        oauthClientID: String? = nil,
+        revokedAt: String?? = nil,
+        status: DirectUnlockAuthorizationStatus? = nil,
+        targetDeviceIDS: [String]? = nil,
+        validitySeconds: Int? = nil
+    ) -> DirectUnlockAuthorization {
+        return DirectUnlockAuthorization(
+            authorizationID: authorizationID ?? self.authorizationID,
+            grantedAt: grantedAt ?? self.grantedAt,
+            maximumOverrideMinutes: maximumOverrideMinutes ?? self.maximumOverrideMinutes,
+            oauthClientID: oauthClientID ?? self.oauthClientID,
+            revokedAt: revokedAt ?? self.revokedAt,
+            status: status ?? self.status,
+            targetDeviceIDS: targetDeviceIDS ?? self.targetDeviceIDS,
+            validitySeconds: validitySeconds ?? self.validitySeconds
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum DirectUnlockAuthorizationStatus: String, Codable {
+    case active = "active"
+    case expired = "expired"
+    case revoked = "revoked"
+}
+
+/// Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only
+/// public keys and epoch/timing metadata here. Device names and presentation metadata stay
+/// encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded
+/// separately for this deviceId.
+// MARK: - AccountDeviceEnrollment
+public struct AccountDeviceEnrollment: Codable {
+    public let deviceID: String
+    public let encryptionPublicKeyJwk: AccountPublicKeyJWK
+    public let enrolledAt: String
+    public let keyEpoch: Int
+    public let signingPublicKeyJwk: AccountPublicKeyJWK
+
+    public enum CodingKeys: String, CodingKey {
+        case deviceID = "deviceId"
+        case encryptionPublicKeyJwk, enrolledAt, keyEpoch, signingPublicKeyJwk
+    }
+
+    public init(deviceID: String, encryptionPublicKeyJwk: AccountPublicKeyJWK, enrolledAt: String, keyEpoch: Int, signingPublicKeyJwk: AccountPublicKeyJWK) {
+        self.deviceID = deviceID
+        self.encryptionPublicKeyJwk = encryptionPublicKeyJwk
+        self.enrolledAt = enrolledAt
+        self.keyEpoch = keyEpoch
+        self.signingPublicKeyJwk = signingPublicKeyJwk
+    }
+}
+
+// MARK: AccountDeviceEnrollment convenience initializers and mutators
+
+public extension AccountDeviceEnrollment {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccountDeviceEnrollment.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        deviceID: String? = nil,
+        encryptionPublicKeyJwk: AccountPublicKeyJWK? = nil,
+        enrolledAt: String? = nil,
+        keyEpoch: Int? = nil,
+        signingPublicKeyJwk: AccountPublicKeyJWK? = nil
+    ) -> AccountDeviceEnrollment {
+        return AccountDeviceEnrollment(
+            deviceID: deviceID ?? self.deviceID,
+            encryptionPublicKeyJwk: encryptionPublicKeyJwk ?? self.encryptionPublicKeyJwk,
+            enrolledAt: enrolledAt ?? self.enrolledAt,
+            keyEpoch: keyEpoch ?? self.keyEpoch,
+            signingPublicKeyJwk: signingPublicKeyJwk ?? self.signingPublicKeyJwk
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - AccountPublicKeyJWK
+public struct AccountPublicKeyJWK: Codable {
+    public let crv: Crv
+    public let kty: Kty
+    public let x, y: String
+
+    public init(crv: Crv, kty: Kty, x: String, y: String) {
+        self.crv = crv
+        self.kty = kty
+        self.x = x
+        self.y = y
+    }
+}
+
+// MARK: AccountPublicKeyJWK convenience initializers and mutators
+
+public extension AccountPublicKeyJWK {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccountPublicKeyJWK.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        crv: Crv? = nil,
+        kty: Kty? = nil,
+        x: String? = nil,
+        y: String? = nil
+    ) -> AccountPublicKeyJWK {
+        return AccountPublicKeyJWK(
+            crv: crv ?? self.crv,
+            kty: kty ?? self.kty,
+            x: x ?? self.x,
+            y: y ?? self.y
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Crv: String, Codable {
+    case p256 = "P-256"
+}
+
+public enum Kty: String, Codable {
+    case ec = "EC"
+}
+
+/// Account-optional lifetime or subscription entitlement metadata. Signed offline license
+/// envelopes remain independently usable and claimable.
+// MARK: - Entitlement
+public struct Entitlement: Codable {
+    public let claimedAt: String?
+    public let entitlementID: String
+    public let issuedAt: String
+    public let kind: EntitlementKind
+    public let productID: String
+    public let provenance: Provenance
+    public let status: EntitlementStatus
+    public let validUntil: String?
+
+    public enum CodingKeys: String, CodingKey {
+        case claimedAt
+        case entitlementID = "entitlementId"
+        case issuedAt, kind
+        case productID = "productId"
+        case provenance, status, validUntil
+    }
+
+    public init(claimedAt: String?, entitlementID: String, issuedAt: String, kind: EntitlementKind, productID: String, provenance: Provenance, status: EntitlementStatus, validUntil: String?) {
+        self.claimedAt = claimedAt
+        self.entitlementID = entitlementID
+        self.issuedAt = issuedAt
+        self.kind = kind
+        self.productID = productID
+        self.provenance = provenance
+        self.status = status
+        self.validUntil = validUntil
+    }
+}
+
+// MARK: Entitlement convenience initializers and mutators
+
+public extension Entitlement {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Entitlement.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        claimedAt: String?? = nil,
+        entitlementID: String? = nil,
+        issuedAt: String? = nil,
+        kind: EntitlementKind? = nil,
+        productID: String? = nil,
+        provenance: Provenance? = nil,
+        status: EntitlementStatus? = nil,
+        validUntil: String?? = nil
+    ) -> Entitlement {
+        return Entitlement(
+            claimedAt: claimedAt ?? self.claimedAt,
+            entitlementID: entitlementID ?? self.entitlementID,
+            issuedAt: issuedAt ?? self.issuedAt,
+            kind: kind ?? self.kind,
+            productID: productID ?? self.productID,
+            provenance: provenance ?? self.provenance,
+            status: status ?? self.status,
+            validUntil: validUntil ?? self.validUntil
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum EntitlementKind: String, Codable {
+    case lifetime = "lifetime"
+    case subscription = "subscription"
+}
+
+public enum Provenance: String, Codable {
+    case guestCheckout = "guest_checkout"
+    case legacyEmailMatch = "legacy_email_match"
+    case signedInCheckout = "signed_in_checkout"
+    case signedLicenseClaim = "signed_license_claim"
+    case verifiedCheckoutClaim = "verified_checkout_claim"
+}
+
+public enum EntitlementStatus: String, Codable {
+    case active = "active"
+    case cancelled = "cancelled"
+    case expired = "expired"
+    case gracePeriod = "grace_period"
+    case refunded = "refunded"
+    case revoked = "revoked"
+}
+
+/// Request for a reasoned time-bounded release. Approval-required is the MCP default; direct
+/// mode is valid only when a separate client policy authorizes the exact devices and time
+/// window.
+// MARK: - RemoteOverrideRequest
+public struct RemoteOverrideRequest: Codable {
+    public let approvalMode: ApprovalMode
+    public let durationMinutes: Int
+    public let oauthClientID: String?
+    public let reason: String
+    public let requestedAt: String
+    public let requestID: String
+    public let targetDeviceIDS: [String]
+
+    public enum CodingKeys: String, CodingKey {
+        case approvalMode, durationMinutes
+        case oauthClientID = "oauthClientId"
+        case reason, requestedAt
+        case requestID = "requestId"
+        case targetDeviceIDS = "targetDeviceIds"
+    }
+
+    public init(approvalMode: ApprovalMode, durationMinutes: Int, oauthClientID: String?, reason: String, requestedAt: String, requestID: String, targetDeviceIDS: [String]) {
+        self.approvalMode = approvalMode
+        self.durationMinutes = durationMinutes
+        self.oauthClientID = oauthClientID
+        self.reason = reason
+        self.requestedAt = requestedAt
+        self.requestID = requestID
+        self.targetDeviceIDS = targetDeviceIDS
+    }
+}
+
+// MARK: RemoteOverrideRequest convenience initializers and mutators
+
+public extension RemoteOverrideRequest {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteOverrideRequest.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        approvalMode: ApprovalMode? = nil,
+        durationMinutes: Int? = nil,
+        oauthClientID: String?? = nil,
+        reason: String? = nil,
+        requestedAt: String? = nil,
+        requestID: String? = nil,
+        targetDeviceIDS: [String]? = nil
+    ) -> RemoteOverrideRequest {
+        return RemoteOverrideRequest(
+            approvalMode: approvalMode ?? self.approvalMode,
+            durationMinutes: durationMinutes ?? self.durationMinutes,
+            oauthClientID: oauthClientID ?? self.oauthClientID,
+            reason: reason ?? self.reason,
+            requestedAt: requestedAt ?? self.requestedAt,
+            requestID: requestID ?? self.requestID,
+            targetDeviceIDS: targetDeviceIDS ?? self.targetDeviceIDS
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum ApprovalMode: String, Codable {
+    case approvalRequired = "approval_required"
+    case preauthorizedDirect = "preauthorized_direct"
+}
+
+/// Revoking a device requires account key-epoch rotation before later records are
+/// synchronized.
+// MARK: - DeviceRevocation
+public struct DeviceRevocation: Codable {
+    public let deviceID: String
+    public let newKeyEpoch: Int
+    public let reason: String
+    public let revokedAt: String
+
+    public enum CodingKeys: String, CodingKey {
+        case deviceID = "deviceId"
+        case newKeyEpoch, reason, revokedAt
+    }
+
+    public init(deviceID: String, newKeyEpoch: Int, reason: String, revokedAt: String) {
+        self.deviceID = deviceID
+        self.newKeyEpoch = newKeyEpoch
+        self.reason = reason
+        self.revokedAt = revokedAt
+    }
+}
+
+// MARK: DeviceRevocation convenience initializers and mutators
+
+public extension DeviceRevocation {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceRevocation.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        deviceID: String? = nil,
+        newKeyEpoch: Int? = nil,
+        reason: String? = nil,
+        revokedAt: String? = nil
+    ) -> DeviceRevocation {
+        return DeviceRevocation(
+            deviceID: deviceID ?? self.deviceID,
+            newKeyEpoch: newKeyEpoch ?? self.newKeyEpoch,
+            reason: reason ?? self.reason,
+            revokedAt: revokedAt ?? self.revokedAt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Minimal server-readable campaign state for routing, convergence, deterministic offline
+/// release, and the get_wake_status control surface. Callback definitions and alarm settings
+/// remain encrypted.
+// MARK: - WakeStatus
+public struct WakeStatus: Codable {
+    public let attemptNumber: Int
+    public let campaignID: String
+    public let finalDeadlineAt: String
+    public let maximumAttempts: Int
+    public let selectedDeviceIDS: [String]
+    public let state: WakeCampaignState
+    public let statusVersion: Int
+    public let updatedAt: String
+
+    public enum CodingKeys: String, CodingKey {
+        case attemptNumber
+        case campaignID = "campaignId"
+        case finalDeadlineAt, maximumAttempts
+        case selectedDeviceIDS = "selectedDeviceIds"
+        case state, statusVersion, updatedAt
+    }
+
+    public init(attemptNumber: Int, campaignID: String, finalDeadlineAt: String, maximumAttempts: Int, selectedDeviceIDS: [String], state: WakeCampaignState, statusVersion: Int, updatedAt: String) {
+        self.attemptNumber = attemptNumber
+        self.campaignID = campaignID
+        self.finalDeadlineAt = finalDeadlineAt
+        self.maximumAttempts = maximumAttempts
+        self.selectedDeviceIDS = selectedDeviceIDS
+        self.state = state
+        self.statusVersion = statusVersion
+        self.updatedAt = updatedAt
+    }
+}
+
+// MARK: WakeStatus convenience initializers and mutators
+
+public extension WakeStatus {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(WakeStatus.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        attemptNumber: Int? = nil,
+        campaignID: String? = nil,
+        finalDeadlineAt: String? = nil,
+        maximumAttempts: Int? = nil,
+        selectedDeviceIDS: [String]? = nil,
+        state: WakeCampaignState? = nil,
+        statusVersion: Int? = nil,
+        updatedAt: String? = nil
+    ) -> WakeStatus {
+        return WakeStatus(
+            attemptNumber: attemptNumber ?? self.attemptNumber,
+            campaignID: campaignID ?? self.campaignID,
+            finalDeadlineAt: finalDeadlineAt ?? self.finalDeadlineAt,
+            maximumAttempts: maximumAttempts ?? self.maximumAttempts,
+            selectedDeviceIDS: selectedDeviceIDS ?? self.selectedDeviceIDS,
+            state: state ?? self.state,
+            statusVersion: statusVersion ?? self.statusVersion,
+            updatedAt: updatedAt ?? self.updatedAt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum WakeCampaignState: String, Codable {
+    case exhausted = "exhausted"
+    case overridden = "overridden"
+    case quietInterval = "quiet_interval"
+    case ringingAttempt = "ringing_attempt"
+    case satisfied = "satisfied"
+    case scheduled = "scheduled"
+}
+
+/// Perpetual Alarm recurrence, selected devices, persisted campaign attempts, deterministic
+/// deadlines, and terminal wake outcomes.
+// MARK: - CurfewAlarmContract
+public struct CurfewAlarmContract: Codable {
+    public let alarm: AlarmDefinition?
+    public let attempt: WakeAttempt?
+    public let campaign: WakeCampaign?
+    public let outcome: WakeOutcome?
+
+    public init(alarm: AlarmDefinition?, attempt: WakeAttempt?, campaign: WakeCampaign?, outcome: WakeOutcome?) {
+        self.alarm = alarm
+        self.attempt = attempt
+        self.campaign = campaign
+        self.outcome = outcome
+    }
+}
+
+// MARK: CurfewAlarmContract convenience initializers and mutators
+
+public extension CurfewAlarmContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CurfewAlarmContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        alarm: AlarmDefinition?? = nil,
+        attempt: WakeAttempt?? = nil,
+        campaign: WakeCampaign?? = nil,
+        outcome: WakeOutcome?? = nil
+    ) -> CurfewAlarmContract {
+        return CurfewAlarmContract(
+            alarm: alarm ?? self.alarm,
+            attempt: attempt ?? self.attempt,
+            campaign: campaign ?? self.campaign,
+            outcome: outcome ?? self.outcome
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - AlarmDefinition
+public struct AlarmDefinition: Codable {
+    public let alarmID: String
+    public let callbackID: String?
+    public let configuration: AlarmConfiguration
+    public let displayLabel: String
+    public let enabled: Bool
+    public let recurrence: AlarmRecurrence
+
+    public enum CodingKeys: String, CodingKey {
+        case alarmID = "alarmId"
+        case callbackID = "callbackId"
+        case configuration, displayLabel, enabled, recurrence
+    }
+
+    public init(alarmID: String, callbackID: String?, configuration: AlarmConfiguration, displayLabel: String, enabled: Bool, recurrence: AlarmRecurrence) {
+        self.alarmID = alarmID
+        self.callbackID = callbackID
+        self.configuration = configuration
+        self.displayLabel = displayLabel
+        self.enabled = enabled
+        self.recurrence = recurrence
+    }
+}
+
+// MARK: AlarmDefinition convenience initializers and mutators
+
+public extension AlarmDefinition {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AlarmDefinition.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        alarmID: String? = nil,
+        callbackID: String?? = nil,
+        configuration: AlarmConfiguration? = nil,
+        displayLabel: String? = nil,
+        enabled: Bool? = nil,
+        recurrence: AlarmRecurrence? = nil
+    ) -> AlarmDefinition {
+        return AlarmDefinition(
+            alarmID: alarmID ?? self.alarmID,
+            callbackID: callbackID ?? self.callbackID,
+            configuration: configuration ?? self.configuration,
+            displayLabel: displayLabel ?? self.displayLabel,
+            enabled: enabled ?? self.enabled,
+            recurrence: recurrence ?? self.recurrence
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// campaignDurationSeconds is derived, never independently configured: it must equal
+/// maximumAttempts * ringDurationSeconds + (maximumAttempts - 1) * quietIntervalSeconds and
+/// must not exceed 7200 seconds. Defaults produce three two-minute attempts and two
+/// five-minute quiet intervals: 960 seconds total.
+// MARK: - AlarmConfiguration
+public struct AlarmConfiguration: Codable {
+    public let campaignDurationSeconds: Int
+    public let maximumAttempts: Int
+    public let quietIntervalSeconds: Int
+    public let ringDurationSeconds: Int
+    /// Android alarm devices selected for this alarm; clients default to the primary alarm phone.
+    public let selectedDeviceIDS: [String]
+
+    public enum CodingKeys: String, CodingKey {
+        case campaignDurationSeconds, maximumAttempts, quietIntervalSeconds, ringDurationSeconds
+        case selectedDeviceIDS = "selectedDeviceIds"
+    }
+
+    public init(campaignDurationSeconds: Int, maximumAttempts: Int, quietIntervalSeconds: Int, ringDurationSeconds: Int, selectedDeviceIDS: [String]) {
+        self.campaignDurationSeconds = campaignDurationSeconds
+        self.maximumAttempts = maximumAttempts
+        self.quietIntervalSeconds = quietIntervalSeconds
+        self.ringDurationSeconds = ringDurationSeconds
+        self.selectedDeviceIDS = selectedDeviceIDS
+    }
+}
+
+// MARK: AlarmConfiguration convenience initializers and mutators
+
+public extension AlarmConfiguration {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AlarmConfiguration.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        campaignDurationSeconds: Int? = nil,
+        maximumAttempts: Int? = nil,
+        quietIntervalSeconds: Int? = nil,
+        ringDurationSeconds: Int? = nil,
+        selectedDeviceIDS: [String]? = nil
+    ) -> AlarmConfiguration {
+        return AlarmConfiguration(
+            campaignDurationSeconds: campaignDurationSeconds ?? self.campaignDurationSeconds,
+            maximumAttempts: maximumAttempts ?? self.maximumAttempts,
+            quietIntervalSeconds: quietIntervalSeconds ?? self.quietIntervalSeconds,
+            ringDurationSeconds: ringDurationSeconds ?? self.ringDurationSeconds,
+            selectedDeviceIDS: selectedDeviceIDS ?? self.selectedDeviceIDS
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - AlarmRecurrence
+public struct AlarmRecurrence: Codable {
+    public let dstResolution: AlarmRecurrenceDstResolution?
+    public let kind: AlarmRecurrenceKind
+    public let localTime: String?
+    public let timeZone: String
+    public let weekdays: [Weekday]?
+    public let scheduledAt: String?
+
+    public init(dstResolution: AlarmRecurrenceDstResolution?, kind: AlarmRecurrenceKind, localTime: String?, timeZone: String, weekdays: [Weekday]?, scheduledAt: String?) {
+        self.dstResolution = dstResolution
+        self.kind = kind
+        self.localTime = localTime
+        self.timeZone = timeZone
+        self.weekdays = weekdays
+        self.scheduledAt = scheduledAt
+    }
+}
+
+// MARK: AlarmRecurrence convenience initializers and mutators
+
+public extension AlarmRecurrence {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AlarmRecurrence.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        dstResolution: AlarmRecurrenceDstResolution?? = nil,
+        kind: AlarmRecurrenceKind? = nil,
+        localTime: String?? = nil,
+        timeZone: String? = nil,
+        weekdays: [Weekday]?? = nil,
+        scheduledAt: String?? = nil
+    ) -> AlarmRecurrence {
+        return AlarmRecurrence(
+            dstResolution: dstResolution ?? self.dstResolution,
+            kind: kind ?? self.kind,
+            localTime: localTime ?? self.localTime,
+            timeZone: timeZone ?? self.timeZone,
+            weekdays: weekdays ?? self.weekdays,
+            scheduledAt: scheduledAt ?? self.scheduledAt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - AlarmRecurrenceDstResolution
+public struct AlarmRecurrenceDstResolution: Codable {
+    /// A nonexistent local time advances to the first valid instant after the DST gap.
+    public let gap: Gap
+    /// An ambiguous repeated local time resolves to its first occurrence.
+    public let overlap: Overlap
+
+    public init(gap: Gap, overlap: Overlap) {
+        self.gap = gap
+        self.overlap = overlap
+    }
+}
+
+// MARK: AlarmRecurrenceDstResolution convenience initializers and mutators
+
+public extension AlarmRecurrenceDstResolution {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AlarmRecurrenceDstResolution.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        gap: Gap? = nil,
+        overlap: Overlap? = nil
+    ) -> AlarmRecurrenceDstResolution {
+        return AlarmRecurrenceDstResolution(
+            gap: gap ?? self.gap,
+            overlap: overlap ?? self.overlap
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Gap: String, Codable {
+    case firstValidInstant = "first_valid_instant"
+}
+
+public enum Overlap: String, Codable {
+    case firstOccurrence = "first_occurrence"
+}
+
+public enum AlarmRecurrenceKind: String, Codable {
+    case oneTime = "one_time"
+    case weekly = "weekly"
+}
+
+public enum Weekday: String, Codable {
+    case friday = "friday"
+    case monday = "monday"
+    case saturday = "saturday"
+    case sunday = "sunday"
+    case thursday = "thursday"
+    case tuesday = "tuesday"
+    case wednesday = "wednesday"
+}
+
+// MARK: - WakeAttempt
+public struct WakeAttempt: Codable {
+    public let attemptNumber: Int
+    public let campaignID: String
+    public let completedAt, quietEndsAt: String?
+    public let ringEndsAt, startedAt: String
+    public let state: State
+
+    public enum CodingKeys: String, CodingKey {
+        case attemptNumber
+        case campaignID = "campaignId"
+        case completedAt, quietEndsAt, ringEndsAt, startedAt, state
+    }
+
+    public init(attemptNumber: Int, campaignID: String, completedAt: String?, quietEndsAt: String?, ringEndsAt: String, startedAt: String, state: State) {
+        self.attemptNumber = attemptNumber
+        self.campaignID = campaignID
+        self.completedAt = completedAt
+        self.quietEndsAt = quietEndsAt
+        self.ringEndsAt = ringEndsAt
+        self.startedAt = startedAt
+        self.state = state
+    }
+}
+
+// MARK: WakeAttempt convenience initializers and mutators
+
+public extension WakeAttempt {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(WakeAttempt.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        attemptNumber: Int? = nil,
+        campaignID: String? = nil,
+        completedAt: String?? = nil,
+        quietEndsAt: String?? = nil,
+        ringEndsAt: String? = nil,
+        startedAt: String? = nil,
+        state: State? = nil
+    ) -> WakeAttempt {
+        return WakeAttempt(
+            attemptNumber: attemptNumber ?? self.attemptNumber,
+            campaignID: campaignID ?? self.campaignID,
+            completedAt: completedAt ?? self.completedAt,
+            quietEndsAt: quietEndsAt ?? self.quietEndsAt,
+            ringEndsAt: ringEndsAt ?? self.ringEndsAt,
+            startedAt: startedAt ?? self.startedAt,
+            state: state ?? self.state
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum State: String, Codable {
+    case failed = "failed"
+    case quiet = "quiet"
+    case ringing = "ringing"
+    case satisfied = "satisfied"
+}
+
+/// Persisted campaign state. finalDeadlineAt must equal scheduledAt plus the validated
+/// AlarmConfiguration campaignDurationSeconds. Every device therefore derives one deadline,
+/// and an offline Mac releases at that instant without coordinator contact.
+// MARK: - WakeCampaign
+public struct WakeCampaign: Codable {
+    public let alarmID: String
+    public let attemptNumber: Int
+    public let campaignID: String
+    public let finalDeadlineAt: String
+    public let recordVersion: Int
+    public let scheduledAt: String
+    public let selectedDeviceIDS: [String]
+    public let startedAt: String?
+    public let state: WakeCampaignState
+    public let timeZone: String
+    public let writerCounter: Int
+
+    public enum CodingKeys: String, CodingKey {
+        case alarmID = "alarmId"
+        case attemptNumber
+        case campaignID = "campaignId"
+        case finalDeadlineAt, recordVersion, scheduledAt
+        case selectedDeviceIDS = "selectedDeviceIds"
+        case startedAt, state, timeZone, writerCounter
+    }
+
+    public init(alarmID: String, attemptNumber: Int, campaignID: String, finalDeadlineAt: String, recordVersion: Int, scheduledAt: String, selectedDeviceIDS: [String], startedAt: String?, state: WakeCampaignState, timeZone: String, writerCounter: Int) {
+        self.alarmID = alarmID
+        self.attemptNumber = attemptNumber
+        self.campaignID = campaignID
+        self.finalDeadlineAt = finalDeadlineAt
+        self.recordVersion = recordVersion
+        self.scheduledAt = scheduledAt
+        self.selectedDeviceIDS = selectedDeviceIDS
+        self.startedAt = startedAt
+        self.state = state
+        self.timeZone = timeZone
+        self.writerCounter = writerCounter
+    }
+}
+
+// MARK: WakeCampaign convenience initializers and mutators
+
+public extension WakeCampaign {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(WakeCampaign.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        alarmID: String? = nil,
+        attemptNumber: Int? = nil,
+        campaignID: String? = nil,
+        finalDeadlineAt: String? = nil,
+        recordVersion: Int? = nil,
+        scheduledAt: String? = nil,
+        selectedDeviceIDS: [String]? = nil,
+        startedAt: String?? = nil,
+        state: WakeCampaignState? = nil,
+        timeZone: String? = nil,
+        writerCounter: Int? = nil
+    ) -> WakeCampaign {
+        return WakeCampaign(
+            alarmID: alarmID ?? self.alarmID,
+            attemptNumber: attemptNumber ?? self.attemptNumber,
+            campaignID: campaignID ?? self.campaignID,
+            finalDeadlineAt: finalDeadlineAt ?? self.finalDeadlineAt,
+            recordVersion: recordVersion ?? self.recordVersion,
+            scheduledAt: scheduledAt ?? self.scheduledAt,
+            selectedDeviceIDS: selectedDeviceIDS ?? self.selectedDeviceIDS,
+            startedAt: startedAt ?? self.startedAt,
+            state: state ?? self.state,
+            timeZone: timeZone ?? self.timeZone,
+            writerCounter: writerCounter ?? self.writerCounter
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Every terminal outcome releases the morning gate. Exhaustion records a factual missed
+/// wake-up; it never strands a device.
+// MARK: - WakeOutcome
+public struct WakeOutcome: Codable {
+    public let attemptsCompleted: Int?
+    public let campaignID: String
+    public let releasedAt: String
+    public let result: Result
+    public let satisfyingDeviceID: String?
+
+    public enum CodingKeys: String, CodingKey {
+        case attemptsCompleted
+        case campaignID = "campaignId"
+        case releasedAt, result
+        case satisfyingDeviceID = "satisfyingDeviceId"
+    }
+
+    public init(attemptsCompleted: Int?, campaignID: String, releasedAt: String, result: Result, satisfyingDeviceID: String?) {
+        self.attemptsCompleted = attemptsCompleted
+        self.campaignID = campaignID
+        self.releasedAt = releasedAt
+        self.result = result
+        self.satisfyingDeviceID = satisfyingDeviceID
+    }
+}
+
+// MARK: WakeOutcome convenience initializers and mutators
+
+public extension WakeOutcome {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(WakeOutcome.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        attemptsCompleted: Int?? = nil,
+        campaignID: String? = nil,
+        releasedAt: String? = nil,
+        result: Result? = nil,
+        satisfyingDeviceID: String?? = nil
+    ) -> WakeOutcome {
+        return WakeOutcome(
+            attemptsCompleted: attemptsCompleted ?? self.attemptsCompleted,
+            campaignID: campaignID ?? self.campaignID,
+            releasedAt: releasedAt ?? self.releasedAt,
+            result: result ?? self.result,
+            satisfyingDeviceID: satisfyingDeviceID ?? self.satisfyingDeviceID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Result: String, Codable {
+    case exhausted = "exhausted"
+    case remoteOverride = "remote_override"
+    case satisfied = "satisfied"
+}
+
+/// Generic HTTPS wake-condition callback definitions and nonce-bound canonical HMAC request
+/// and response messages. For both messages, mac is unpadded base64url HMAC-SHA256 over RFC
+/// 8785 JCS canonical UTF-8 JSON with the mac property omitted. HKDF-SHA256 uses the decoded
+/// 32-byte callback secret as IKM, UTF-8 callbackId as salt, and the message-purpose label
+/// as info to derive a 32-byte key. Product-specific names, DTOs, presets, and scopes do not
+/// belong in this contract.
+// MARK: - CurfewCallbackContract
+public struct CurfewCallbackContract: Codable {
+    public let acceptance: CallbackReceiptAcceptance?
+    public let challenge: CallbackChallenge?
+    public let definition: CallbackDefinition?
+    public let receipt: CallbackReceipt?
+
+    public init(acceptance: CallbackReceiptAcceptance?, challenge: CallbackChallenge?, definition: CallbackDefinition?, receipt: CallbackReceipt?) {
+        self.acceptance = acceptance
+        self.challenge = challenge
+        self.definition = definition
+        self.receipt = receipt
+    }
+}
+
+// MARK: CurfewCallbackContract convenience initializers and mutators
+
+public extension CurfewCallbackContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CurfewCallbackContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        acceptance: CallbackReceiptAcceptance?? = nil,
+        challenge: CallbackChallenge?? = nil,
+        definition: CallbackDefinition?? = nil,
+        receipt: CallbackReceipt?? = nil
+    ) -> CurfewCallbackContract {
+        return CurfewCallbackContract(
+            acceptance: acceptance ?? self.acceptance,
+            challenge: challenge ?? self.challenge,
+            definition: definition ?? self.definition,
+            receipt: receipt ?? self.receipt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Post-verification view. Consumers construct this only after matching campaign and nonce,
+/// checking timestamp freshness and expiry, verifying the response-purpose MAC, and
+/// atomically consuming the nonce.
+// MARK: - CallbackReceiptAcceptance
+public struct CallbackReceiptAcceptance: Codable {
+    public let campaignDisposition: CampaignDisposition
+    public let macDisposition: MACDispositionEnum
+    public let nonceDisposition: NonceDispositionEnum
+    public let receipt: CallbackReceipt
+    public let timestampDisposition: NonceDispositionEnum
+
+    public init(campaignDisposition: CampaignDisposition, macDisposition: MACDispositionEnum, nonceDisposition: NonceDispositionEnum, receipt: CallbackReceipt, timestampDisposition: NonceDispositionEnum) {
+        self.campaignDisposition = campaignDisposition
+        self.macDisposition = macDisposition
+        self.nonceDisposition = nonceDisposition
+        self.receipt = receipt
+        self.timestampDisposition = timestampDisposition
+    }
+}
+
+// MARK: CallbackReceiptAcceptance convenience initializers and mutators
+
+public extension CallbackReceiptAcceptance {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CallbackReceiptAcceptance.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        campaignDisposition: CampaignDisposition? = nil,
+        macDisposition: MACDispositionEnum? = nil,
+        nonceDisposition: NonceDispositionEnum? = nil,
+        receipt: CallbackReceipt? = nil,
+        timestampDisposition: NonceDispositionEnum? = nil
+    ) -> CallbackReceiptAcceptance {
+        return CallbackReceiptAcceptance(
+            campaignDisposition: campaignDisposition ?? self.campaignDisposition,
+            macDisposition: macDisposition ?? self.macDisposition,
+            nonceDisposition: nonceDisposition ?? self.nonceDisposition,
+            receipt: receipt ?? self.receipt,
+            timestampDisposition: timestampDisposition ?? self.timestampDisposition
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum CampaignDisposition: String, Codable {
+    case matched = "matched"
+}
+
+public enum MACDispositionEnum: String, Codable {
+    case valid = "valid"
+}
+
+public enum NonceDispositionEnum: String, Codable {
+    case fresh = "fresh"
+}
+
+/// Canonical JSON receipt authenticated with the independently HKDF-derived
+/// curfew-callback-response-v1 key. The campaign and nonce must echo the challenge;
+/// observations and expiry must be fresh; invalid MACs and replayed nonces fail closed.
+// MARK: - CallbackReceipt
+public struct CallbackReceipt: Codable {
+    public let campaignID: String
+    public let expiresAt: String
+    public let mac: String
+    public let nonce: String
+    public let observedAt: String
+    public let status: ReceiptStatus
+
+    public enum CodingKeys: String, CodingKey {
+        case campaignID = "campaignId"
+        case expiresAt, mac, nonce, observedAt, status
+    }
+
+    public init(campaignID: String, expiresAt: String, mac: String, nonce: String, observedAt: String, status: ReceiptStatus) {
+        self.campaignID = campaignID
+        self.expiresAt = expiresAt
+        self.mac = mac
+        self.nonce = nonce
+        self.observedAt = observedAt
+        self.status = status
+    }
+}
+
+// MARK: CallbackReceipt convenience initializers and mutators
+
+public extension CallbackReceipt {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CallbackReceipt.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        campaignID: String? = nil,
+        expiresAt: String? = nil,
+        mac: String? = nil,
+        nonce: String? = nil,
+        observedAt: String? = nil,
+        status: ReceiptStatus? = nil
+    ) -> CallbackReceipt {
+        return CallbackReceipt(
+            campaignID: campaignID ?? self.campaignID,
+            expiresAt: expiresAt ?? self.expiresAt,
+            mac: mac ?? self.mac,
+            nonce: nonce ?? self.nonce,
+            observedAt: observedAt ?? self.observedAt,
+            status: status ?? self.status
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum ReceiptStatus: String, Codable {
+    case pending = "pending"
+    case satisfied = "satisfied"
+}
+
+/// Canonical JSON POST challenge authenticated with the HKDF-derived
+/// curfew-callback-request-v1 key. Redirects are not followed. campaignStartedAt lets a
+/// condition prove its observation began after this campaign; challengedAt and nonce are
+/// newly generated for every poll; campaignId and nonce bind the response to exactly one
+/// poll.
+// MARK: - CallbackChallenge
+public struct CallbackChallenge: Codable {
+    public let callbackID, campaignID: String
+    public let campaignStartedAt, challengedAt, expiresAt: String
+    public let mac: String
+    public let nonce: String
+
+    public enum CodingKeys: String, CodingKey {
+        case callbackID = "callbackId"
+        case campaignID = "campaignId"
+        case campaignStartedAt, challengedAt, expiresAt, mac, nonce
+    }
+
+    public init(callbackID: String, campaignID: String, campaignStartedAt: String, challengedAt: String, expiresAt: String, mac: String, nonce: String) {
+        self.callbackID = callbackID
+        self.campaignID = campaignID
+        self.campaignStartedAt = campaignStartedAt
+        self.challengedAt = challengedAt
+        self.expiresAt = expiresAt
+        self.mac = mac
+        self.nonce = nonce
+    }
+}
+
+// MARK: CallbackChallenge convenience initializers and mutators
+
+public extension CallbackChallenge {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CallbackChallenge.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        callbackID: String? = nil,
+        campaignID: String? = nil,
+        campaignStartedAt: String? = nil,
+        challengedAt: String? = nil,
+        expiresAt: String? = nil,
+        mac: String? = nil,
+        nonce: String? = nil
+    ) -> CallbackChallenge {
+        return CallbackChallenge(
+            callbackID: callbackID ?? self.callbackID,
+            campaignID: campaignID ?? self.campaignID,
+            campaignStartedAt: campaignStartedAt ?? self.campaignStartedAt,
+            challengedAt: challengedAt ?? self.challengedAt,
+            expiresAt: expiresAt ?? self.expiresAt,
+            mac: mac ?? self.mac,
+            nonce: nonce ?? self.nonce
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Stored locally or inside an encrypted record. The secret is random key material from
+/// which clients independently derive request and response HMAC keys.
+// MARK: - CallbackDefinition
+public struct CallbackDefinition: Codable {
+    public let actionURL: String?
+    public let callbackID: String
+    public let displayLabel: String
+    public let endpoint: String
+    public let pollPolicy: CallbackPollPolicy
+    public let secret: String
+
+    public enum CodingKeys: String, CodingKey {
+        case actionURL = "actionUrl"
+        case callbackID = "callbackId"
+        case displayLabel, endpoint, pollPolicy, secret
+    }
+
+    public init(actionURL: String?, callbackID: String, displayLabel: String, endpoint: String, pollPolicy: CallbackPollPolicy, secret: String) {
+        self.actionURL = actionURL
+        self.callbackID = callbackID
+        self.displayLabel = displayLabel
+        self.endpoint = endpoint
+        self.pollPolicy = pollPolicy
+        self.secret = secret
+    }
+}
+
+// MARK: CallbackDefinition convenience initializers and mutators
+
+public extension CallbackDefinition {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CallbackDefinition.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        actionURL: String?? = nil,
+        callbackID: String? = nil,
+        displayLabel: String? = nil,
+        endpoint: String? = nil,
+        pollPolicy: CallbackPollPolicy? = nil,
+        secret: String? = nil
+    ) -> CallbackDefinition {
+        return CallbackDefinition(
+            actionURL: actionURL ?? self.actionURL,
+            callbackID: callbackID ?? self.callbackID,
+            displayLabel: displayLabel ?? self.displayLabel,
+            endpoint: endpoint ?? self.endpoint,
+            pollPolicy: pollPolicy ?? self.pollPolicy,
+            secret: secret ?? self.secret
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - CallbackPollPolicy
+public struct CallbackPollPolicy: Codable {
+    public let intervalSeconds: Int
+    public let maximumBackoffSeconds: Int
+    public let requestTimeoutSeconds: Int
+
+    public init(intervalSeconds: Int, maximumBackoffSeconds: Int, requestTimeoutSeconds: Int) {
+        self.intervalSeconds = intervalSeconds
+        self.maximumBackoffSeconds = maximumBackoffSeconds
+        self.requestTimeoutSeconds = requestTimeoutSeconds
+    }
+}
+
+// MARK: CallbackPollPolicy convenience initializers and mutators
+
+public extension CallbackPollPolicy {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CallbackPollPolicy.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        intervalSeconds: Int? = nil,
+        maximumBackoffSeconds: Int? = nil,
+        requestTimeoutSeconds: Int? = nil
+    ) -> CallbackPollPolicy {
+        return CallbackPollPolicy(
+            intervalSeconds: intervalSeconds ?? self.intervalSeconds,
+            maximumBackoffSeconds: maximumBackoffSeconds ?? self.maximumBackoffSeconds,
+            requestTimeoutSeconds: requestTimeoutSeconds ?? self.requestTimeoutSeconds
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
 
 /// Device enrollment and proof-of-possession session messages. Signed claims are decoded
 /// only from verified compact JWS payloads.
@@ -368,14 +2301,6 @@ public extension DevicePublicKeyJWK {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
-}
-
-public enum Crv: String, Codable {
-    case p256 = "P-256"
-}
-
-public enum Kty: String, Codable {
-    case ec = "EC"
 }
 
 /// Post-verification view of the claims embedded in DeviceProof.compactJws. Never accepted
@@ -745,6 +2670,515 @@ public enum DevicePresenceState: String, Codable {
     case presentButIdle = "present_idle"
     case unknown = "unknown"
     case working = "working"
+}
+
+/// Opaque encrypted synchronization records and account-root-key distribution. Coordinators
+/// store ciphertext and monotonic headers but never receive account root keys or plaintext
+/// settings.
+// MARK: - CurfewE2EEContract
+public struct CurfewE2EEContract: Codable {
+    public let acceptance: EncryptedRecordAcceptance?
+    public let conflict: EncryptedRecordConflict?
+    public let record: EncryptedRecord?
+    public let recoveryEnvelope: RecoveryKeyEnvelope?
+    public let rootKeyEnvelope: RootKeyEnvelope?
+
+    public init(acceptance: EncryptedRecordAcceptance?, conflict: EncryptedRecordConflict?, record: EncryptedRecord?, recoveryEnvelope: RecoveryKeyEnvelope?, rootKeyEnvelope: RootKeyEnvelope?) {
+        self.acceptance = acceptance
+        self.conflict = conflict
+        self.record = record
+        self.recoveryEnvelope = recoveryEnvelope
+        self.rootKeyEnvelope = rootKeyEnvelope
+    }
+}
+
+// MARK: CurfewE2EEContract convenience initializers and mutators
+
+public extension CurfewE2EEContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CurfewE2EEContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        acceptance: EncryptedRecordAcceptance?? = nil,
+        conflict: EncryptedRecordConflict?? = nil,
+        record: EncryptedRecord?? = nil,
+        recoveryEnvelope: RecoveryKeyEnvelope?? = nil,
+        rootKeyEnvelope: RootKeyEnvelope?? = nil
+    ) -> CurfewE2EEContract {
+        return CurfewE2EEContract(
+            acceptance: acceptance ?? self.acceptance,
+            conflict: conflict ?? self.conflict,
+            record: record ?? self.record,
+            recoveryEnvelope: recoveryEnvelope ?? self.recoveryEnvelope,
+            rootKeyEnvelope: rootKeyEnvelope ?? self.rootKeyEnvelope
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Post-verification view emitted only after optimistic version, writer monotonicity, key
+/// epoch, signature, and ciphertext-header binding checks succeed.
+// MARK: - EncryptedRecordAcceptance
+public struct EncryptedRecordAcceptance: Codable {
+    public let epochDisposition: EpochDisposition
+    public let record: EncryptedRecord
+    public let signatureDisposition: MACDispositionEnum
+    public let versionDisposition: VersionDisposition
+    public let writerDisposition: WriterDisposition
+
+    public init(epochDisposition: EpochDisposition, record: EncryptedRecord, signatureDisposition: MACDispositionEnum, versionDisposition: VersionDisposition, writerDisposition: WriterDisposition) {
+        self.epochDisposition = epochDisposition
+        self.record = record
+        self.signatureDisposition = signatureDisposition
+        self.versionDisposition = versionDisposition
+        self.writerDisposition = writerDisposition
+    }
+}
+
+// MARK: EncryptedRecordAcceptance convenience initializers and mutators
+
+public extension EncryptedRecordAcceptance {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(EncryptedRecordAcceptance.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        epochDisposition: EpochDisposition? = nil,
+        record: EncryptedRecord? = nil,
+        signatureDisposition: MACDispositionEnum? = nil,
+        versionDisposition: VersionDisposition? = nil,
+        writerDisposition: WriterDisposition? = nil
+    ) -> EncryptedRecordAcceptance {
+        return EncryptedRecordAcceptance(
+            epochDisposition: epochDisposition ?? self.epochDisposition,
+            record: record ?? self.record,
+            signatureDisposition: signatureDisposition ?? self.signatureDisposition,
+            versionDisposition: versionDisposition ?? self.versionDisposition,
+            writerDisposition: writerDisposition ?? self.writerDisposition
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum EpochDisposition: String, Codable {
+    case current = "current"
+}
+
+/// AES-256-GCM sealed record. Derive the 32-byte namespace key with HKDF-SHA256 using the
+/// decoded 32-byte account root key as IKM, UTF-8 `curfew-encrypted-record-v2` as salt, and
+/// UTF-8 `namespace=<namespace>;keyEpoch=<base-10 keyEpoch>` as info. AAD is the RFC 8785
+/// JCS UTF-8 encoding of exactly
+/// {cipherSuite,keyEpoch,namespace,recordId,updatedAt,version,writerCounter,writerDeviceId};
+/// aadDigest is unpadded base64url SHA-256 of those bytes. ciphertext is ciphertext || the
+/// 16-byte GCM tag, unpadded base64url. Signature input is the RFC 8785 JCS UTF-8 encoding
+/// of exactly
+/// {aadDigest,cipherSuite,ciphertext,keyEpoch,namespace,nonce,recordId,signatureAlgorithm,updatedAt,version,writerCounter,writerDeviceId}.
+/// signature is ES256 over those bytes using SHA-256, encoded as the 64-byte IEEE P1363 r ||
+/// s form with a low-S value, then unpadded base64url. Stale versions or writer-counter
+/// rollback conflict; the coordinator never merges ciphertext.
+// MARK: - EncryptedRecord
+public struct EncryptedRecord: Codable {
+    public let aadDigest: String
+    public let cipherSuite: CipherSuite
+    public let ciphertext: String
+    public let keyEpoch: Int
+    public let namespace: EncryptedRecordNamespace
+    public let nonce: String
+    public let recordID: String
+    public let signature: String
+    public let signatureAlgorithm: SignatureAlgorithm
+    public let updatedAt: String
+    public let version, writerCounter: Int
+    public let writerDeviceID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case aadDigest, cipherSuite, ciphertext, keyEpoch, namespace, nonce
+        case recordID = "recordId"
+        case signature, signatureAlgorithm, updatedAt, version, writerCounter
+        case writerDeviceID = "writerDeviceId"
+    }
+
+    public init(aadDigest: String, cipherSuite: CipherSuite, ciphertext: String, keyEpoch: Int, namespace: EncryptedRecordNamespace, nonce: String, recordID: String, signature: String, signatureAlgorithm: SignatureAlgorithm, updatedAt: String, version: Int, writerCounter: Int, writerDeviceID: String) {
+        self.aadDigest = aadDigest
+        self.cipherSuite = cipherSuite
+        self.ciphertext = ciphertext
+        self.keyEpoch = keyEpoch
+        self.namespace = namespace
+        self.nonce = nonce
+        self.recordID = recordID
+        self.signature = signature
+        self.signatureAlgorithm = signatureAlgorithm
+        self.updatedAt = updatedAt
+        self.version = version
+        self.writerCounter = writerCounter
+        self.writerDeviceID = writerDeviceID
+    }
+}
+
+// MARK: EncryptedRecord convenience initializers and mutators
+
+public extension EncryptedRecord {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(EncryptedRecord.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        aadDigest: String? = nil,
+        cipherSuite: CipherSuite? = nil,
+        ciphertext: String? = nil,
+        keyEpoch: Int? = nil,
+        namespace: EncryptedRecordNamespace? = nil,
+        nonce: String? = nil,
+        recordID: String? = nil,
+        signature: String? = nil,
+        signatureAlgorithm: SignatureAlgorithm? = nil,
+        updatedAt: String? = nil,
+        version: Int? = nil,
+        writerCounter: Int? = nil,
+        writerDeviceID: String? = nil
+    ) -> EncryptedRecord {
+        return EncryptedRecord(
+            aadDigest: aadDigest ?? self.aadDigest,
+            cipherSuite: cipherSuite ?? self.cipherSuite,
+            ciphertext: ciphertext ?? self.ciphertext,
+            keyEpoch: keyEpoch ?? self.keyEpoch,
+            namespace: namespace ?? self.namespace,
+            nonce: nonce ?? self.nonce,
+            recordID: recordID ?? self.recordID,
+            signature: signature ?? self.signature,
+            signatureAlgorithm: signatureAlgorithm ?? self.signatureAlgorithm,
+            updatedAt: updatedAt ?? self.updatedAt,
+            version: version ?? self.version,
+            writerCounter: writerCounter ?? self.writerCounter,
+            writerDeviceID: writerDeviceID ?? self.writerDeviceID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum CipherSuite: String, Codable {
+    case aes256Gcm = "AES-256-GCM"
+}
+
+public enum EncryptedRecordNamespace: String, Codable {
+    case accountSettings = "account_settings"
+    case alarms = "alarms"
+    case callbacks = "callbacks"
+    case campaigns = "campaigns"
+    case deviceState = "device_state"
+    case policy = "policy"
+}
+
+public enum SignatureAlgorithm: String, Codable {
+    case es256P1363Sha256 = "ES256-P1363-SHA256"
+}
+
+public enum VersionDisposition: String, Codable {
+    case nextVersion = "next_version"
+}
+
+public enum WriterDisposition: String, Codable {
+    case monotonic = "monotonic"
+}
+
+// MARK: - EncryptedRecordConflict
+public struct EncryptedRecordConflict: Codable {
+    public let attemptedVersion, attemptedWriterCounter, currentVersion, currentWriterCounter: Int
+    public let recordID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case attemptedVersion, attemptedWriterCounter, currentVersion, currentWriterCounter
+        case recordID = "recordId"
+    }
+
+    public init(attemptedVersion: Int, attemptedWriterCounter: Int, currentVersion: Int, currentWriterCounter: Int, recordID: String) {
+        self.attemptedVersion = attemptedVersion
+        self.attemptedWriterCounter = attemptedWriterCounter
+        self.currentVersion = currentVersion
+        self.currentWriterCounter = currentWriterCounter
+        self.recordID = recordID
+    }
+}
+
+// MARK: EncryptedRecordConflict convenience initializers and mutators
+
+public extension EncryptedRecordConflict {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(EncryptedRecordConflict.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        attemptedVersion: Int? = nil,
+        attemptedWriterCounter: Int? = nil,
+        currentVersion: Int? = nil,
+        currentWriterCounter: Int? = nil,
+        recordID: String? = nil
+    ) -> EncryptedRecordConflict {
+        return EncryptedRecordConflict(
+            attemptedVersion: attemptedVersion ?? self.attemptedVersion,
+            attemptedWriterCounter: attemptedWriterCounter ?? self.attemptedWriterCounter,
+            currentVersion: currentVersion ?? self.currentVersion,
+            currentWriterCounter: currentWriterCounter ?? self.currentWriterCounter,
+            recordID: recordID ?? self.recordID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Account root key wrapped using the separately generated mandatory 32-byte Curfew Recovery
+/// Key. Derive the 32-byte AES key with HKDF-SHA256 using the decoded Recovery Key as IKM,
+/// the decoded 16-byte salt as salt, and UTF-8 `curfew-recovery-wrap-v2` as info.
+/// AES-256-GCM plaintext is exactly the 32-byte account root key; AAD is RFC 8785 JCS UTF-8
+/// of exactly {createdAt,keyEpoch}; ciphertext is ciphertext || the 16-byte tag, unpadded
+/// base64url. Authentication backup codes do not decrypt this envelope; restoration requires
+/// AAL2 plus the Curfew Recovery Key.
+// MARK: - RecoveryKeyEnvelope
+public struct RecoveryKeyEnvelope: Codable {
+    public let aead: CipherSuite
+    public let ciphertext: String
+    public let createdAt: String
+    public let info: RecoveryEnvelopeInfo
+    public let kdf: Kdf
+    public let keyEpoch: Int
+    public let nonce: String
+    public let salt: String
+
+    public init(aead: CipherSuite, ciphertext: String, createdAt: String, info: RecoveryEnvelopeInfo, kdf: Kdf, keyEpoch: Int, nonce: String, salt: String) {
+        self.aead = aead
+        self.ciphertext = ciphertext
+        self.createdAt = createdAt
+        self.info = info
+        self.kdf = kdf
+        self.keyEpoch = keyEpoch
+        self.nonce = nonce
+        self.salt = salt
+    }
+}
+
+// MARK: RecoveryKeyEnvelope convenience initializers and mutators
+
+public extension RecoveryKeyEnvelope {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RecoveryKeyEnvelope.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        aead: CipherSuite? = nil,
+        ciphertext: String? = nil,
+        createdAt: String? = nil,
+        info: RecoveryEnvelopeInfo? = nil,
+        kdf: Kdf? = nil,
+        keyEpoch: Int? = nil,
+        nonce: String? = nil,
+        salt: String? = nil
+    ) -> RecoveryKeyEnvelope {
+        return RecoveryKeyEnvelope(
+            aead: aead ?? self.aead,
+            ciphertext: ciphertext ?? self.ciphertext,
+            createdAt: createdAt ?? self.createdAt,
+            info: info ?? self.info,
+            kdf: kdf ?? self.kdf,
+            keyEpoch: keyEpoch ?? self.keyEpoch,
+            nonce: nonce ?? self.nonce,
+            salt: salt ?? self.salt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum RecoveryEnvelopeInfo: String, Codable {
+    case curfewRecoveryWrapV2 = "curfew-recovery-wrap-v2"
+}
+
+public enum Kdf: String, Codable {
+    case hkdfSha256 = "HKDF-SHA256"
+}
+
+/// The sole canonical device root-key envelope. RFC 9180 HPKE base mode uses
+/// DHKEM(P-256,HKDF-SHA256) KEM ID 0x0010, HKDF-SHA256 KDF ID 0x0001, and AES-256-GCM AEAD
+/// ID 0x0002. info is UTF-8 `curfew-root-key-envelope-v2`; AAD is RFC 8785 JCS UTF-8 of
+/// exactly {createdAt,keyEpoch,recipientDeviceId}; plaintext is exactly the random 32-byte
+/// account root key. encapsulatedKey is the 65-byte SEC1 uncompressed P-256 point and
+/// ciphertext is the 32-byte plaintext plus 16-byte tag, both unpadded base64url. Namespace
+/// keys are independently derived from the root.
+// MARK: - RootKeyEnvelope
+public struct RootKeyEnvelope: Codable {
+    public let aead: CipherSuite
+    public let ciphertext: String
+    public let createdAt: String
+    public let encapsulatedKey: String
+    public let info: RootKeyEnvelopeInfo
+    public let kdf: Kdf
+    public let kem: Kem
+    public let keyEpoch: Int
+    public let recipientDeviceID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case aead, ciphertext, createdAt, encapsulatedKey, info, kdf, kem, keyEpoch
+        case recipientDeviceID = "recipientDeviceId"
+    }
+
+    public init(aead: CipherSuite, ciphertext: String, createdAt: String, encapsulatedKey: String, info: RootKeyEnvelopeInfo, kdf: Kdf, kem: Kem, keyEpoch: Int, recipientDeviceID: String) {
+        self.aead = aead
+        self.ciphertext = ciphertext
+        self.createdAt = createdAt
+        self.encapsulatedKey = encapsulatedKey
+        self.info = info
+        self.kdf = kdf
+        self.kem = kem
+        self.keyEpoch = keyEpoch
+        self.recipientDeviceID = recipientDeviceID
+    }
+}
+
+// MARK: RootKeyEnvelope convenience initializers and mutators
+
+public extension RootKeyEnvelope {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RootKeyEnvelope.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        aead: CipherSuite? = nil,
+        ciphertext: String? = nil,
+        createdAt: String? = nil,
+        encapsulatedKey: String? = nil,
+        info: RootKeyEnvelopeInfo? = nil,
+        kdf: Kdf? = nil,
+        kem: Kem? = nil,
+        keyEpoch: Int? = nil,
+        recipientDeviceID: String? = nil
+    ) -> RootKeyEnvelope {
+        return RootKeyEnvelope(
+            aead: aead ?? self.aead,
+            ciphertext: ciphertext ?? self.ciphertext,
+            createdAt: createdAt ?? self.createdAt,
+            encapsulatedKey: encapsulatedKey ?? self.encapsulatedKey,
+            info: info ?? self.info,
+            kdf: kdf ?? self.kdf,
+            kem: kem ?? self.kem,
+            keyEpoch: keyEpoch ?? self.keyEpoch,
+            recipientDeviceID: recipientDeviceID ?? self.recipientDeviceID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum RootKeyEnvelopeInfo: String, Codable {
+    case curfewRootKeyEnvelopeV2 = "curfew-root-key-envelope-v2"
+}
+
+public enum Kem: String, Codable {
+    case dhkemP256HkdfSha256 = "DHKEM(P-256,HKDF-SHA256)"
 }
 
 /// Curfew status-and-devices resources/read HTML content using MCP Apps _meta.ui policy.
@@ -1620,9 +4054,9 @@ public enum CoordinatorAudience: String, Codable {
 // MARK: - RemoteDeadlinePolicy
 public struct RemoteDeadlinePolicy: Codable {
     public let durationSeconds: Int?
-    public let kind: Kind
+    public let kind: RemoteDeadlinePolicyKind
 
-    public init(durationSeconds: Int?, kind: Kind) {
+    public init(durationSeconds: Int?, kind: RemoteDeadlinePolicyKind) {
         self.durationSeconds = durationSeconds
         self.kind = kind
     }
@@ -1648,7 +4082,7 @@ public extension RemoteDeadlinePolicy {
 
     func with(
         durationSeconds: Int?? = nil,
-        kind: Kind? = nil
+        kind: RemoteDeadlinePolicyKind? = nil
     ) -> RemoteDeadlinePolicy {
         return RemoteDeadlinePolicy(
             durationSeconds: durationSeconds ?? self.durationSeconds,
@@ -1665,13 +4099,422 @@ public extension RemoteDeadlinePolicy {
     }
 }
 
-public enum Kind: String, Codable {
+public enum RemoteDeadlinePolicyKind: String, Codable {
     case fixedDuration = "fixed_duration"
     case nextScheduledUnlock = "next_scheduled_unlock"
 }
 
 public enum RemoteCommandKind: String, Codable {
     case lockDevice = "lock_device"
+}
+
+/// Curfew v2 schedule and migration shapes. A day has exactly one morning release authority:
+/// a legacy fixed unlock or an account wake campaign. Stricter changes apply at the next
+/// local midnight; weaker changes wait 24 hours and cannot apply during an active lockout.
+// MARK: - CurfewScheduleContract
+public struct CurfewScheduleContract: Codable {
+    public let changePolicy: ScheduleChangeApplicationPolicy?
+    public let migration: LegacyScheduleMigration?
+    public let releasePolicy: ReleasePolicy?
+
+    public init(changePolicy: ScheduleChangeApplicationPolicy?, migration: LegacyScheduleMigration?, releasePolicy: ReleasePolicy?) {
+        self.changePolicy = changePolicy
+        self.migration = migration
+        self.releasePolicy = releasePolicy
+    }
+}
+
+// MARK: CurfewScheduleContract convenience initializers and mutators
+
+public extension CurfewScheduleContract {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CurfewScheduleContract.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        changePolicy: ScheduleChangeApplicationPolicy?? = nil,
+        migration: LegacyScheduleMigration?? = nil,
+        releasePolicy: ReleasePolicy?? = nil
+    ) -> CurfewScheduleContract {
+        return CurfewScheduleContract(
+            changePolicy: changePolicy ?? self.changePolicy,
+            migration: migration ?? self.migration,
+            releasePolicy: releasePolicy ?? self.releasePolicy
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Executable anti-bypass policy. Strengthening begins at the next local midnight. Weakening
+/// waits at least 24 hours and never begins while a lockout is active.
+// MARK: - ScheduleChangeApplicationPolicy
+public struct ScheduleChangeApplicationPolicy: Codable {
+    public let applyAt: ApplyAt
+    public let mustNotApplyDuringActiveLockout: Bool
+    public let strictness: Strictness
+
+    public init(applyAt: ApplyAt, mustNotApplyDuringActiveLockout: Bool, strictness: Strictness) {
+        self.applyAt = applyAt
+        self.mustNotApplyDuringActiveLockout = mustNotApplyDuringActiveLockout
+        self.strictness = strictness
+    }
+}
+
+// MARK: ScheduleChangeApplicationPolicy convenience initializers and mutators
+
+public extension ScheduleChangeApplicationPolicy {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ScheduleChangeApplicationPolicy.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        applyAt: ApplyAt? = nil,
+        mustNotApplyDuringActiveLockout: Bool? = nil,
+        strictness: Strictness? = nil
+    ) -> ScheduleChangeApplicationPolicy {
+        return ScheduleChangeApplicationPolicy(
+            applyAt: applyAt ?? self.applyAt,
+            mustNotApplyDuringActiveLockout: mustNotApplyDuringActiveLockout ?? self.mustNotApplyDuringActiveLockout,
+            strictness: strictness ?? self.strictness
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum ApplyAt: String, Codable {
+    case after24_Hours = "after_24_hours"
+    case nextLocalMidnight = "next_local_midnight"
+}
+
+public enum Strictness: String, Codable {
+    case strengthening = "strengthening"
+    case weakening = "weakening"
+}
+
+// MARK: - LegacyScheduleMigration
+public struct LegacyScheduleMigration: Codable {
+    public let legacy: LegacyScheduleDay
+    public let migrated: ScheduleDayV2
+    public let migrationVersion: Int
+
+    public init(legacy: LegacyScheduleDay, migrated: ScheduleDayV2, migrationVersion: Int) {
+        self.legacy = legacy
+        self.migrated = migrated
+        self.migrationVersion = migrationVersion
+    }
+}
+
+// MARK: LegacyScheduleMigration convenience initializers and mutators
+
+public extension LegacyScheduleMigration {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(LegacyScheduleMigration.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        legacy: LegacyScheduleDay? = nil,
+        migrated: ScheduleDayV2? = nil,
+        migrationVersion: Int? = nil
+    ) -> LegacyScheduleMigration {
+        return LegacyScheduleMigration(
+            legacy: legacy ?? self.legacy,
+            migrated: migrated ?? self.migrated,
+            migrationVersion: migrationVersion ?? self.migrationVersion
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - LegacyScheduleDay
+public struct LegacyScheduleDay: Codable {
+    public let isDayOff: Bool
+    public let lockTime, unlockTime: String
+    public let weekday: Weekday
+
+    public init(isDayOff: Bool, lockTime: String, unlockTime: String, weekday: Weekday) {
+        self.isDayOff = isDayOff
+        self.lockTime = lockTime
+        self.unlockTime = unlockTime
+        self.weekday = weekday
+    }
+}
+
+// MARK: LegacyScheduleDay convenience initializers and mutators
+
+public extension LegacyScheduleDay {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(LegacyScheduleDay.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        isDayOff: Bool? = nil,
+        lockTime: String? = nil,
+        unlockTime: String? = nil,
+        weekday: Weekday? = nil
+    ) -> LegacyScheduleDay {
+        return LegacyScheduleDay(
+            isDayOff: isDayOff ?? self.isDayOff,
+            lockTime: lockTime ?? self.lockTime,
+            unlockTime: unlockTime ?? self.unlockTime,
+            weekday: weekday ?? self.weekday
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - ScheduleDayV2
+public struct ScheduleDayV2: Codable {
+    public let isDayOff: Bool
+    public let lockTime: String
+    public let releasePolicy: ReleasePolicy
+    public let weekday: Weekday
+
+    public init(isDayOff: Bool, lockTime: String, releasePolicy: ReleasePolicy, weekday: Weekday) {
+        self.isDayOff = isDayOff
+        self.lockTime = lockTime
+        self.releasePolicy = releasePolicy
+        self.weekday = weekday
+    }
+}
+
+// MARK: ScheduleDayV2 convenience initializers and mutators
+
+public extension ScheduleDayV2 {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ScheduleDayV2.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        isDayOff: Bool? = nil,
+        lockTime: String? = nil,
+        releasePolicy: ReleasePolicy? = nil,
+        weekday: Weekday? = nil
+    ) -> ScheduleDayV2 {
+        return ScheduleDayV2(
+            isDayOff: isDayOff ?? self.isDayOff,
+            lockTime: lockTime ?? self.lockTime,
+            releasePolicy: releasePolicy ?? self.releasePolicy,
+            weekday: weekday ?? self.weekday
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Mutually exclusive release authority. A wake-enabled day cannot carry or edit a fixed
+/// unlock.
+// MARK: - ReleasePolicy
+public struct ReleasePolicy: Codable {
+    public let dstResolution: ReleasePolicyDstResolution
+    public let kind: ReleasePolicyKind
+    public let localUnlockTime: String?
+    public let timeZone: String
+    public let campaignTemplateID: String?
+    public let localStartTime: String?
+
+    public enum CodingKeys: String, CodingKey {
+        case dstResolution, kind, localUnlockTime, timeZone
+        case campaignTemplateID = "campaignTemplateId"
+        case localStartTime
+    }
+
+    public init(dstResolution: ReleasePolicyDstResolution, kind: ReleasePolicyKind, localUnlockTime: String?, timeZone: String, campaignTemplateID: String?, localStartTime: String?) {
+        self.dstResolution = dstResolution
+        self.kind = kind
+        self.localUnlockTime = localUnlockTime
+        self.timeZone = timeZone
+        self.campaignTemplateID = campaignTemplateID
+        self.localStartTime = localStartTime
+    }
+}
+
+// MARK: ReleasePolicy convenience initializers and mutators
+
+public extension ReleasePolicy {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ReleasePolicy.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        dstResolution: ReleasePolicyDstResolution? = nil,
+        kind: ReleasePolicyKind? = nil,
+        localUnlockTime: String?? = nil,
+        timeZone: String? = nil,
+        campaignTemplateID: String?? = nil,
+        localStartTime: String?? = nil
+    ) -> ReleasePolicy {
+        return ReleasePolicy(
+            dstResolution: dstResolution ?? self.dstResolution,
+            kind: kind ?? self.kind,
+            localUnlockTime: localUnlockTime ?? self.localUnlockTime,
+            timeZone: timeZone ?? self.timeZone,
+            campaignTemplateID: campaignTemplateID ?? self.campaignTemplateID,
+            localStartTime: localStartTime ?? self.localStartTime
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - ReleasePolicyDstResolution
+public struct ReleasePolicyDstResolution: Codable {
+    /// A nonexistent local time advances to the first valid instant after the DST gap.
+    public let gap: Gap
+    /// An ambiguous repeated local time resolves to its first occurrence.
+    public let overlap: Overlap
+
+    public init(gap: Gap, overlap: Overlap) {
+        self.gap = gap
+        self.overlap = overlap
+    }
+}
+
+// MARK: ReleasePolicyDstResolution convenience initializers and mutators
+
+public extension ReleasePolicyDstResolution {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ReleasePolicyDstResolution.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        gap: Gap? = nil,
+        overlap: Overlap? = nil
+    ) -> ReleasePolicyDstResolution {
+        return ReleasePolicyDstResolution(
+            gap: gap ?? self.gap,
+            overlap: overlap ?? self.overlap
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum ReleasePolicyKind: String, Codable {
+    case fixedUnlock = "fixed_unlock"
+    case wakeCampaign = "wake_campaign"
 }
 
 /// Authenticated device WebSocket frames. Identity and coordinator commands are transported

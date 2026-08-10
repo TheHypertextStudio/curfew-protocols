@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.hypertext.studio/curfew/remote-command.json",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/remote-command.json",
   "title": "RemoteCommandContract",
   "description": "Replay-safe, coordinator-signed remote lock commands and stage-specific per-device results.",
   "type": "object",

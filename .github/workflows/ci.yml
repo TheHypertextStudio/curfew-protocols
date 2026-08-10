@@ -43,6 +43,18 @@ jobs:
       - run: swift build
       - run: swift test
 
+  kotlin:
+    name: Kotlin/JVM (generated artifact + golden vectors)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - run: ./gradlew :generated:kotlin:test --no-daemon
+
   windows-dotnet:
     name: Windows protocol decoder (.NET)
     runs-on: windows-latest

@@ -73,8 +73,30 @@ function swiftCompatibleSchema(entry: string, raw: string): string {
   case "mcp-app.json":
     return swiftMCPAppSchema(raw)
   default:
-    return raw
+    return JSON.stringify(rewriteNonStringConsts(JSON.parse(raw)))
   }
+}
+
+// quicktype's Swift/Kotlin naming pipeline only supports string consts. The
+// canonical schema retains numeric and Boolean consts; generated Codable DTOs
+// receive equivalent structural projections and trust-boundary validators
+// continue to enforce the canonical schema.
+function rewriteNonStringConsts(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(rewriteNonStringConsts)
+  if (value === null || typeof value !== "object") return value
+
+  const object = Object.fromEntries(
+    Object.entries(value).map(([key, child]) => [key, rewriteNonStringConsts(child)]),
+  ) as Record<string, unknown>
+  if (typeof object.const === "number") {
+    object.minimum = object.const
+    object.maximum = object.const
+    delete object.const
+  }
+  if (typeof object.const === "boolean") {
+    delete object.const
+  }
+  return object
 }
 
 // quicktype cannot currently hash an object-valued top-level `const`. The

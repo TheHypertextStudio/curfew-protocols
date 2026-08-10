@@ -3,6 +3,7 @@ import addFormats from "ajv-formats"
 import { readFile, readdir } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import { addCurfewProtocolKeywords } from "../generated/typescript/validation.js"
 
 export const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -11,8 +12,7 @@ export async function readSchema(name: string): Promise<Record<string, any>> {
 }
 
 export async function validator(name: string): Promise<ValidateFunction> {
-  const ajv = new Ajv({ allErrors: true, strict: true })
-  addFormats(ajv)
+  const ajv = curfewAjv()
   const names = (await readdir(join(repoRoot, "schemas"))).filter((entry) =>
     entry.endsWith(".json"),
   )
@@ -27,8 +27,7 @@ export async function definitionValidator(
   name: string,
   definition: string,
 ): Promise<ValidateFunction> {
-  const ajv = new Ajv({ allErrors: true, strict: true })
-  addFormats(ajv)
+  const ajv = curfewAjv()
   const names = (await readdir(join(repoRoot, "schemas"))).filter((entry) =>
     entry.endsWith(".json"),
   )
@@ -37,4 +36,10 @@ export async function definitionValidator(
   }
   const target = await readSchema(name)
   return ajv.compile({ $ref: `${target.$id}#/definitions/${definition}` })
+}
+
+function curfewAjv(): Ajv {
+  const ajv = new Ajv({ allErrors: true, strict: true })
+  addFormats(ajv)
+  return addCurfewProtocolKeywords(ajv)
 }

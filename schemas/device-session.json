@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.hypertext.studio/curfew/device-session.json",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/device-session.json",
   "title": "DeviceSessionContract",
   "description": "Device enrollment and proof-of-possession session messages. Signed claims are decoded only from verified compact JWS payloads.",
   "type": "object",
