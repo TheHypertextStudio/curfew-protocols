@@ -25,8 +25,8 @@
               "additionalProperties": false,
               "required": ["connectDomains", "resourceDomains"],
               "properties": {
-                "connectDomains": { "type": "array", "const": ["https://curfew-mcp.hypertext.studio"] },
-                "resourceDomains": { "type": "array", "const": ["https://curfew-mcp.hypertext.studio"] }
+                "connectDomains": { "type": "array", "const": ["https://curfew-sync.hypertext.studio"] },
+                "resourceDomains": { "type": "array", "const": ["https://curfew-sync.hypertext.studio"] }
               }
             }
           }

@@ -946,16 +946,16 @@ data class OAuthContract (
 
 @Serializable
 enum class Resource(val value: String) {
-    @SerialName("https://curfew-mcp.hypertext.studio/mcp") HTTPSCurfewmcpHypertextStudiomcp("https://curfew-mcp.hypertext.studio/mcp");
+    @SerialName("https://curfew-sync.hypertext.studio/mcp") HTTPSCurfewSyncHypertextStudiomcp("https://curfew-sync.hypertext.studio/mcp");
 }
 
 @Serializable
 enum class CurfewOAuthScope(val value: String) {
-    @SerialName("curfew.lock.all") CurfewLockAll("curfew.lock.all"),
-    @SerialName("curfew.lock.device") CurfewLockDevice("curfew.lock.device"),
-    @SerialName("curfew.lock.multiple") CurfewLockMultiple("curfew.lock.multiple"),
-    @SerialName("curfew.read.devices") CurfewReadDevices("curfew.read.devices"),
-    @SerialName("curfew.read.status") CurfewReadStatus("curfew.read.status");
+    @SerialName("curfew:devices:read") CurfewDevicesRead("curfew:devices:read"),
+    @SerialName("curfew:entitlements:read") CurfewEntitlementsRead("curfew:entitlements:read"),
+    @SerialName("curfew:unlock:direct") CurfewUnlockDirect("curfew:unlock:direct"),
+    @SerialName("curfew:unlock:request") CurfewUnlockRequest("curfew:unlock:request"),
+    @SerialName("curfew:wake:read") CurfewWakeRead("curfew:wake:read");
 }
 
 /**

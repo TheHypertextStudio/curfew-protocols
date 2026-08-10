@@ -3544,15 +3544,15 @@ public extension OAuthContract {
 }
 
 public enum Resource: String, Codable {
-    case httpsCurfewMCPHypertextStudioMCP = "https://curfew-mcp.hypertext.studio/mcp"
+    case httpsCurfewSyncHypertextStudioMCP = "https://curfew-sync.hypertext.studio/mcp"
 }
 
 public enum CurfewOAuthScope: String, Codable {
-    case curfewLockAll = "curfew.lock.all"
-    case curfewLockDevice = "curfew.lock.device"
-    case curfewLockMultiple = "curfew.lock.multiple"
-    case curfewReadDevices = "curfew.read.devices"
-    case curfewReadStatus = "curfew.read.status"
+    case curfewDevicesRead = "curfew:devices:read"
+    case curfewEntitlementsRead = "curfew:entitlements:read"
+    case curfewUnlockDirect = "curfew:unlock:direct"
+    case curfewUnlockRequest = "curfew:unlock:request"
+    case curfewWakeRead = "curfew:wake:read"
 }
 
 /// A write-tool request queued by `curfew-mcp` for user approval in the Curfew app.

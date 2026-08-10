@@ -716,32 +716,9 @@ export type MCPToolRegistry = {
   ]
   remoteTools: [
     {
-      name: "curfew_get_status"
-      description: "Returns normalized Curfew status for one explicitly identified device."
-      requiredScopes: ["curfew.read.status"]
-      inputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {device_id: {type: "string"; format: "uuid"}}
-        required: ["device_id"]
-      }
-      outputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          device_id: {type: "string"; format: "uuid"}
-          phase: {type: "string"; enum: ["working", "warning", "locked", "day_off", "unknown"]}
-          status_version: {type: "integer"; minimum: 0}
-          schedule_digest: {type: "string"; pattern: "^[A-Za-z0-9_-]{43}$"}
-          observed_at: {type: "string"; format: "date-time"}
-        }
-        required: ["device_id", "phase", "status_version", "schedule_digest", "observed_at"]
-      }
-    },
-    {
-      name: "curfew_list_devices"
-      description: "Lists enrolled devices, current status freshness, and local remote-lock eligibility."
-      requiredScopes: ["curfew.read.devices"]
+      name: "list_devices"
+      description: "Lists only server-readable routing and wake-gate status for this account's enrolled devices. Human-readable device names remain encrypted."
+      requiredScopes: ["curfew:devices:read"]
       inputSchema: {type: "object"; additionalProperties: false; properties: {}; required: []}
       outputSchema: {
         type: "object"
@@ -753,21 +730,14 @@ export type MCPToolRegistry = {
               type: "object"
               additionalProperties: false
               properties: {
-                device_id: {type: "string"; format: "uuid"}
-                display_name: {type: "string"}
-                platform: {type: "string"}
-                remote_lock_eligible: {type: "boolean"}
-                all_devices_eligible: {type: "boolean"}
-                last_seen_at: {type: ["string", "null"]; format: "date-time"}
+                deviceId: {type: "string"; format: "uuid"}
+                connectivity: {type: "string"; enum: ["online", "offline"]}
+                wakeGate: {type: "string"; enum: ["not_configured", "locked", "released"]}
+                activeCampaignId: {type: ["string", "null"]; format: "uuid"}
+                statusVersion: {type: "integer"; minimum: 1}
+                observedAt: {type: "string"; format: "date-time"}
               }
-              required: [
-                "device_id",
-                "display_name",
-                "platform",
-                "remote_lock_eligible",
-                "all_devices_eligible",
-                "last_seen_at"
-              ]
+              required: ["deviceId", "connectivity", "wakeGate", "statusVersion", "observedAt"]
             }
           }
         }
@@ -775,432 +745,152 @@ export type MCPToolRegistry = {
       }
     },
     {
-      name: "curfew_lock_device"
-      description: "Locks one locally eligible device. This cannot unlock or weaken Curfew."
-      requiredScopes: ["curfew.lock.device"]
-      inputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          device_id: {type: "string"; format: "uuid"}
-          deadline_policy: {
-            oneOf: [
-              {
-                type: "object"
-                additionalProperties: false
-                properties: {
-                  kind: {const: "fixed_duration"}
-                  duration_seconds: {type: "integer"; minimum: 300; maximum: 43200}
-                }
-                required: ["kind", "duration_seconds"]
-              },
-              {
-                type: "object"
-                additionalProperties: false
-                properties: {
-                  kind: {const: "next_scheduled_unlock"}
-                  status_inputs: {
-                    type: "array"
-                    minItems: 1
-                    maxItems: 1
-                    items: {
-                      type: "object"
-                      additionalProperties: false
-                      properties: {
-                        device_id: {type: "string"; format: "uuid"}
-                        status_version: {type: "integer"; minimum: 0}
-                        schedule_digest: {type: "string"; pattern: "^[A-Za-z0-9_-]{43}$"}
-                      }
-                      required: ["device_id", "status_version", "schedule_digest"]
-                    }
-                  }
-                }
-                required: ["kind", "status_inputs"]
-              }
-            ]
-          }
-        }
-        required: ["device_id", "deadline_policy"]
-      }
-      outputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          command_id: {type: "string"; format: "uuid"}
-          results: {
-            type: "array"
-            items: {
-              oneOf: [
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "queued"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "delivered"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "applied"}
-                    applied_deadline: {type: "string"; format: "date-time"}
-                  }
-                  required: ["device_id", "stage", "applied_deadline"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "rejected"}
-                    rejection_code: {
-                      type: "string"
-                      enum: [
-                        "ineligible",
-                        "stale_status",
-                        "out_of_order",
-                        "invalid_signature",
-                        "invalid_deadline",
-                        "device_unavailable"
-                      ]
-                    }
-                  }
-                  required: ["device_id", "stage", "rejection_code"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "expired"}}
-                  required: ["device_id", "stage"]
-                }
-              ]
-            }
-          }
-        }
-        required: ["command_id", "results"]
-      }
-    },
-    {
-      name: "curfew_lock_devices"
-      description: "Locks an explicit set of locally eligible devices and returns per-device results."
-      requiredScopes: ["curfew.lock.multiple"]
-      inputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          device_ids: {
-            type: "array"
-            minItems: 1
-            maxItems: 50
-            uniqueItems: true
-            items: {type: "string"; format: "uuid"}
-          }
-          deadline_policy: {
-            oneOf: [
-              {
-                type: "object"
-                additionalProperties: false
-                properties: {
-                  kind: {const: "fixed_duration"}
-                  duration_seconds: {type: "integer"; minimum: 300; maximum: 43200}
-                }
-                required: ["kind", "duration_seconds"]
-              },
-              {
-                type: "object"
-                additionalProperties: false
-                properties: {
-                  kind: {const: "next_scheduled_unlock"}
-                  status_inputs: {
-                    type: "array"
-                    minItems: 1
-                    maxItems: 50
-                    items: {
-                      type: "object"
-                      additionalProperties: false
-                      properties: {
-                        device_id: {type: "string"; format: "uuid"}
-                        status_version: {type: "integer"; minimum: 0}
-                        schedule_digest: {type: "string"; pattern: "^[A-Za-z0-9_-]{43}$"}
-                      }
-                      required: ["device_id", "status_version", "schedule_digest"]
-                    }
-                  }
-                }
-                required: ["kind", "status_inputs"]
-              }
-            ]
-          }
-        }
-        required: ["device_ids", "deadline_policy"]
-      }
-      outputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          command_id: {type: "string"; format: "uuid"}
-          results: {
-            type: "array"
-            items: {
-              oneOf: [
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "queued"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "delivered"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "applied"}
-                    applied_deadline: {type: "string"; format: "date-time"}
-                  }
-                  required: ["device_id", "stage", "applied_deadline"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "rejected"}
-                    rejection_code: {
-                      type: "string"
-                      enum: [
-                        "ineligible",
-                        "stale_status",
-                        "out_of_order",
-                        "invalid_signature",
-                        "invalid_deadline",
-                        "device_unavailable"
-                      ]
-                    }
-                  }
-                  required: ["device_id", "stage", "rejection_code"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "expired"}}
-                  required: ["device_id", "stage"]
-                }
-              ]
-            }
-          }
-        }
-        required: ["command_id", "results"]
-      }
-    },
-    {
-      name: "curfew_lock_all_devices"
-      description: "Locks every enrolled device locally opted into lock-all, with per-device results."
-      requiredScopes: ["curfew.lock.all"]
-      inputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          deadline_policy: {
-            oneOf: [
-              {
-                type: "object"
-                additionalProperties: false
-                properties: {
-                  kind: {const: "fixed_duration"}
-                  duration_seconds: {type: "integer"; minimum: 300; maximum: 43200}
-                }
-                required: ["kind", "duration_seconds"]
-              },
-              {
-                type: "object"
-                additionalProperties: false
-                properties: {
-                  kind: {const: "next_scheduled_unlock"}
-                  status_inputs: {
-                    type: "array"
-                    minItems: 1
-                    maxItems: 50
-                    items: {
-                      type: "object"
-                      additionalProperties: false
-                      properties: {
-                        device_id: {type: "string"; format: "uuid"}
-                        status_version: {type: "integer"; minimum: 0}
-                        schedule_digest: {type: "string"; pattern: "^[A-Za-z0-9_-]{43}$"}
-                      }
-                      required: ["device_id", "status_version", "schedule_digest"]
-                    }
-                  }
-                }
-                required: ["kind", "status_inputs"]
-              }
-            ]
-          }
-        }
-        required: ["deadline_policy"]
-      }
-      outputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          command_id: {type: "string"; format: "uuid"}
-          results: {
-            type: "array"
-            items: {
-              oneOf: [
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "queued"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "delivered"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "applied"}
-                    applied_deadline: {type: "string"; format: "date-time"}
-                  }
-                  required: ["device_id", "stage", "applied_deadline"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "rejected"}
-                    rejection_code: {
-                      type: "string"
-                      enum: [
-                        "ineligible",
-                        "stale_status",
-                        "out_of_order",
-                        "invalid_signature",
-                        "invalid_deadline",
-                        "device_unavailable"
-                      ]
-                    }
-                  }
-                  required: ["device_id", "stage", "rejection_code"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "expired"}}
-                  required: ["device_id", "stage"]
-                }
-              ]
-            }
-          }
-        }
-        required: ["command_id", "results"]
-      }
-    },
-    {
-      name: "curfew_get_command_status"
-      description: "Returns queued, delivered, applied, rejected, or expired per-device results."
-      requiredScopes: ["curfew.read.status"]
-      inputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {command_id: {type: "string"; format: "uuid"}}
-        required: ["command_id"]
-      }
-      outputSchema: {
-        type: "object"
-        additionalProperties: false
-        properties: {
-          command_id: {type: "string"; format: "uuid"}
-          results: {
-            type: "array"
-            items: {
-              oneOf: [
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "queued"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "delivered"}}
-                  required: ["device_id", "stage"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "applied"}
-                    applied_deadline: {type: "string"; format: "date-time"}
-                  }
-                  required: ["device_id", "stage", "applied_deadline"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {
-                    device_id: {type: "string"; format: "uuid"}
-                    stage: {const: "rejected"}
-                    rejection_code: {
-                      type: "string"
-                      enum: [
-                        "ineligible",
-                        "stale_status",
-                        "out_of_order",
-                        "invalid_signature",
-                        "invalid_deadline",
-                        "device_unavailable"
-                      ]
-                    }
-                  }
-                  required: ["device_id", "stage", "rejection_code"]
-                },
-                {
-                  type: "object"
-                  additionalProperties: false
-                  properties: {device_id: {type: "string"; format: "uuid"}; stage: {const: "expired"}}
-                  required: ["device_id", "stage"]
-                }
-              ]
-            }
-          }
-        }
-        required: ["command_id", "results"]
-      }
-    },
-    {
-      name: "curfew_open_control_panel"
-      description: "Opens the Curfew MCP App status and device-target control panel."
-      requiredScopes: ["curfew.read.status", "curfew.read.devices"]
+      name: "list_entitlements"
+      description: "Lists lifetime and subscription entitlements attached to this Curfew account."
+      requiredScopes: ["curfew:entitlements:read"]
       inputSchema: {type: "object"; additionalProperties: false; properties: {}; required: []}
       outputSchema: {
         type: "object"
         additionalProperties: false
-        properties: {resource_uri: {type: "string"; const: "ui://curfew/status-and-devices"}}
-        required: ["resource_uri"]
+        properties: {
+          entitlements: {
+            type: "array"
+            items: {
+              type: "object"
+              additionalProperties: false
+              properties: {
+                entitlementId: {type: "string"; format: "uuid"}
+                kind: {type: "string"; enum: ["lifetime", "subscription"]}
+                status: {
+                  type: "string"
+                  enum: ["active", "grace_period", "cancelled", "expired", "refunded", "revoked"]
+                }
+                productId: {type: "string"; minLength: 1; maxLength: 120}
+                provenance: {
+                  type: "string"
+                  enum: [
+                    "signed_in_checkout",
+                    "guest_checkout",
+                    "signed_license_claim",
+                    "verified_checkout_claim",
+                    "legacy_email_match"
+                  ]
+                }
+                issuedAt: {type: "string"; format: "date-time"}
+                validUntil: {type: ["string", "null"]; format: "date-time"}
+                claimedAt: {type: ["string", "null"]; format: "date-time"}
+              }
+              required: ["entitlementId", "kind", "status", "productId", "provenance", "issuedAt"]
+            }
+          }
+        }
+        required: ["entitlements"]
       }
-      _meta: {ui: {resourceUri: "ui://curfew/status-and-devices"}}
+    },
+    {
+      name: "get_wake_status"
+      description: "Returns minimal server-readable wake campaign state; callback definitions and alarm settings remain encrypted."
+      requiredScopes: ["curfew:wake:read"]
+      inputSchema: {type: "object"; additionalProperties: false; properties: {}; required: []}
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          wakeStatus: {
+            oneOf: [
+              {
+                type: "object"
+                additionalProperties: false
+                properties: {
+                  campaignId: {type: "string"; format: "uuid"}
+                  state: {
+                    type: "string"
+                    enum: ["scheduled", "ringing_attempt", "quiet_interval", "satisfied", "exhausted", "overridden"]
+                  }
+                  attemptNumber: {type: "integer"; minimum: 0; maximum: 24}
+                  maximumAttempts: {type: "integer"; minimum: 1; maximum: 24}
+                  selectedDeviceIds: {
+                    type: "array"
+                    minItems: 1
+                    maxItems: 32
+                    uniqueItems: true
+                    items: {type: "string"; format: "uuid"}
+                  }
+                  finalDeadlineAt: {type: "string"; format: "date-time"}
+                  statusVersion: {type: "integer"; minimum: 1}
+                  updatedAt: {type: "string"; format: "date-time"}
+                }
+                required: [
+                  "campaignId",
+                  "state",
+                  "attemptNumber",
+                  "maximumAttempts",
+                  "selectedDeviceIds",
+                  "finalDeadlineAt",
+                  "statusVersion",
+                  "updatedAt"
+                ]
+              },
+              {type: "null"}
+            ]
+          }
+        }
+        required: ["wakeStatus"]
+      }
+    },
+    {
+      name: "request_remote_unlock"
+      description: "Creates a reasoned 5–60 minute unlock request. Approval is required unless the OAuth client has an exact active direct-unlock grant."
+      requiredScopes: ["curfew:unlock:request"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          requestId: {type: "string"; format: "uuid"}
+          targetDeviceIds: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            uniqueItems: true
+            items: {type: "string"; format: "uuid"}
+          }
+          reason: {type: "string"; minLength: 1; maxLength: 500}
+          durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+          requestedAt: {type: "string"; format: "date-time"}
+          approvalMode: {type: "string"; enum: ["approval_required", "preauthorized_direct"]}
+        }
+        required: ["requestId", "targetDeviceIds", "reason", "durationMinutes", "requestedAt", "approvalMode"]
+      }
+      outputSchema: {type: "object"}
+    },
+    {
+      name: "get_remote_unlock_request"
+      description: "Returns one remote unlock request and any resulting active override."
+      requiredScopes: ["curfew:unlock:request"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {requestId: {type: "string"; format: "uuid"}}
+        required: ["requestId"]
+      }
+      outputSchema: {type: "object"}
+    },
+    {
+      name: "cancel_remote_unlock"
+      description: "Cancels a pending request or active bounded remote override."
+      requiredScopes: ["curfew:unlock:request"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {requestId: {type: "string"; format: "uuid"}}
+        required: ["requestId"]
+      }
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {requestId: {type: "string"; format: "uuid"}; status: {type: "string"; const: "cancelled"}}
+        required: ["requestId", "status"]
+      }
     }
   ]
 }
@@ -1208,17 +898,17 @@ export type MCPToolRegistry = {
 // From oauth.json
 
 export type CurfewOAuthScope =
-  | "curfew.read.status"
-  | "curfew.read.devices"
-  | "curfew.lock.device"
-  | "curfew.lock.multiple"
-  | "curfew.lock.all"
+  | "curfew:devices:read"
+  | "curfew:entitlements:read"
+  | "curfew:wake:read"
+  | "curfew:unlock:request"
+  | "curfew:unlock:direct"
 
 /**
  * OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.
  */
 export interface OAuthContract {
-  resource: "https://curfew-mcp.hypertext.studio/mcp"
+  resource: "https://curfew-sync.hypertext.studio/mcp"
   scopes: CurfewOAuthScope[]
 }
 

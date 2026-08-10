@@ -140,45 +140,38 @@ describe("remote command state invariants", () => {
 })
 
 describe("MCP and sync surfaces", () => {
-  it("makes the registry itself enforceable with scopes, outputs, and App metadata", async () => {
+  it("makes the account-safe registry enforceable with scopes and outputs", async () => {
     const schema = await readSchema("mcp-tools.json")
     const registry = schema.const
     const validate = await validator("mcp-tools.json")
 
     expect(validate(registry), JSON.stringify(validate.errors)).toBe(true)
-    expect(registry.remoteTools).toHaveLength(7)
+    expect(registry.remoteTools).toHaveLength(6)
     for (const tool of registry.remoteTools) {
       expect(tool).toHaveProperty("requiredScopes")
       expect(tool).toHaveProperty("outputSchema")
     }
-    for (const tool of registry.remoteTools.filter((candidate: { name: string }) =>
-      candidate.name.startsWith("curfew_lock_") ||
-      candidate.name === "curfew_get_command_status",
-    )) {
-      const result = tool.outputSchema.properties.results.items
-      expect(result.oneOf).toHaveLength(5)
-      expect(result.oneOf.map((branch: any) => branch.properties.stage.const)).toEqual([
-        "queued",
-        "delivered",
-        "applied",
-        "rejected",
-        "expired",
-      ])
-    }
-    const panel = registry.remoteTools.find(
-      (tool: { name: string }) => tool.name === "curfew_open_control_panel",
+    const request = registry.remoteTools.find(
+      (tool: { name: string }) => tool.name === "request_remote_unlock",
     )
-    expect(panel._meta.ui.resourceUri).toBe("ui://curfew/status-and-devices")
+    expect(request.inputSchema.properties).not.toHaveProperty("oauthClientId")
+    expect(request.inputSchema.properties.durationMinutes).toMatchObject({
+      minimum: 5,
+      maximum: 60,
+    })
   })
 
-  it("uses the approved dot-delimited OAuth scopes", async () => {
+  it("uses the approved account MCP resource and colon-delimited scopes", async () => {
     const oauth = await readSchema("oauth.json")
+    expect(oauth.properties.resource.const).toBe(
+      "https://curfew-sync.hypertext.studio/mcp",
+    )
     expect(oauth.definitions.CurfewOAuthScope.enum).toEqual([
-      "curfew.read.status",
-      "curfew.read.devices",
-      "curfew.lock.device",
-      "curfew.lock.multiple",
-      "curfew.lock.all",
+      "curfew:devices:read",
+      "curfew:entitlements:read",
+      "curfew:wake:read",
+      "curfew:unlock:request",
+      "curfew:unlock:direct",
     ])
   })
 
@@ -191,8 +184,8 @@ describe("MCP and sync surfaces", () => {
       _meta: {
         ui: {
           csp: {
-            connectDomains: ["https://curfew-mcp.hypertext.studio"],
-            resourceDomains: ["https://curfew-mcp.hypertext.studio"],
+            connectDomains: ["https://curfew-sync.hypertext.studio"],
+            resourceDomains: ["https://curfew-sync.hypertext.studio"],
           },
         },
       },

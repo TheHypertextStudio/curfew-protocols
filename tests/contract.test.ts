@@ -62,34 +62,48 @@ describe("schemas", () => {
     )
   })
 
-  it("mcp-tools.json names the remote MCP tools separately from local tools", async () => {
+  it("mcp-tools.json publishes only the six account-safe remote MCP tools", async () => {
     const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
     const parsed = JSON.parse(raw)
-    const names = parsed.const?.remoteTools?.map(
+    const remoteTools = parsed.const?.remoteTools as
+      | Array<{ name: string; requiredScopes: string[] }>
+      | undefined
+    const names = remoteTools?.map(
       (tool: { name: string }) => tool.name,
     )
 
     expect(names).toEqual([
-      "curfew_get_status",
-      "curfew_list_devices",
-      "curfew_lock_device",
-      "curfew_lock_devices",
-      "curfew_lock_all_devices",
-      "curfew_get_command_status",
-      "curfew_open_control_panel",
+      "list_devices",
+      "list_entitlements",
+      "get_wake_status",
+      "request_remote_unlock",
+      "get_remote_unlock_request",
+      "cancel_remote_unlock",
     ])
+    expect(remoteTools?.map(({ requiredScopes }) => requiredScopes)).toEqual([
+      ["curfew:devices:read"],
+      ["curfew:entitlements:read"],
+      ["curfew:wake:read"],
+      ["curfew:unlock:request"],
+      ["curfew:unlock:request"],
+      ["curfew:unlock:request"],
+    ])
+    expect(JSON.stringify(remoteTools)).not.toContain("display_name")
   })
 
-  it("publishes the exact least-privilege OAuth scope identifiers", async () => {
+  it("publishes the exact MCP resource and least-privilege OAuth scopes", async () => {
     const raw = await readFile(join(repoRoot, "schemas", "oauth.json"), "utf8")
     const parsed = JSON.parse(raw)
 
+    expect(parsed.properties.resource.const).toBe(
+      "https://curfew-sync.hypertext.studio/mcp",
+    )
     expect(parsed.definitions.CurfewOAuthScope.enum).toEqual([
-      "curfew.read.status",
-      "curfew.read.devices",
-      "curfew.lock.device",
-      "curfew.lock.multiple",
-      "curfew.lock.all",
+      "curfew:devices:read",
+      "curfew:entitlements:read",
+      "curfew:wake:read",
+      "curfew:unlock:request",
+      "curfew:unlock:direct",
     ])
   })
 })

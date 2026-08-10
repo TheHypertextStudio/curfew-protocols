@@ -11,13 +11,13 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 - `schemas/callback.json` — product-neutral HTTPS callback definitions, polling policy, nonce-bound challenges and receipts, and post-verification replay/freshness dispositions.
 - `schemas/e2ee.json` — versioned AES-256-GCM encrypted records, writer counters, canonical AAD and ES256-P1363 signature inputs, RFC 9180 HPKE account-root-key envelopes, and recovery-key wrapping.
 - `schemas/account.json` — privacy-minimal device public-key enrollment/revocation, minimal device/wake status, lifetime and subscription entitlements, per-client direct-unlock authorization, and audited 5–60 minute remote overrides.
-- `schemas/mcp-tools.json` — an exact validator-enforced local/remote MCP manifest with tool inputs, structured outputs, required OAuth scopes, and MCP App metadata.
+- `schemas/mcp-tools.json` — the existing local registry plus the exact six account-safe remote tools: device, entitlement, and wake reads; reasoned unlock request/status/cancel; structured outputs; and required OAuth scopes.
 - `schemas/mcp-app.json` — the `resources/read` HTML content shape, `ui://curfew/status-and-devices` URI, MIME profile, and `_meta.ui.csp` origins.
 - `schemas/pending-request.json` — `MCPPendingRequest` envelope used to queue write requests between the local MCP binary and the Curfew app, including the `MCPWriteTool` and `MCPRequestStatus` enums.
 - `schemas/device.json` — platform-neutral device descriptors, local remote-control eligibility, capabilities, and normalized status snapshots, including optional desk presence.
 - `schemas/device-session.json` — enrollment plus RFC 9449-style proof-of-possession request shapes.
 - `schemas/remote-command.json` — coordinator-signed, replay-safe lock commands, acknowledgements, and per-device results.
-- `schemas/oauth.json` — the exact MCP resource identifier and least-privilege OAuth scopes.
+- `schemas/oauth.json` — the `https://curfew-sync.hypertext.studio/mcp` resource identifier and least-privilege device-read, entitlement-read, wake-read, unlock-request, and direct-unlock scopes.
 - `schemas/sync.json` — authenticated WebSocket hello/welcome, status, delivery, cursor acknowledgement, result, and internal identity-assertion frames.
 
 Version 2.0 adds the cross-platform wake and encrypted account contracts. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.

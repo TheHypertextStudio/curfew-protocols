@@ -9,7 +9,7 @@
   "properties": {
     "resource": {
       "type": "string",
-      "const": "https://curfew-mcp.hypertext.studio/mcp"
+      "const": "https://curfew-sync.hypertext.studio/mcp"
     },
     "scopes": {
       "type": "array",
@@ -21,11 +21,11 @@
     "CurfewOAuthScope": {
       "type": "string",
       "enum": [
-        "curfew.read.status",
-        "curfew.read.devices",
-        "curfew.lock.device",
-        "curfew.lock.multiple",
-        "curfew.lock.all"
+        "curfew:devices:read",
+        "curfew:entitlements:read",
+        "curfew:wake:read",
+        "curfew:unlock:request",
+        "curfew:unlock:direct"
       ]
     }
   }
