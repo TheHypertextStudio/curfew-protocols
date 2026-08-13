@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "studio.hypertext.curfew"
-version = "2.0.0"
+version = "0.2.0"
 
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
@@ -40,6 +40,16 @@ publishing {
                 name.set("Curfew Protocols")
                 description.set("Generated Kotlin/JVM wire contract for Curfew")
                 url.set("https://github.com/TheHypertextStudio/curfew-protocols")
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols")
+            credentials {
+                username = providers.environmentVariable("GITHUB_ACTOR").orNull
+                password = providers.environmentVariable("GITHUB_TOKEN").orNull
             }
         }
     }

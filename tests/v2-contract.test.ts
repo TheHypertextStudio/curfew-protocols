@@ -292,6 +292,7 @@ describe("E2EE account synchronization", () => {
   it("defines HPKE device envelopes, recovery wrapping, enrollment, and revocation", async () => {
     const e2ee = await readSchema("e2ee.json")
     const account = await readSchema("account.json")
+    const deviceSession = await readSchema("device-session.json")
 
     expect(e2ee.definitions.RootKeyEnvelope.properties.kem.const).toBe(
       "DHKEM(P-256,HKDF-SHA256)",
@@ -314,6 +315,25 @@ describe("E2EE account synchronization", () => {
     expect(
       account.definitions.AccountDeviceEnrollment.properties.rootKeyEnvelope,
     ).toBeUndefined()
+    const authorizationEnrollment =
+      deviceSession.definitions.DeviceEnrollmentRequest
+    expect(authorizationEnrollment.required).toEqual(
+      expect.arrayContaining([
+        "deviceId",
+        "encryptionPublicKeyJwk",
+        "signingPublicKeyJwk",
+        "keyEpoch",
+        "enrolledAt",
+      ]),
+    )
+    expect(authorizationEnrollment.properties.displayName).toBeUndefined()
+    expect(authorizationEnrollment.properties.platform).toBeUndefined()
+    expect(authorizationEnrollment.properties.appVersion).toBeUndefined()
+    expect(authorizationEnrollment.properties.devicePublicKeyJwk).toBeUndefined()
+    expect(deviceSession.description).toContain("top-level deviceProof member is omitted")
+    expect(deviceSession.definitions.DeviceProofClaims.properties.bodyDigest.description).toContain(
+      "RFC 8785 JCS",
+    )
   })
 
   it("pins canonical encrypted-record, HPKE, and recovery wrapping inputs", async () => {

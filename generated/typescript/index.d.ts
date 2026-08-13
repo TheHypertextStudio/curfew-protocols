@@ -364,7 +364,7 @@ export interface CallbackReceiptAcceptance {
 // From device-session.json
 
 /**
- * Device enrollment and proof-of-possession session messages. Signed claims are decoded only from verified compact JWS payloads.
+ * Device enrollment and proof-of-possession session messages. Signed claims are decoded only from verified compact JWS payloads. For a JSON request with a body, bodyDigest is the unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. When DeviceProof is carried inside the top-level request body, the top-level deviceProof member is omitted before canonicalization so the proof binds every other request field without circularly hashing itself. When DeviceProof is carried in a header, the entire JSON body is canonicalized. Requests without a body omit bodyDigest.
  */
 export interface DeviceSessionContract {
   enrollmentRequest?: DeviceEnrollmentRequest
@@ -372,12 +372,16 @@ export interface DeviceSessionContract {
   credential?: DeviceCredential
   proofClaims?: DeviceProofClaims
 }
+
+/**
+ * Privacy-minimal native enrollment request. Device presentation, platform, application version, and human-readable names are encrypted account settings and never appear here. Key thumbprints are derived from the public signing key rather than accepted as competing input.
+ */
 export interface DeviceEnrollmentRequest {
-  devicePublicKeyJwk: DevicePublicKeyJWK
-  deviceKeyThumbprint: string
-  platform: string
-  appVersion: string
-  displayName: string
+  deviceId: string
+  encryptionPublicKeyJwk: DevicePublicKeyJWK
+  signingPublicKeyJwk: DevicePublicKeyJWK
+  keyEpoch: number
+  enrolledAt: string
   pkceChallenge: string
   state: string
   coordinatorNonce: string
@@ -416,6 +420,9 @@ export interface DeviceProofClaims {
   jti: string
   nonce: string
   accessTokenHash?: string | null
+  /**
+   * For JSON bodies, unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. Omit the top-level deviceProof member only when the proof itself is embedded there; header-carried proofs cover the entire JSON body. Omitted for requests without a body.
+   */
   bodyDigest?: string | null
 }
 
@@ -903,13 +910,24 @@ export type CurfewOAuthScope =
   | "curfew:wake:read"
   | "curfew:unlock:request"
   | "curfew:unlock:direct"
+export type CurfewFirstPartyOAuthScope =
+  | "curfew:account:read"
+  | "curfew:devices:read"
+  | "curfew:devices:write"
+  | "curfew:entitlements:read"
+  | "curfew:sync:read"
+  | "curfew:sync:write"
+  | "curfew:wake:read"
+  | "curfew:wake:write"
 
 /**
- * OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.
+ * OAuth resource identifiers and least-privilege scopes for Curfew remote MCP and first-party native account/sync clients. Standard OpenID scopes such as openid and offline_access are requested in addition to the Curfew scopes defined here.
  */
 export interface OAuthContract {
   resource: "https://curfew-sync.hypertext.studio/mcp"
   scopes: CurfewOAuthScope[]
+  firstPartyResource: "https://curfew-sync.hypertext.studio"
+  firstPartyScopes: CurfewFirstPartyOAuthScope[]
 }
 
 // From pending-request.json

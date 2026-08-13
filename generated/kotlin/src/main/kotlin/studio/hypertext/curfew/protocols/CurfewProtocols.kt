@@ -554,7 +554,12 @@ data class CallbackPollPolicy (
 
 /**
  * Device enrollment and proof-of-possession session messages. Signed claims are decoded
- * only from verified compact JWS payloads.
+ * only from verified compact JWS payloads. For a JSON request with a body, bodyDigest is
+ * the unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. When DeviceProof is
+ * carried inside the top-level request body, the top-level deviceProof member is omitted
+ * before canonicalization so the proof binds every other request field without circularly
+ * hashing itself. When DeviceProof is carried in a header, the entire JSON body is
+ * canonicalized. Requests without a body omit bodyDigest.
  */
 @Serializable
 data class DeviceSessionContract (
@@ -586,16 +591,22 @@ data class DeviceProof (
     val compactJws: String
 )
 
+/**
+ * Privacy-minimal native enrollment request. Device presentation, platform, application
+ * version, and human-readable names are encrypted account settings and never appear here.
+ * Key thumbprints are derived from the public signing key rather than accepted as competing
+ * input.
+ */
 @Serializable
 data class DeviceEnrollmentRequest (
-    val appVersion: String,
     val coordinatorNonce: String,
-    val deviceKeyThumbprint: String,
+    val deviceId: String,
     val deviceProof: DeviceProof,
-    val devicePublicKeyJwk: DevicePublicKeyJWK,
-    val displayName: String,
+    val encryptionPublicKeyJwk: DevicePublicKeyJWK,
+    val enrolledAt: String,
+    val keyEpoch: Long,
     val pkceChallenge: String,
-    val platform: String,
+    val signingPublicKeyJwk: DevicePublicKeyJWK,
     val state: String
 )
 
@@ -614,7 +625,14 @@ data class DevicePublicKeyJWK (
 @Serializable
 data class DeviceProofClaims (
     val accessTokenHash: String? = null,
+
+    /**
+     * For JSON bodies, unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. Omit
+     * the top-level deviceProof member only when the proof itself is embedded there;
+     * header-carried proofs cover the entire JSON body. Omitted for requests without a body.
+     */
     val bodyDigest: String? = null,
+
     val canonicalUrl: String,
     val httpMethod: String,
     val issuedAt: String,
@@ -936,13 +954,34 @@ data class MCPToolDefinition (
 )
 
 /**
- * OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.
+ * OAuth resource identifiers and least-privilege scopes for Curfew remote MCP and
+ * first-party native account/sync clients. Standard OpenID scopes such as openid and
+ * offline_access are requested in addition to the Curfew scopes defined here.
  */
 @Serializable
 data class OAuthContract (
+    val firstPartyResource: FirstPartyResource,
+    val firstPartyScopes: List<CurfewFirstPartyOAuthScope>,
     val resource: Resource,
     val scopes: List<CurfewOAuthScope>
 )
+
+@Serializable
+enum class FirstPartyResource(val value: String) {
+    @SerialName("https://curfew-sync.hypertext.studio") HTTPSCurfewSyncHypertextStudio("https://curfew-sync.hypertext.studio");
+}
+
+@Serializable
+enum class CurfewFirstPartyOAuthScope(val value: String) {
+    @SerialName("curfew:account:read") CurfewAccountRead("curfew:account:read"),
+    @SerialName("curfew:devices:read") CurfewDevicesRead("curfew:devices:read"),
+    @SerialName("curfew:devices:write") CurfewDevicesWrite("curfew:devices:write"),
+    @SerialName("curfew:entitlements:read") CurfewEntitlementsRead("curfew:entitlements:read"),
+    @SerialName("curfew:sync:read") CurfewSyncRead("curfew:sync:read"),
+    @SerialName("curfew:sync:write") CurfewSyncWrite("curfew:sync:write"),
+    @SerialName("curfew:wake:read") CurfewWakeRead("curfew:wake:read"),
+    @SerialName("curfew:wake:write") CurfewWakeWrite("curfew:wake:write");
+}
 
 @Serializable
 enum class Resource(val value: String) {

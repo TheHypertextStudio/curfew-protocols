@@ -2,10 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://curfew-protocols.hypertext.studio/schemas/oauth.json",
   "title": "OAuthContract",
-  "description": "OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.",
+  "description": "OAuth resource identifiers and least-privilege scopes for Curfew remote MCP and first-party native account/sync clients. Standard OpenID scopes such as openid and offline_access are requested in addition to the Curfew scopes defined here.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["resource", "scopes"],
+  "required": ["resource", "scopes", "firstPartyResource", "firstPartyScopes"],
   "properties": {
     "resource": {
       "type": "string",
@@ -15,6 +15,15 @@
       "type": "array",
       "uniqueItems": true,
       "items": { "$ref": "#/definitions/CurfewOAuthScope" }
+    },
+    "firstPartyResource": {
+      "type": "string",
+      "const": "https://curfew-sync.hypertext.studio"
+    },
+    "firstPartyScopes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/CurfewFirstPartyOAuthScope" }
     }
   },
   "definitions": {
@@ -26,6 +35,19 @@
         "curfew:wake:read",
         "curfew:unlock:request",
         "curfew:unlock:direct"
+      ]
+    },
+    "CurfewFirstPartyOAuthScope": {
+      "type": "string",
+      "enum": [
+        "curfew:account:read",
+        "curfew:devices:read",
+        "curfew:devices:write",
+        "curfew:entitlements:read",
+        "curfew:sync:read",
+        "curfew:sync:write",
+        "curfew:wake:read",
+        "curfew:wake:write"
       ]
     }
   }

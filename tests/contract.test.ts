@@ -105,6 +105,19 @@ describe("schemas", () => {
       "curfew:unlock:request",
       "curfew:unlock:direct",
     ])
+    expect(parsed.properties.firstPartyResource.const).toBe(
+      "https://curfew-sync.hypertext.studio",
+    )
+    expect(parsed.definitions.CurfewFirstPartyOAuthScope.enum).toEqual([
+      "curfew:account:read",
+      "curfew:devices:read",
+      "curfew:devices:write",
+      "curfew:entitlements:read",
+      "curfew:sync:read",
+      "curfew:sync:write",
+      "curfew:wake:read",
+      "curfew:wake:write",
+    ])
   })
 })
 

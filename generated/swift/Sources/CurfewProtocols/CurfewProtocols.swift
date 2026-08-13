@@ -1949,7 +1949,12 @@ public extension CallbackPollPolicy {
 }
 
 /// Device enrollment and proof-of-possession session messages. Signed claims are decoded
-/// only from verified compact JWS payloads.
+/// only from verified compact JWS payloads. For a JSON request with a body, bodyDigest is
+/// the unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. When DeviceProof is
+/// carried inside the top-level request body, the top-level deviceProof member is omitted
+/// before canonicalization so the proof binds every other request field without circularly
+/// hashing itself. When DeviceProof is carried in a header, the entire JSON body is
+/// canonicalized. Requests without a body omit bodyDigest.
 // MARK: - DeviceSessionContract
 public struct DeviceSessionContract: Codable {
     public let credential: DeviceCredential?
@@ -2172,27 +2177,37 @@ public extension DeviceProof {
     }
 }
 
+/// Privacy-minimal native enrollment request. Device presentation, platform, application
+/// version, and human-readable names are encrypted account settings and never appear here.
+/// Key thumbprints are derived from the public signing key rather than accepted as competing
+/// input.
 // MARK: - DeviceEnrollmentRequest
 public struct DeviceEnrollmentRequest: Codable {
-    public let appVersion: String
     public let coordinatorNonce: String
-    public let deviceKeyThumbprint: String
+    public let deviceID: String
     public let deviceProof: DeviceProof
-    public let devicePublicKeyJwk: DevicePublicKeyJWK
-    public let displayName: String
+    public let encryptionPublicKeyJwk: DevicePublicKeyJWK
+    public let enrolledAt: String
+    public let keyEpoch: Int
     public let pkceChallenge: String
-    public let platform: String
+    public let signingPublicKeyJwk: DevicePublicKeyJWK
     public let state: String
 
-    public init(appVersion: String, coordinatorNonce: String, deviceKeyThumbprint: String, deviceProof: DeviceProof, devicePublicKeyJwk: DevicePublicKeyJWK, displayName: String, pkceChallenge: String, platform: String, state: String) {
-        self.appVersion = appVersion
+    public enum CodingKeys: String, CodingKey {
+        case coordinatorNonce
+        case deviceID = "deviceId"
+        case deviceProof, encryptionPublicKeyJwk, enrolledAt, keyEpoch, pkceChallenge, signingPublicKeyJwk, state
+    }
+
+    public init(coordinatorNonce: String, deviceID: String, deviceProof: DeviceProof, encryptionPublicKeyJwk: DevicePublicKeyJWK, enrolledAt: String, keyEpoch: Int, pkceChallenge: String, signingPublicKeyJwk: DevicePublicKeyJWK, state: String) {
         self.coordinatorNonce = coordinatorNonce
-        self.deviceKeyThumbprint = deviceKeyThumbprint
+        self.deviceID = deviceID
         self.deviceProof = deviceProof
-        self.devicePublicKeyJwk = devicePublicKeyJwk
-        self.displayName = displayName
+        self.encryptionPublicKeyJwk = encryptionPublicKeyJwk
+        self.enrolledAt = enrolledAt
+        self.keyEpoch = keyEpoch
         self.pkceChallenge = pkceChallenge
-        self.platform = platform
+        self.signingPublicKeyJwk = signingPublicKeyJwk
         self.state = state
     }
 }
@@ -2216,25 +2231,25 @@ public extension DeviceEnrollmentRequest {
     }
 
     func with(
-        appVersion: String? = nil,
         coordinatorNonce: String? = nil,
-        deviceKeyThumbprint: String? = nil,
+        deviceID: String? = nil,
         deviceProof: DeviceProof? = nil,
-        devicePublicKeyJwk: DevicePublicKeyJWK? = nil,
-        displayName: String? = nil,
+        encryptionPublicKeyJwk: DevicePublicKeyJWK? = nil,
+        enrolledAt: String? = nil,
+        keyEpoch: Int? = nil,
         pkceChallenge: String? = nil,
-        platform: String? = nil,
+        signingPublicKeyJwk: DevicePublicKeyJWK? = nil,
         state: String? = nil
     ) -> DeviceEnrollmentRequest {
         return DeviceEnrollmentRequest(
-            appVersion: appVersion ?? self.appVersion,
             coordinatorNonce: coordinatorNonce ?? self.coordinatorNonce,
-            deviceKeyThumbprint: deviceKeyThumbprint ?? self.deviceKeyThumbprint,
+            deviceID: deviceID ?? self.deviceID,
             deviceProof: deviceProof ?? self.deviceProof,
-            devicePublicKeyJwk: devicePublicKeyJwk ?? self.devicePublicKeyJwk,
-            displayName: displayName ?? self.displayName,
+            encryptionPublicKeyJwk: encryptionPublicKeyJwk ?? self.encryptionPublicKeyJwk,
+            enrolledAt: enrolledAt ?? self.enrolledAt,
+            keyEpoch: keyEpoch ?? self.keyEpoch,
             pkceChallenge: pkceChallenge ?? self.pkceChallenge,
-            platform: platform ?? self.platform,
+            signingPublicKeyJwk: signingPublicKeyJwk ?? self.signingPublicKeyJwk,
             state: state ?? self.state
         )
     }
@@ -2307,7 +2322,11 @@ public extension DevicePublicKeyJWK {
 /// beside a JWS on the wire.
 // MARK: - DeviceProofClaims
 public struct DeviceProofClaims: Codable {
-    public let accessTokenHash, bodyDigest: String?
+    public let accessTokenHash: String?
+    /// For JSON bodies, unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. Omit
+    /// the top-level deviceProof member only when the proof itself is embedded there;
+    /// header-carried proofs cover the entire JSON body. Omitted for requests without a body.
+    public let bodyDigest: String?
     public let canonicalURL: String
     public let httpMethod: String
     public let issuedAt: String
@@ -3494,13 +3513,19 @@ public extension MCPToolDefinition {
     }
 }
 
-/// OAuth resource identifiers and least-privilege scopes for Curfew remote MCP.
+/// OAuth resource identifiers and least-privilege scopes for Curfew remote MCP and
+/// first-party native account/sync clients. Standard OpenID scopes such as openid and
+/// offline_access are requested in addition to the Curfew scopes defined here.
 // MARK: - OAuthContract
 public struct OAuthContract: Codable {
+    public let firstPartyResource: FirstPartyResource
+    public let firstPartyScopes: [CurfewFirstPartyOAuthScope]
     public let resource: Resource
     public let scopes: [CurfewOAuthScope]
 
-    public init(resource: Resource, scopes: [CurfewOAuthScope]) {
+    public init(firstPartyResource: FirstPartyResource, firstPartyScopes: [CurfewFirstPartyOAuthScope], resource: Resource, scopes: [CurfewOAuthScope]) {
+        self.firstPartyResource = firstPartyResource
+        self.firstPartyScopes = firstPartyScopes
         self.resource = resource
         self.scopes = scopes
     }
@@ -3525,10 +3550,14 @@ public extension OAuthContract {
     }
 
     func with(
+        firstPartyResource: FirstPartyResource? = nil,
+        firstPartyScopes: [CurfewFirstPartyOAuthScope]? = nil,
         resource: Resource? = nil,
         scopes: [CurfewOAuthScope]? = nil
     ) -> OAuthContract {
         return OAuthContract(
+            firstPartyResource: firstPartyResource ?? self.firstPartyResource,
+            firstPartyScopes: firstPartyScopes ?? self.firstPartyScopes,
             resource: resource ?? self.resource,
             scopes: scopes ?? self.scopes
         )
@@ -3541,6 +3570,21 @@ public extension OAuthContract {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+public enum FirstPartyResource: String, Codable {
+    case httpsCurfewSyncHypertextStudio = "https://curfew-sync.hypertext.studio"
+}
+
+public enum CurfewFirstPartyOAuthScope: String, Codable {
+    case curfewAccountRead = "curfew:account:read"
+    case curfewDevicesRead = "curfew:devices:read"
+    case curfewDevicesWrite = "curfew:devices:write"
+    case curfewEntitlementsRead = "curfew:entitlements:read"
+    case curfewSyncRead = "curfew:sync:read"
+    case curfewSyncWrite = "curfew:sync:write"
+    case curfewWakeRead = "curfew:wake:read"
+    case curfewWakeWrite = "curfew:wake:write"
 }
 
 public enum Resource: String, Codable {
