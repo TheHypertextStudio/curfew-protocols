@@ -90,7 +90,8 @@ jobs:
           java-version: "21"
           cache: gradle
       - name: Verify release tag matches package version
-        run: test "v$(sed -n 's/.*\"version\": \"\([^\"]*\)\".*/\1/p' package.json)" = "${{ github.event.release.tag_name }}"
+        run: |
+          test "v$(sed -n 's/.*\"version\": \"\([^\"]*\)\".*/\1/p' package.json)" = "${{ github.event.release.tag_name }}"
       - name: Publish Kotlin Maven package
         run: ./gradlew :generated:kotlin:publish --no-daemon
         env:
