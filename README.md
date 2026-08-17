@@ -4,7 +4,7 @@ Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, t
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
-## What's in v0.2.1
+## What's in v0.2.2
 
 - `schemas/schedule.json` — mutually exclusive fixed-unlock and account wake-campaign release policies, explicit IANA timezones and DST resolution, legacy migration, and Curfew's anti-bypass application timing.
 - `schemas/alarm.json` — alarm recurrence and selected devices plus the persisted scheduled/ringing/quiet/satisfied/exhausted campaign state machine and deterministic final deadline.
@@ -20,7 +20,7 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 - `schemas/oauth.json` — separate OAuth resource and scope authorities for native Curfew clients (`https://curfew-sync.hypertext.studio`) and remote MCP clients (`https://curfew-sync.hypertext.studio/mcp`). Native clients receive account, device, entitlement, encrypted-sync, and wake scopes but no unlock scope by default; MCP clients receive only the least-privilege read and unlock scopes they are granted.
 - `schemas/sync.json` — authenticated WebSocket hello/welcome, status, delivery, cursor acknowledgement, result, and internal identity-assertion frames.
 
-Version 0.2.1 adds the cross-platform wake and encrypted account contracts while the package remains pre-1.0. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
+Version 0.2.2 adds the cross-platform wake and encrypted account contracts while the package remains pre-1.0. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
 
 ## Wire rules
 
@@ -62,7 +62,7 @@ const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }))
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.2.1")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.2.2")
 ```
 
 ```swift
@@ -73,12 +73,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.2.1`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.2.2`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.2.1")
+implementation("studio.hypertext.curfew:curfew-protocols:0.2.2")
 ```
 
 ```kotlin
@@ -100,7 +100,7 @@ dotnet run --project tests/dotnet/CurfewProtocols.Decoder.csproj
 
 `tests/vectors/v2-golden.json` fixes canonical callback, encrypted-record, HPKE, recovery, and signature bytes. TypeScript, Swift, and Kotlin independently derive or verify those values so a platform cannot hide incompatible canonicalization by signing and verifying only its own output.
 
-Publishing is release-driven. A GitHub Release whose tag exactly matches `v<package version>` reruns all three language gates, publishes npm through npm trusted publishing/OIDC without a long-lived npm token, and publishes the Kotlin artifact to GitHub Packages. Swift Package Manager consumes the same immutable release tag. Repository operators must configure npm trusted publishing for this workflow before publishing v0.2.1. The publish job runs on macOS because npm's prepublish gate verifies the generated Swift package with CryptoKit.
+Publishing is release-driven. A GitHub Release whose tag exactly matches `v<package version>` reruns all three language gates, publishes npm through npm trusted publishing/OIDC without a long-lived npm token, and publishes the Kotlin artifact to GitHub Packages. Swift Package Manager consumes the same immutable release tag. Repository operators must configure npm trusted publishing for this workflow before publishing v0.2.2. The npm job runs on macOS because npm's prepublish gate verifies the generated Swift package with CryptoKit. The Maven job runs independently so npm authorization cannot suppress the Kotlin release.
 
 See `AGENTS.md` for the change discipline (every schema edit requires regen, test, version bump, changelog entry).
 
