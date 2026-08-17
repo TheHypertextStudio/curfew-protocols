@@ -43,6 +43,10 @@ pnpm publish     # publish to npm (runs prepublishOnly)
 | Field rename / type change | Major | Regen, test, changelog + consumer migration notes |
 | Description-only edit | Patch | Regen, test, changelog |
 
+## Commit scopes
+
+- `protocols` — schemas, generated language bindings, release automation, and package documentation.
+
 ## Verification before completion
 
 - `pnpm codegen` produces zero diff against committed `generated/` (i.e. you remembered to commit the regen).

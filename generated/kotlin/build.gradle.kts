@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "studio.hypertext.curfew"
-version = "0.2.0"
+version = "0.2.1"
 
 dependencies {
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")

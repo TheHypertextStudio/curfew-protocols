@@ -51,7 +51,7 @@ jobs:
 
   publish:
     needs: [verify-typescript, verify-swift, verify-kotlin]
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     permissions:
       contents: read
       id-token: write
