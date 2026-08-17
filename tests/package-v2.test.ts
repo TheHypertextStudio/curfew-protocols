@@ -5,7 +5,7 @@ import Ajv from "ajv"
 import { describe, expect, it } from "vitest"
 import { repoRoot } from "./schema-validator"
 
-describe("0.2.0 artifacts", () => {
+describe("0.2.1 artifacts", () => {
   it("publishes matching npm and Kotlin Maven coordinates", async () => {
     const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
     const kotlinBuild = await readFile(
@@ -13,12 +13,12 @@ describe("0.2.0 artifacts", () => {
       "utf8",
     )
 
-    expect(pkg.version).toBe("0.2.0")
+    expect(pkg.version).toBe("0.2.1")
     expect(pkg.files).toContain("generated/kotlin/build.gradle.kts")
     expect(pkg.files).toContain("generated/kotlin/src/main")
     expect(pkg.files).not.toContain("generated/kotlin")
     expect(kotlinBuild).toContain('group = "studio.hypertext.curfew"')
-    expect(kotlinBuild).toContain('version = "0.2.0"')
+    expect(kotlinBuild).toContain('version = "0.2.1"')
     expect(kotlinBuild).toContain("maven-publish")
     expect(pkg.exports["./validation"]).toEqual({
       types: "./generated/typescript/validation.d.ts",
@@ -82,6 +82,7 @@ describe("0.2.0 artifacts", () => {
 
     expect(workflow).toContain("npm publish --access public")
     expect(workflow).toContain(":generated:kotlin:publish")
+    expect(workflow).toMatch(/publish:[\s\S]*?runs-on: macos-14/)
     expect(workflow).toContain("id-token: write")
     expect(workflow).toContain("packages: write")
     expect(workflow).not.toContain("NPM_TOKEN")

@@ -4,6 +4,12 @@ All notable changes to `@hypertext/curfew-protocols` are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-08-16
+
+### Fixed
+
+- Run the artifact publishing gate on macOS so npm's prepublish verification can compile the CryptoKit-backed Swift vectors before npm and Maven publication.
+
 ## [0.2.0] — 2026-08-12
 
 ### Added
