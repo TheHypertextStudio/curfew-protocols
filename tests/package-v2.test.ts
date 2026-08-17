@@ -3,9 +3,10 @@ import { join } from "node:path"
 import { pathToFileURL } from "node:url"
 import Ajv from "ajv"
 import { describe, expect, it } from "vitest"
+import { parse as parseYaml } from "yaml"
 import { repoRoot } from "./schema-validator"
 
-describe("0.2.2 artifacts", () => {
+describe("0.2.3 artifacts", () => {
   it("publishes matching npm and Kotlin Maven coordinates", async () => {
     const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
     const kotlinBuild = await readFile(
@@ -13,12 +14,12 @@ describe("0.2.2 artifacts", () => {
       "utf8",
     )
 
-    expect(pkg.version).toBe("0.2.2")
+    expect(pkg.version).toBe("0.2.3")
     expect(pkg.files).toContain("generated/kotlin/build.gradle.kts")
     expect(pkg.files).toContain("generated/kotlin/src/main")
     expect(pkg.files).not.toContain("generated/kotlin")
     expect(kotlinBuild).toContain('group = "studio.hypertext.curfew"')
-    expect(kotlinBuild).toContain('version = "0.2.2"')
+    expect(kotlinBuild).toContain('version = "0.2.3"')
     expect(kotlinBuild).toContain("maven-publish")
     expect(pkg.exports["./validation"]).toEqual({
       types: "./generated/typescript/validation.d.ts",
@@ -79,6 +80,8 @@ describe("0.2.2 artifacts", () => {
       join(repoRoot, "generated", "kotlin", "build.gradle.kts"),
       "utf8",
     )
+
+    expect(() => parseYaml(workflow)).not.toThrow()
 
     expect(workflow).toContain("npm publish --access public")
     expect(workflow).toContain(":generated:kotlin:publish")
