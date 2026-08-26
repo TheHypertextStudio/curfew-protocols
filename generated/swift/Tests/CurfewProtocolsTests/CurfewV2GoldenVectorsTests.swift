@@ -7,7 +7,7 @@ import XCTest
 @testable import CurfewProtocols
 
 final class CurfewV2GoldenVectorsTests: XCTestCase {
-    private let generatedVectorIDs: [String] = ["fixed-unlock-release", "wake-campaign-release", "release-policy-mutual-exclusion", "legacy-schedule-migration", "default-three-attempt-alarm", "campaign-over-two-hours", "campaign-computed-duration-over-two-hours", "malformed-callback", "callback-replay", "stale-callback-observation", "encrypted-record-current-writer", "stale-writer-version", "dst-gap", "dst-overlap", "remote-override-five-minutes", "remote-override-too-short", "remote-override-too-long"]
+    private let generatedVectorIDs: [String] = ["fixed-unlock-release", "wake-campaign-release", "release-policy-mutual-exclusion", "legacy-schedule-migration", "default-no-deadline-alarm", "retired-bounded-campaign-fields", "malformed-callback", "callback-replay", "stale-callback-observation", "encrypted-record-current-writer", "stale-writer-version", "dst-gap", "dst-overlap", "remote-override-five-minutes", "remote-override-too-short", "remote-override-too-long"]
 
     func testValidatesSharedV2Corpus() throws {
         let root = try repositoryRoot()

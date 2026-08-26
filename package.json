@@ -1,6 +1,6 @@
 {
   "name": "@hypertext/curfew-protocols",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Versioned cross-platform Curfew contract for schedules, wake campaigns, E2EE sync, accounts, callbacks, devices, and MCP.",
   "type": "module",
   "main": "./generated/typescript/index.js",

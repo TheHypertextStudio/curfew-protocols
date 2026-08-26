@@ -48,7 +48,7 @@ import kotlinx.serialization.json.longOrNull
 
 class CurfewV2GoldenVectorsTest {
     private val json = Json { ignoreUnknownKeys = false }
-    private val generatedVectorIds = listOf("fixed-unlock-release", "wake-campaign-release", "release-policy-mutual-exclusion", "legacy-schedule-migration", "default-three-attempt-alarm", "campaign-over-two-hours", "campaign-computed-duration-over-two-hours", "malformed-callback", "callback-replay", "stale-callback-observation", "encrypted-record-current-writer", "stale-writer-version", "dst-gap", "dst-overlap", "remote-override-five-minutes", "remote-override-too-short", "remote-override-too-long")
+    private val generatedVectorIds = listOf("fixed-unlock-release", "wake-campaign-release", "release-policy-mutual-exclusion", "legacy-schedule-migration", "default-no-deadline-alarm", "retired-bounded-campaign-fields", "malformed-callback", "callback-replay", "stale-callback-observation", "encrypted-record-current-writer", "stale-writer-version", "dst-gap", "dst-overlap", "remote-override-five-minutes", "remote-override-too-short", "remote-override-too-long")
 
     @Test
     fun validatesSharedV2Corpus() {

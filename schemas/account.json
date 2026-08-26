@@ -41,16 +41,17 @@
       }
     },
     "AccountDeviceEnrollment": {
-      "description": "Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only public keys and epoch/timing metadata here. Device names and presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded separately for this deviceId.",
+      "description": "Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only public keys, protocol capability, and epoch/timing metadata here. Device names and presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded separately for this deviceId.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["deviceId", "encryptionPublicKeyJwk", "signingPublicKeyJwk", "keyEpoch", "enrolledAt"],
+      "required": ["deviceId", "encryptionPublicKeyJwk", "signingPublicKeyJwk", "keyEpoch", "enrolledAt", "protocolVersion"],
       "properties": {
         "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
         "encryptionPublicKeyJwk": { "$ref": "#/definitions/AccountPublicKeyJWK" },
         "signingPublicKeyJwk": { "$ref": "#/definitions/AccountPublicKeyJWK" },
         "keyEpoch": { "type": "integer", "minimum": 1 },
-        "enrolledAt": { "$ref": "#/definitions/UTCInstant" }
+        "enrolledAt": { "$ref": "#/definitions/UTCInstant" },
+        "protocolVersion": { "type": "string", "pattern": "^0\\.[0-9]+$", "description": "The highest Curfew protocol minor version implemented by this native device." }
       }
     },
     "DeviceRevocation": {
@@ -96,17 +97,15 @@
       }
     },
     "WakeStatus": {
-      "description": "Minimal server-readable campaign state for routing, convergence, deterministic offline release, and the get_wake_status control surface. Callback definitions and alarm settings remain encrypted.",
+      "description": "Minimal server-readable campaign state for routing, convergence, and the get_wake_status control surface. Callback definitions and alarm settings remain encrypted. Elapsed time never releases a wake gate.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["campaignId", "state", "attemptNumber", "maximumAttempts", "selectedDeviceIds", "finalDeadlineAt", "statusVersion", "updatedAt"],
+      "required": ["campaignId", "state", "attemptNumber", "selectedDeviceIds", "statusVersion", "updatedAt"],
       "properties": {
         "campaignId": { "$ref": "#/definitions/CanonicalUUID" },
-        "state": { "type": "string", "enum": ["scheduled", "ringing_attempt", "quiet_interval", "satisfied", "exhausted", "overridden"] },
-        "attemptNumber": { "type": "integer", "minimum": 0, "maximum": 24 },
-        "maximumAttempts": { "type": "integer", "minimum": 1, "maximum": 24 },
+        "state": { "type": "string", "enum": ["scheduled", "ringing_attempt", "quiet_interval", "satisfied", "overridden"] },
+        "attemptNumber": { "type": "integer", "minimum": 0 },
         "selectedDeviceIds": { "type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": { "$ref": "#/definitions/CanonicalUUID" } },
-        "finalDeadlineAt": { "$ref": "#/definitions/UTCInstant" },
         "statusVersion": { "type": "integer", "minimum": 1 },
         "updatedAt": { "$ref": "#/definitions/UTCInstant" }
       }

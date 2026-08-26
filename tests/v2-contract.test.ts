@@ -46,10 +46,8 @@ const wakeRelease = {
 }
 
 const defaultAlarmConfiguration = {
-  maximumAttempts: 3,
   ringDurationSeconds: 120,
-  quietIntervalSeconds: 300,
-  campaignDurationSeconds: 960,
+  quietIntervalSeconds: 60,
   selectedDeviceIds: [ids.device],
 }
 
@@ -123,16 +121,76 @@ describe("Curfew protocol v2 release authority", () => {
 })
 
 describe("alarms and wake campaigns", () => {
-  it("declares the three-attempt 16-minute defaults and the two-hour cap", async () => {
+  it("models a no-deadline campaign that can end only by verified release or override", async () => {
+    const configuration = await definitionValidator(
+      "alarm.json",
+      "AlarmConfiguration",
+    )
+    const campaign = await definitionValidator("alarm.json", "WakeCampaign")
+    const outcome = await definitionValidator("alarm.json", "WakeOutcome")
+
+    expect(
+      configuration({
+        ringDurationSeconds: 120,
+        quietIntervalSeconds: 60,
+        selectedDeviceIds: [ids.device],
+      }),
+      JSON.stringify(configuration.errors),
+    ).toBe(true)
+    expect(
+      configuration({
+        maximumAttempts: 3,
+        ringDurationSeconds: 120,
+        quietIntervalSeconds: 60,
+        campaignDurationSeconds: 960,
+        selectedDeviceIds: [ids.device],
+      }),
+    ).toBe(false)
+    expect(
+      campaign({
+        campaignId: ids.campaign,
+        alarmId: ids.alarm,
+        timeZone: "America/Los_Angeles",
+        scheduledAt: "2026-03-08T15:00:00Z",
+        state: "ringing_attempt",
+        attemptNumber: 25,
+        selectedDeviceIds: [ids.device],
+        recordVersion: 1,
+        writerCounter: 1,
+      }),
+      JSON.stringify(campaign.errors),
+    ).toBe(true)
+    expect(
+      campaign({
+        campaignId: ids.campaign,
+        alarmId: ids.alarm,
+        timeZone: "America/Los_Angeles",
+        scheduledAt: "2026-03-08T15:00:00Z",
+        finalDeadlineAt: "2026-03-08T15:16:00Z",
+        state: "exhausted",
+        attemptNumber: 3,
+        selectedDeviceIds: [ids.device],
+        recordVersion: 1,
+        writerCounter: 1,
+      }),
+    ).toBe(false)
+    expect(
+      outcome({
+        campaignId: ids.campaign,
+        result: "exhausted",
+        releasedAt: "2026-03-08T15:16:00Z",
+      }),
+    ).toBe(false)
+  })
+
+  it("declares the no-deadline two-minute ringing and one-minute quiet defaults", async () => {
     const schema = await readSchema("alarm.json")
     const properties = schema.definitions.AlarmConfiguration.properties
 
-    expect(properties.maximumAttempts.default).toBe(3)
     expect(properties.ringDurationSeconds.default).toBe(120)
-    expect(properties.quietIntervalSeconds.default).toBe(300)
-    expect(properties.campaignDurationSeconds.default).toBe(960)
-    expect(properties.campaignDurationSeconds.maximum).toBe(7200)
-    expect(properties.maximumCampaignDurationSeconds).toBeUndefined()
+    expect(properties.quietIntervalSeconds.default).toBe(60)
+    expect(properties.maximumAttempts).toBeUndefined()
+    expect(properties.campaignDurationSeconds).toBeUndefined()
 
     const validate = await definitionValidator(
       "alarm.json",
@@ -145,18 +203,8 @@ describe("alarms and wake campaigns", () => {
     expect(
       validate({
         ...defaultAlarmConfiguration,
-        campaignDurationSeconds: 7201,
+        ringDurationSeconds: 29,
       }),
-    ).toBe(false)
-    expect(
-      validate({
-        ...defaultAlarmConfiguration,
-        maximumAttempts: 24,
-        ringDurationSeconds: 600,
-        quietIntervalSeconds: 300,
-        campaignDurationSeconds: 7200,
-      }),
-      "the custom duration keyword must reject arithmetic overflow past two hours",
     ).toBe(false)
   })
 
@@ -179,7 +227,6 @@ describe("alarms and wake campaigns", () => {
         alarmId: ids.alarm,
         timeZone: "America/Los_Angeles",
         scheduledAt: "2026-03-08T15:00:00Z",
-        finalDeadlineAt: "2026-03-08T15:16:00Z",
         state: "ringing_attempt",
         attemptNumber: 1,
         selectedDeviceIds: [ids.device],
@@ -382,6 +429,56 @@ describe("E2EE account synchronization", () => {
     expect(validate({ ...authorization, validitySeconds: 2592001 })).toBe(false)
   })
 
+  it("requires a protocol capability when an account enrolls a device", async () => {
+    const validate = await definitionValidator(
+      "account.json",
+      "AccountDeviceEnrollment",
+    )
+    const enrollment = {
+      deviceId: ids.device,
+      encryptionPublicKeyJwk: {
+        crv: "P-256",
+        kty: "EC",
+        x: "A".repeat(43),
+        y: "B".repeat(43),
+      },
+      signingPublicKeyJwk: {
+        crv: "P-256",
+        kty: "EC",
+        x: "C".repeat(43),
+        y: "D".repeat(43),
+      },
+      keyEpoch: 1,
+      enrolledAt: "2026-08-10T19:00:00Z",
+      protocolVersion: "0.3",
+    }
+
+    expect(validate(enrollment), JSON.stringify(validate.errors)).toBe(true)
+    expect(validate({ ...enrollment, protocolVersion: undefined })).toBe(false)
+
+    const request = await definitionValidator(
+      "device-session.json",
+      "DeviceEnrollmentRequest",
+    )
+    const enrollmentRequest = {
+      deviceId: ids.device,
+      encryptionPublicKeyJwk: enrollment.encryptionPublicKeyJwk,
+      signingPublicKeyJwk: enrollment.signingPublicKeyJwk,
+      keyEpoch: 1,
+      enrolledAt: "2026-08-10T19:00:00Z",
+      protocolVersion: "0.3",
+      pkceChallenge: "A".repeat(43),
+      state: "B".repeat(43),
+      coordinatorNonce: "C".repeat(43),
+      deviceProof: { compactJws: `A.B.${"C".repeat(86)}` },
+    }
+    expect(
+      request(enrollmentRequest),
+      JSON.stringify(request.errors),
+    ).toBe(true)
+    expect(request({ ...enrollmentRequest, protocolVersion: undefined })).toBe(false)
+  })
+
   it("bounds every remote override to 5 through 60 minutes", async () => {
     const validate = await definitionValidator(
       "account.json",
@@ -422,7 +519,7 @@ describe("E2EE account synchronization", () => {
 })
 
 describe("cross-language golden vectors", () => {
-  it("pins DST gap/overlap resolution and the derived final deadline", async () => {
+  it("pins DST gap and overlap resolution without deriving a wake release deadline", async () => {
     const vectors = JSON.parse(
       await readFile(join(repoRoot, "tests", "vectors", "v2-golden.json"), "utf8"),
     ) as {
@@ -434,29 +531,15 @@ describe("cross-language golden vectors", () => {
             localDateTime: string
             expectedInstant: string
           }
-        | {
-            id: string
-            kind: "final_deadline"
-            scheduledAt: string
-            campaignDurationSeconds: number
-            expectedInstant: string
-          }
       >
     }
     expect(vectors.timeResolution?.map((entry) => entry.id)).toEqual([
       "dst-gap-first-valid-instant",
       "dst-overlap-first-occurrence",
-      "default-campaign-final-deadline",
     ])
 
     for (const vector of vectors.timeResolution ?? []) {
-      const actual =
-        vector.kind === "local_time"
-          ? resolveLocalTime(vector.localDateTime, vector.timeZone)
-          : new Date(
-              Date.parse(vector.scheduledAt) +
-                vector.campaignDurationSeconds * 1000,
-            ).toISOString().replace(".000Z", "Z")
+      const actual = resolveLocalTime(vector.localDateTime, vector.timeZone)
       expect(actual, vector.id).toBe(vector.expectedInstant)
     }
   })

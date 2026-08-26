@@ -475,27 +475,30 @@ public enum DirectUnlockAuthorizationStatus: String, Codable {
 }
 
 /// Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only
-/// public keys and epoch/timing metadata here. Device names and presentation metadata stay
-/// encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded
-/// separately for this deviceId.
+/// public keys, protocol capability, and epoch/timing metadata here. Device names and
+/// presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in
+/// e2ee.json and is uploaded separately for this deviceId.
 // MARK: - AccountDeviceEnrollment
 public struct AccountDeviceEnrollment: Codable {
     public let deviceID: String
     public let encryptionPublicKeyJwk: AccountPublicKeyJWK
     public let enrolledAt: String
     public let keyEpoch: Int
+    /// The highest Curfew protocol minor version implemented by this native device.
+    public let protocolVersion: String
     public let signingPublicKeyJwk: AccountPublicKeyJWK
 
     public enum CodingKeys: String, CodingKey {
         case deviceID = "deviceId"
-        case encryptionPublicKeyJwk, enrolledAt, keyEpoch, signingPublicKeyJwk
+        case encryptionPublicKeyJwk, enrolledAt, keyEpoch, protocolVersion, signingPublicKeyJwk
     }
 
-    public init(deviceID: String, encryptionPublicKeyJwk: AccountPublicKeyJWK, enrolledAt: String, keyEpoch: Int, signingPublicKeyJwk: AccountPublicKeyJWK) {
+    public init(deviceID: String, encryptionPublicKeyJwk: AccountPublicKeyJWK, enrolledAt: String, keyEpoch: Int, protocolVersion: String, signingPublicKeyJwk: AccountPublicKeyJWK) {
         self.deviceID = deviceID
         self.encryptionPublicKeyJwk = encryptionPublicKeyJwk
         self.enrolledAt = enrolledAt
         self.keyEpoch = keyEpoch
+        self.protocolVersion = protocolVersion
         self.signingPublicKeyJwk = signingPublicKeyJwk
     }
 }
@@ -523,6 +526,7 @@ public extension AccountDeviceEnrollment {
         encryptionPublicKeyJwk: AccountPublicKeyJWK? = nil,
         enrolledAt: String? = nil,
         keyEpoch: Int? = nil,
+        protocolVersion: String? = nil,
         signingPublicKeyJwk: AccountPublicKeyJWK? = nil
     ) -> AccountDeviceEnrollment {
         return AccountDeviceEnrollment(
@@ -530,6 +534,7 @@ public extension AccountDeviceEnrollment {
             encryptionPublicKeyJwk: encryptionPublicKeyJwk ?? self.encryptionPublicKeyJwk,
             enrolledAt: enrolledAt ?? self.enrolledAt,
             keyEpoch: keyEpoch ?? self.keyEpoch,
+            protocolVersion: protocolVersion ?? self.protocolVersion,
             signingPublicKeyJwk: signingPublicKeyJwk ?? self.signingPublicKeyJwk
         )
     }
@@ -857,15 +862,13 @@ public extension DeviceRevocation {
     }
 }
 
-/// Minimal server-readable campaign state for routing, convergence, deterministic offline
-/// release, and the get_wake_status control surface. Callback definitions and alarm settings
-/// remain encrypted.
+/// Minimal server-readable campaign state for routing, convergence, and the get_wake_status
+/// control surface. Callback definitions and alarm settings remain encrypted. Elapsed time
+/// never releases a wake gate.
 // MARK: - WakeStatus
 public struct WakeStatus: Codable {
     public let attemptNumber: Int
     public let campaignID: String
-    public let finalDeadlineAt: String
-    public let maximumAttempts: Int
     public let selectedDeviceIDS: [String]
     public let state: WakeCampaignState
     public let statusVersion: Int
@@ -874,16 +877,13 @@ public struct WakeStatus: Codable {
     public enum CodingKeys: String, CodingKey {
         case attemptNumber
         case campaignID = "campaignId"
-        case finalDeadlineAt, maximumAttempts
         case selectedDeviceIDS = "selectedDeviceIds"
         case state, statusVersion, updatedAt
     }
 
-    public init(attemptNumber: Int, campaignID: String, finalDeadlineAt: String, maximumAttempts: Int, selectedDeviceIDS: [String], state: WakeCampaignState, statusVersion: Int, updatedAt: String) {
+    public init(attemptNumber: Int, campaignID: String, selectedDeviceIDS: [String], state: WakeCampaignState, statusVersion: Int, updatedAt: String) {
         self.attemptNumber = attemptNumber
         self.campaignID = campaignID
-        self.finalDeadlineAt = finalDeadlineAt
-        self.maximumAttempts = maximumAttempts
         self.selectedDeviceIDS = selectedDeviceIDS
         self.state = state
         self.statusVersion = statusVersion
@@ -912,8 +912,6 @@ public extension WakeStatus {
     func with(
         attemptNumber: Int? = nil,
         campaignID: String? = nil,
-        finalDeadlineAt: String? = nil,
-        maximumAttempts: Int? = nil,
         selectedDeviceIDS: [String]? = nil,
         state: WakeCampaignState? = nil,
         statusVersion: Int? = nil,
@@ -922,8 +920,6 @@ public extension WakeStatus {
         return WakeStatus(
             attemptNumber: attemptNumber ?? self.attemptNumber,
             campaignID: campaignID ?? self.campaignID,
-            finalDeadlineAt: finalDeadlineAt ?? self.finalDeadlineAt,
-            maximumAttempts: maximumAttempts ?? self.maximumAttempts,
             selectedDeviceIDS: selectedDeviceIDS ?? self.selectedDeviceIDS,
             state: state ?? self.state,
             statusVersion: statusVersion ?? self.statusVersion,
@@ -941,7 +937,6 @@ public extension WakeStatus {
 }
 
 public enum WakeCampaignState: String, Codable {
-    case exhausted = "exhausted"
     case overridden = "overridden"
     case quietInterval = "quiet_interval"
     case ringingAttempt = "ringing_attempt"
@@ -949,8 +944,8 @@ public enum WakeCampaignState: String, Codable {
     case scheduled = "scheduled"
 }
 
-/// Perpetual Alarm recurrence, selected devices, persisted campaign attempts, deterministic
-/// deadlines, and terminal wake outcomes.
+/// Perpetual Alarm recurrence, selected devices, persisted no-deadline campaigns, and
+/// verified terminal wake outcomes.
 // MARK: - CurfewAlarmContract
 public struct CurfewAlarmContract: Codable {
     public let alarm: AlarmDefinition?
@@ -1077,27 +1072,22 @@ public extension AlarmDefinition {
     }
 }
 
-/// campaignDurationSeconds is derived, never independently configured: it must equal
-/// maximumAttempts * ringDurationSeconds + (maximumAttempts - 1) * quietIntervalSeconds and
-/// must not exceed 7200 seconds. Defaults produce three two-minute attempts and two
-/// five-minute quiet intervals: 960 seconds total.
+/// A campaign repeats its ringing and quiet intervals until a verified callback result or an
+/// authorized override releases it. No client may derive an expiry or release from elapsed
+/// time.
 // MARK: - AlarmConfiguration
 public struct AlarmConfiguration: Codable {
-    public let campaignDurationSeconds: Int
-    public let maximumAttempts: Int
     public let quietIntervalSeconds: Int
     public let ringDurationSeconds: Int
     /// Android alarm devices selected for this alarm; clients default to the primary alarm phone.
     public let selectedDeviceIDS: [String]
 
     public enum CodingKeys: String, CodingKey {
-        case campaignDurationSeconds, maximumAttempts, quietIntervalSeconds, ringDurationSeconds
+        case quietIntervalSeconds, ringDurationSeconds
         case selectedDeviceIDS = "selectedDeviceIds"
     }
 
-    public init(campaignDurationSeconds: Int, maximumAttempts: Int, quietIntervalSeconds: Int, ringDurationSeconds: Int, selectedDeviceIDS: [String]) {
-        self.campaignDurationSeconds = campaignDurationSeconds
-        self.maximumAttempts = maximumAttempts
+    public init(quietIntervalSeconds: Int, ringDurationSeconds: Int, selectedDeviceIDS: [String]) {
         self.quietIntervalSeconds = quietIntervalSeconds
         self.ringDurationSeconds = ringDurationSeconds
         self.selectedDeviceIDS = selectedDeviceIDS
@@ -1123,15 +1113,11 @@ public extension AlarmConfiguration {
     }
 
     func with(
-        campaignDurationSeconds: Int? = nil,
-        maximumAttempts: Int? = nil,
         quietIntervalSeconds: Int? = nil,
         ringDurationSeconds: Int? = nil,
         selectedDeviceIDS: [String]? = nil
     ) -> AlarmConfiguration {
         return AlarmConfiguration(
-            campaignDurationSeconds: campaignDurationSeconds ?? self.campaignDurationSeconds,
-            maximumAttempts: maximumAttempts ?? self.maximumAttempts,
             quietIntervalSeconds: quietIntervalSeconds ?? self.quietIntervalSeconds,
             ringDurationSeconds: ringDurationSeconds ?? self.ringDurationSeconds,
             selectedDeviceIDS: selectedDeviceIDS ?? self.selectedDeviceIDS
@@ -1363,15 +1349,14 @@ public enum State: String, Codable {
     case satisfied = "satisfied"
 }
 
-/// Persisted campaign state. finalDeadlineAt must equal scheduledAt plus the validated
-/// AlarmConfiguration campaignDurationSeconds. Every device therefore derives one deadline,
-/// and an offline Mac releases at that instant without coordinator contact.
+/// Persisted campaign state. A device remains in the wake gate until a verified callback
+/// result or an authorized override changes this campaign to a terminal state. Offline
+/// devices never derive a release from elapsed time.
 // MARK: - WakeCampaign
 public struct WakeCampaign: Codable {
     public let alarmID: String
     public let attemptNumber: Int
     public let campaignID: String
-    public let finalDeadlineAt: String
     public let recordVersion: Int
     public let scheduledAt: String
     public let selectedDeviceIDS: [String]
@@ -1384,16 +1369,15 @@ public struct WakeCampaign: Codable {
         case alarmID = "alarmId"
         case attemptNumber
         case campaignID = "campaignId"
-        case finalDeadlineAt, recordVersion, scheduledAt
+        case recordVersion, scheduledAt
         case selectedDeviceIDS = "selectedDeviceIds"
         case startedAt, state, timeZone, writerCounter
     }
 
-    public init(alarmID: String, attemptNumber: Int, campaignID: String, finalDeadlineAt: String, recordVersion: Int, scheduledAt: String, selectedDeviceIDS: [String], startedAt: String?, state: WakeCampaignState, timeZone: String, writerCounter: Int) {
+    public init(alarmID: String, attemptNumber: Int, campaignID: String, recordVersion: Int, scheduledAt: String, selectedDeviceIDS: [String], startedAt: String?, state: WakeCampaignState, timeZone: String, writerCounter: Int) {
         self.alarmID = alarmID
         self.attemptNumber = attemptNumber
         self.campaignID = campaignID
-        self.finalDeadlineAt = finalDeadlineAt
         self.recordVersion = recordVersion
         self.scheduledAt = scheduledAt
         self.selectedDeviceIDS = selectedDeviceIDS
@@ -1426,7 +1410,6 @@ public extension WakeCampaign {
         alarmID: String? = nil,
         attemptNumber: Int? = nil,
         campaignID: String? = nil,
-        finalDeadlineAt: String? = nil,
         recordVersion: Int? = nil,
         scheduledAt: String? = nil,
         selectedDeviceIDS: [String]? = nil,
@@ -1439,7 +1422,6 @@ public extension WakeCampaign {
             alarmID: alarmID ?? self.alarmID,
             attemptNumber: attemptNumber ?? self.attemptNumber,
             campaignID: campaignID ?? self.campaignID,
-            finalDeadlineAt: finalDeadlineAt ?? self.finalDeadlineAt,
             recordVersion: recordVersion ?? self.recordVersion,
             scheduledAt: scheduledAt ?? self.scheduledAt,
             selectedDeviceIDS: selectedDeviceIDS ?? self.selectedDeviceIDS,
@@ -1459,8 +1441,8 @@ public extension WakeCampaign {
     }
 }
 
-/// Every terminal outcome releases the morning gate. Exhaustion records a factual missed
-/// wake-up; it never strands a device.
+/// Only a verified callback result or an authorized override releases the morning gate.
+/// Failed callback delivery leaves the campaign active.
 // MARK: - WakeOutcome
 public struct WakeOutcome: Codable {
     public let attemptsCompleted: Int?
@@ -1529,7 +1511,6 @@ public extension WakeOutcome {
 }
 
 public enum Result: String, Codable {
-    case exhausted = "exhausted"
     case remoteOverride = "remote_override"
     case satisfied = "satisfied"
 }
@@ -2179,8 +2160,9 @@ public extension DeviceProof {
 
 /// Privacy-minimal native enrollment request. Device presentation, platform, application
 /// version, and human-readable names are encrypted account settings and never appear here.
-/// Key thumbprints are derived from the public signing key rather than accepted as competing
-/// input.
+/// The protocol capability is included so a coordinator can refuse a wake campaign that
+/// targets an incompatible device. Key thumbprints are derived from the public signing key
+/// rather than accepted as competing input.
 // MARK: - DeviceEnrollmentRequest
 public struct DeviceEnrollmentRequest: Codable {
     public let coordinatorNonce: String
@@ -2190,16 +2172,17 @@ public struct DeviceEnrollmentRequest: Codable {
     public let enrolledAt: String
     public let keyEpoch: Int
     public let pkceChallenge: String
+    public let protocolVersion: String
     public let signingPublicKeyJwk: DevicePublicKeyJWK
     public let state: String
 
     public enum CodingKeys: String, CodingKey {
         case coordinatorNonce
         case deviceID = "deviceId"
-        case deviceProof, encryptionPublicKeyJwk, enrolledAt, keyEpoch, pkceChallenge, signingPublicKeyJwk, state
+        case deviceProof, encryptionPublicKeyJwk, enrolledAt, keyEpoch, pkceChallenge, protocolVersion, signingPublicKeyJwk, state
     }
 
-    public init(coordinatorNonce: String, deviceID: String, deviceProof: DeviceProof, encryptionPublicKeyJwk: DevicePublicKeyJWK, enrolledAt: String, keyEpoch: Int, pkceChallenge: String, signingPublicKeyJwk: DevicePublicKeyJWK, state: String) {
+    public init(coordinatorNonce: String, deviceID: String, deviceProof: DeviceProof, encryptionPublicKeyJwk: DevicePublicKeyJWK, enrolledAt: String, keyEpoch: Int, pkceChallenge: String, protocolVersion: String, signingPublicKeyJwk: DevicePublicKeyJWK, state: String) {
         self.coordinatorNonce = coordinatorNonce
         self.deviceID = deviceID
         self.deviceProof = deviceProof
@@ -2207,6 +2190,7 @@ public struct DeviceEnrollmentRequest: Codable {
         self.enrolledAt = enrolledAt
         self.keyEpoch = keyEpoch
         self.pkceChallenge = pkceChallenge
+        self.protocolVersion = protocolVersion
         self.signingPublicKeyJwk = signingPublicKeyJwk
         self.state = state
     }
@@ -2238,6 +2222,7 @@ public extension DeviceEnrollmentRequest {
         enrolledAt: String? = nil,
         keyEpoch: Int? = nil,
         pkceChallenge: String? = nil,
+        protocolVersion: String? = nil,
         signingPublicKeyJwk: DevicePublicKeyJWK? = nil,
         state: String? = nil
     ) -> DeviceEnrollmentRequest {
@@ -2249,6 +2234,7 @@ public extension DeviceEnrollmentRequest {
             enrolledAt: enrolledAt ?? self.enrolledAt,
             keyEpoch: keyEpoch ?? self.keyEpoch,
             pkceChallenge: pkceChallenge ?? self.pkceChallenge,
+            protocolVersion: protocolVersion ?? self.protocolVersion,
             signingPublicKeyJwk: signingPublicKeyJwk ?? self.signingPublicKeyJwk,
             state: state ?? self.state
         )

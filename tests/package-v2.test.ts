@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 import { parse as parseYaml } from "yaml"
 import { repoRoot } from "./schema-validator"
 
-describe("0.2.3 artifacts", () => {
+describe("0.3.0 artifacts", () => {
   it("publishes matching npm and Kotlin Maven coordinates", async () => {
     const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
     const kotlinBuild = await readFile(
@@ -14,12 +14,12 @@ describe("0.2.3 artifacts", () => {
       "utf8",
     )
 
-    expect(pkg.version).toBe("0.2.3")
+    expect(pkg.version).toBe("0.3.0")
     expect(pkg.files).toContain("generated/kotlin/build.gradle.kts")
     expect(pkg.files).toContain("generated/kotlin/src/main")
     expect(pkg.files).not.toContain("generated/kotlin")
     expect(kotlinBuild).toContain('group = "studio.hypertext.curfew"')
-    expect(kotlinBuild).toContain('version = "0.2.3"')
+    expect(kotlinBuild).toContain('version = "0.3.0"')
     expect(kotlinBuild).toContain("maven-publish")
     expect(pkg.exports["./validation"]).toEqual({
       types: "./generated/typescript/validation.d.ts",
@@ -27,7 +27,7 @@ describe("0.2.3 artifacts", () => {
     })
   })
 
-  it("ships the schema-declared cross-field alarm validation keyword", async () => {
+  it("ships the no-deadline alarm contract without the retired duration fields", async () => {
     const validationPath = join(
       repoRoot,
       "generated",
@@ -53,10 +53,8 @@ describe("0.2.3 artifacts", () => {
 
     expect(
       validate({
-        maximumAttempts: 3,
         ringDurationSeconds: 120,
-        quietIntervalSeconds: 300,
-        campaignDurationSeconds: 960,
+        quietIntervalSeconds: 60,
         selectedDeviceIds: ["018f4f45-a055-7502-8b0c-7276bfe16c8f"],
       }),
     ).toBe(true)
@@ -64,8 +62,8 @@ describe("0.2.3 artifacts", () => {
       validate({
         maximumAttempts: 3,
         ringDurationSeconds: 120,
-        quietIntervalSeconds: 300,
-        campaignDurationSeconds: 7200,
+        quietIntervalSeconds: 60,
+        campaignDurationSeconds: 960,
         selectedDeviceIds: ["018f4f45-a055-7502-8b0c-7276bfe16c8f"],
       }),
     ).toBe(false)

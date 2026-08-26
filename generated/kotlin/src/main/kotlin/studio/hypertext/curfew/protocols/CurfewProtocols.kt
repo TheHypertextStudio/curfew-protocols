@@ -134,9 +134,9 @@ enum class DirectUnlockAuthorizationStatus(val value: String) {
 
 /**
  * Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only
- * public keys and epoch/timing metadata here. Device names and presentation metadata stay
- * encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded
- * separately for this deviceId.
+ * public keys, protocol capability, and epoch/timing metadata here. Device names and
+ * presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in
+ * e2ee.json and is uploaded separately for this deviceId.
  */
 @Serializable
 data class AccountDeviceEnrollment (
@@ -144,6 +144,12 @@ data class AccountDeviceEnrollment (
     val encryptionPublicKeyJwk: AccountPublicKeyJWK,
     val enrolledAt: String,
     val keyEpoch: Long,
+
+    /**
+     * The highest Curfew protocol minor version implemented by this native device.
+     */
+    val protocolVersion: String,
+
     val signingPublicKeyJwk: AccountPublicKeyJWK
 )
 
@@ -271,16 +277,14 @@ data class DeviceRevocation (
 )
 
 /**
- * Minimal server-readable campaign state for routing, convergence, deterministic offline
- * release, and the get_wake_status control surface. Callback definitions and alarm settings
- * remain encrypted.
+ * Minimal server-readable campaign state for routing, convergence, and the get_wake_status
+ * control surface. Callback definitions and alarm settings remain encrypted. Elapsed time
+ * never releases a wake gate.
  */
 @Serializable
 data class WakeStatus (
     val attemptNumber: Long,
     val campaignId: String,
-    val finalDeadlineAt: String,
-    val maximumAttempts: Long,
     val selectedDeviceIds: List<String>,
     val state: WakeCampaignState,
     val statusVersion: Long,
@@ -289,7 +293,6 @@ data class WakeStatus (
 
 @Serializable
 enum class WakeCampaignState(val value: String) {
-    @SerialName("exhausted") Exhausted("exhausted"),
     @SerialName("overridden") Overridden("overridden"),
     @SerialName("quiet_interval") QuietInterval("quiet_interval"),
     @SerialName("ringing_attempt") RingingAttempt("ringing_attempt"),
@@ -298,8 +301,8 @@ enum class WakeCampaignState(val value: String) {
 }
 
 /**
- * Perpetual Alarm recurrence, selected devices, persisted campaign attempts, deterministic
- * deadlines, and terminal wake outcomes.
+ * Perpetual Alarm recurrence, selected devices, persisted no-deadline campaigns, and
+ * verified terminal wake outcomes.
  */
 @Serializable
 data class CurfewAlarmContract (
@@ -320,15 +323,12 @@ data class AlarmDefinition (
 )
 
 /**
- * campaignDurationSeconds is derived, never independently configured: it must equal
- * maximumAttempts * ringDurationSeconds + (maximumAttempts - 1) * quietIntervalSeconds and
- * must not exceed 7200 seconds. Defaults produce three two-minute attempts and two
- * five-minute quiet intervals: 960 seconds total.
+ * A campaign repeats its ringing and quiet intervals until a verified callback result or an
+ * authorized override releases it. No client may derive an expiry or release from elapsed
+ * time.
  */
 @Serializable
 data class AlarmConfiguration (
-    val campaignDurationSeconds: Long,
-    val maximumAttempts: Long,
     val quietIntervalSeconds: Long,
     val ringDurationSeconds: Long,
 
@@ -408,16 +408,15 @@ enum class State(val value: String) {
 }
 
 /**
- * Persisted campaign state. finalDeadlineAt must equal scheduledAt plus the validated
- * AlarmConfiguration campaignDurationSeconds. Every device therefore derives one deadline,
- * and an offline Mac releases at that instant without coordinator contact.
+ * Persisted campaign state. A device remains in the wake gate until a verified callback
+ * result or an authorized override changes this campaign to a terminal state. Offline
+ * devices never derive a release from elapsed time.
  */
 @Serializable
 data class WakeCampaign (
     val alarmId: String,
     val attemptNumber: Long,
     val campaignId: String,
-    val finalDeadlineAt: String,
     val recordVersion: Long,
     val scheduledAt: String,
     val selectedDeviceIds: List<String>,
@@ -428,8 +427,8 @@ data class WakeCampaign (
 )
 
 /**
- * Every terminal outcome releases the morning gate. Exhaustion records a factual missed
- * wake-up; it never strands a device.
+ * Only a verified callback result or an authorized override releases the morning gate.
+ * Failed callback delivery leaves the campaign active.
  */
 @Serializable
 data class WakeOutcome (
@@ -442,7 +441,6 @@ data class WakeOutcome (
 
 @Serializable
 enum class Result(val value: String) {
-    @SerialName("exhausted") Exhausted("exhausted"),
     @SerialName("remote_override") RemoteOverride("remote_override"),
     @SerialName("satisfied") Satisfied("satisfied");
 }
@@ -594,8 +592,9 @@ data class DeviceProof (
 /**
  * Privacy-minimal native enrollment request. Device presentation, platform, application
  * version, and human-readable names are encrypted account settings and never appear here.
- * Key thumbprints are derived from the public signing key rather than accepted as competing
- * input.
+ * The protocol capability is included so a coordinator can refuse a wake campaign that
+ * targets an incompatible device. Key thumbprints are derived from the public signing key
+ * rather than accepted as competing input.
  */
 @Serializable
 data class DeviceEnrollmentRequest (
@@ -606,6 +605,7 @@ data class DeviceEnrollmentRequest (
     val enrolledAt: String,
     val keyEpoch: Long,
     val pkceChallenge: String,
+    val protocolVersion: String,
     val signingPublicKeyJwk: DevicePublicKeyJWK,
     val state: String
 )

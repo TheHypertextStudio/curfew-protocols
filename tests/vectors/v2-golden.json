@@ -114,13 +114,6 @@
       "timeZone": "America/Los_Angeles",
       "localDateTime": "2026-11-01T01:30:00",
       "expectedInstant": "2026-11-01T08:30:00Z"
-    },
-    {
-      "id": "default-campaign-final-deadline",
-      "kind": "final_deadline",
-      "scheduledAt": "2026-08-10T14:00:00Z",
-      "campaignDurationSeconds": 960,
-      "expectedInstant": "2026-08-10T14:16:00Z"
     }
   ],
   "cases": [
@@ -185,41 +178,26 @@
       }
     },
     {
-      "id": "default-three-attempt-alarm",
+      "id": "default-no-deadline-alarm",
       "schema": "alarm.json",
       "definition": "AlarmConfiguration",
       "valid": true,
       "payload": {
+        "ringDurationSeconds": 120,
+        "quietIntervalSeconds": 60,
+        "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
+      }
+    },
+    {
+      "id": "retired-bounded-campaign-fields",
+      "schema": "alarm.json",
+      "definition": "AlarmConfiguration",
+      "valid": false,
+      "payload": {
         "maximumAttempts": 3,
         "ringDurationSeconds": 120,
-        "quietIntervalSeconds": 300,
+        "quietIntervalSeconds": 60,
         "campaignDurationSeconds": 960,
-        "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
-      }
-    },
-    {
-      "id": "campaign-over-two-hours",
-      "schema": "alarm.json",
-      "definition": "AlarmConfiguration",
-      "valid": false,
-      "payload": {
-        "maximumAttempts": 3,
-        "ringDurationSeconds": 120,
-        "quietIntervalSeconds": 300,
-        "campaignDurationSeconds": 7201,
-        "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
-      }
-    },
-    {
-      "id": "campaign-computed-duration-over-two-hours",
-      "schema": "alarm.json",
-      "definition": "AlarmConfiguration",
-      "valid": false,
-      "payload": {
-        "maximumAttempts": 24,
-        "ringDurationSeconds": 600,
-        "quietIntervalSeconds": 300,
-        "campaignDurationSeconds": 7200,
         "selectedDeviceIds": ["018f4f45-a055-7502-8b0c-7276bfe16c8f"]
       }
     },

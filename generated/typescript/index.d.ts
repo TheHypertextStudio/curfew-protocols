@@ -23,7 +23,7 @@ export interface CurfewAccountContract {
 }
 
 /**
- * Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only public keys and epoch/timing metadata here. Device names and presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded separately for this deviceId.
+ * Minimal enrollment metadata for an E2EE-capable device. The coordinator receives only public keys, protocol capability, and epoch/timing metadata here. Device names and presentation metadata stay encrypted. The sole RootKeyEnvelope definition lives in e2ee.json and is uploaded separately for this deviceId.
  */
 export interface AccountDeviceEnrollment {
   deviceId: CanonicalUUID
@@ -31,6 +31,10 @@ export interface AccountDeviceEnrollment {
   signingPublicKeyJwk: AccountPublicKeyJWK
   keyEpoch: number
   enrolledAt: UTCInstant
+  /**
+   * The highest Curfew protocol minor version implemented by this native device.
+   */
+  protocolVersion: string
 }
 export interface AccountPublicKeyJWK {
   kty: "EC"
@@ -62,19 +66,17 @@ export interface DeviceStatus {
 }
 
 /**
- * Minimal server-readable campaign state for routing, convergence, deterministic offline release, and the get_wake_status control surface. Callback definitions and alarm settings remain encrypted.
+ * Minimal server-readable campaign state for routing, convergence, and the get_wake_status control surface. Callback definitions and alarm settings remain encrypted. Elapsed time never releases a wake gate.
  */
 export interface WakeStatus {
   campaignId: CanonicalUUID
-  state: "scheduled" | "ringing_attempt" | "quiet_interval" | "satisfied" | "exhausted" | "overridden"
+  state: "scheduled" | "ringing_attempt" | "quiet_interval" | "satisfied" | "overridden"
   attemptNumber: number
-  maximumAttempts: number
   /**
    * @minItems 1
    * @maxItems 32
    */
   selectedDeviceIds: [CanonicalUUID, ...CanonicalUUID[]]
-  finalDeadlineAt: UTCInstant
   statusVersion: number
   updatedAt: UTCInstant
 }
@@ -184,16 +186,10 @@ export type AlarmRecurrence = WeeklyAlarmRecurrence | OneTimeAlarmRecurrence
  * Explicit IANA timezone identifier. Fixed-offset abbreviations are not accepted.
  */
 export type IANATimeZone = string
-export type WakeCampaignState =
-  | "scheduled"
-  | "ringing_attempt"
-  | "quiet_interval"
-  | "satisfied"
-  | "exhausted"
-  | "overridden"
+export type WakeCampaignState = "scheduled" | "ringing_attempt" | "quiet_interval" | "satisfied" | "overridden"
 
 /**
- * Perpetual Alarm recurrence, selected devices, persisted campaign attempts, deterministic deadlines, and terminal wake outcomes.
+ * Perpetual Alarm recurrence, selected devices, persisted no-deadline campaigns, and verified terminal wake outcomes.
  */
 export interface CurfewAlarmContract {
   alarm?: AlarmDefinition
@@ -239,13 +235,11 @@ export interface OneTimeAlarmRecurrence {
 }
 
 /**
- * campaignDurationSeconds is derived, never independently configured: it must equal maximumAttempts * ringDurationSeconds + (maximumAttempts - 1) * quietIntervalSeconds and must not exceed 7200 seconds. Defaults produce three two-minute attempts and two five-minute quiet intervals: 960 seconds total.
+ * A campaign repeats its ringing and quiet intervals until a verified callback result or an authorized override releases it. No client may derive an expiry or release from elapsed time.
  */
 export interface AlarmConfiguration {
-  maximumAttempts: number
   ringDurationSeconds: number
   quietIntervalSeconds: number
-  campaignDurationSeconds: number
   /**
    * Android alarm devices selected for this alarm; clients default to the primary alarm phone.
    *
@@ -256,7 +250,7 @@ export interface AlarmConfiguration {
 }
 
 /**
- * Persisted campaign state. finalDeadlineAt must equal scheduledAt plus the validated AlarmConfiguration campaignDurationSeconds. Every device therefore derives one deadline, and an offline Mac releases at that instant without coordinator contact.
+ * Persisted campaign state. A device remains in the wake gate until a verified callback result or an authorized override changes this campaign to a terminal state. Offline devices never derive a release from elapsed time.
  */
 export interface WakeCampaign {
   campaignId: CanonicalUUID
@@ -264,7 +258,6 @@ export interface WakeCampaign {
   timeZone: IANATimeZone
   scheduledAt: UTCInstant
   startedAt?: UTCInstant | null
-  finalDeadlineAt: UTCInstant
   state: WakeCampaignState
   attemptNumber: number
   /**
@@ -286,11 +279,11 @@ export interface WakeAttempt {
 }
 
 /**
- * Every terminal outcome releases the morning gate. Exhaustion records a factual missed wake-up; it never strands a device.
+ * Only a verified callback result or an authorized override releases the morning gate. Failed callback delivery leaves the campaign active.
  */
 export interface WakeOutcome {
   campaignId: CanonicalUUID
-  result: "satisfied" | "exhausted" | "remote_override"
+  result: "satisfied" | "remote_override"
   releasedAt: UTCInstant
   satisfyingDeviceId?: CanonicalUUID | null
   attemptsCompleted?: number
@@ -374,7 +367,7 @@ export interface DeviceSessionContract {
 }
 
 /**
- * Privacy-minimal native enrollment request. Device presentation, platform, application version, and human-readable names are encrypted account settings and never appear here. Key thumbprints are derived from the public signing key rather than accepted as competing input.
+ * Privacy-minimal native enrollment request. Device presentation, platform, application version, and human-readable names are encrypted account settings and never appear here. The protocol capability is included so a coordinator can refuse a wake campaign that targets an incompatible device. Key thumbprints are derived from the public signing key rather than accepted as competing input.
  */
 export interface DeviceEnrollmentRequest {
   deviceId: string
@@ -382,6 +375,7 @@ export interface DeviceEnrollmentRequest {
   signingPublicKeyJwk: DevicePublicKeyJWK
   keyEpoch: number
   enrolledAt: string
+  protocolVersion: string
   pkceChallenge: string
   state: string
   coordinatorNonce: string
@@ -812,10 +806,9 @@ export type MCPToolRegistry = {
                   campaignId: {type: "string"; format: "uuid"}
                   state: {
                     type: "string"
-                    enum: ["scheduled", "ringing_attempt", "quiet_interval", "satisfied", "exhausted", "overridden"]
+                    enum: ["scheduled", "ringing_attempt", "quiet_interval", "satisfied", "overridden"]
                   }
-                  attemptNumber: {type: "integer"; minimum: 0; maximum: 24}
-                  maximumAttempts: {type: "integer"; minimum: 1; maximum: 24}
+                  attemptNumber: {type: "integer"; minimum: 0}
                   selectedDeviceIds: {
                     type: "array"
                     minItems: 1
@@ -823,20 +816,10 @@ export type MCPToolRegistry = {
                     uniqueItems: true
                     items: {type: "string"; format: "uuid"}
                   }
-                  finalDeadlineAt: {type: "string"; format: "date-time"}
                   statusVersion: {type: "integer"; minimum: 1}
                   updatedAt: {type: "string"; format: "date-time"}
                 }
-                required: [
-                  "campaignId",
-                  "state",
-                  "attemptNumber",
-                  "maximumAttempts",
-                  "selectedDeviceIds",
-                  "finalDeadlineAt",
-                  "statusVersion",
-                  "updatedAt"
-                ]
+                required: ["campaignId", "state", "attemptNumber", "selectedDeviceIds", "statusVersion", "updatedAt"]
               },
               {type: "null"}
             ]

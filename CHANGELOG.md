@@ -4,6 +4,18 @@ All notable changes to `@hypertext/curfew-protocols` are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-08-25
+
+### Changed
+
+- Replaced bounded wake campaigns with no-deadline campaigns. Alarm configuration now contains only the ringing interval, quiet interval, and selected devices. A campaign remains active until a verified callback receipt or an authorized remote override releases it.
+- Removed `maximumAttempts`, `campaignDurationSeconds`, `finalDeadlineAt`, and the `exhausted` terminal state from the alarm, account, and MCP wake-status contracts. Attempt counters no longer have a protocol cap.
+- Required every account-device enrollment to declare its supported protocol minor version so coordinators can reject wake campaigns that select an incompatible client.
+
+### Migration
+
+- Consumers must upgrade together to 0.3.0. A 0.2.x client cannot read or publish active wake-campaign state.
+
 ## [0.2.3] — 2026-08-16
 
 ### Fixed

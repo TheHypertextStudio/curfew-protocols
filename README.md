@@ -4,10 +4,10 @@ Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, t
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
-## What's in v0.2.3
+## What's in v0.3.0
 
 - `schemas/schedule.json` — mutually exclusive fixed-unlock and account wake-campaign release policies, explicit IANA timezones and DST resolution, legacy migration, and Curfew's anti-bypass application timing.
-- `schemas/alarm.json` — alarm recurrence and selected devices plus the persisted scheduled/ringing/quiet/satisfied/exhausted campaign state machine and deterministic final deadline.
+- `schemas/alarm.json` — alarm recurrence and selected devices plus a persisted scheduled/ringing/quiet/satisfied/overridden no-deadline campaign state machine.
 - `schemas/callback.json` — product-neutral HTTPS callback definitions, polling policy, nonce-bound challenges and receipts, and post-verification replay/freshness dispositions.
 - `schemas/e2ee.json` — versioned AES-256-GCM encrypted records, writer counters, canonical AAD and ES256-P1363 signature inputs, RFC 9180 HPKE account-root-key envelopes, and recovery-key wrapping.
 - `schemas/account.json` — privacy-minimal device public-key enrollment/revocation, minimal device/wake status, lifetime and subscription entitlements, per-client direct-unlock authorization, and audited 5–60 minute remote overrides.
@@ -20,14 +20,14 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 - `schemas/oauth.json` — separate OAuth resource and scope authorities for native Curfew clients (`https://curfew-sync.hypertext.studio`) and remote MCP clients (`https://curfew-sync.hypertext.studio/mcp`). Native clients receive account, device, entitlement, encrypted-sync, and wake scopes but no unlock scope by default; MCP clients receive only the least-privilege read and unlock scopes they are granted.
 - `schemas/sync.json` — authenticated WebSocket hello/welcome, status, delivery, cursor acknowledgement, result, and internal identity-assertion frames.
 
-Version 0.2.3 adds the cross-platform wake and encrypted account contracts while the package remains pre-1.0. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
+Version 0.3.0 makes the cross-platform wake contract callback-gated while the package remains pre-1.0. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
 
 ## Wire rules
 
 - Instants are RFC 3339 UTC strings and timezone identifiers are IANA names.
 - A scheduled day has one morning release authority. A wake-enabled day cannot also carry or edit a fixed unlock. DST gaps advance to the first valid instant; overlaps use the first occurrence.
 - Stricter schedule changes apply at the next local midnight. Weaker changes wait at least 24 hours and cannot apply during an active lockout.
-- The default alarm campaign is three 120-second ringing attempts separated by two 300-second quiet intervals: 960 seconds total. `campaignDurationSeconds` is derived and must exactly equal `attempts * ring + (attempts - 1) * quiet`, capped at 7200 seconds. `finalDeadlineAt` is the scheduled instant plus that derived duration on every device.
+- The default alarm campaign rings for 120 seconds, stays quiet for 60 seconds, and repeats without a final deadline. Only a verified callback receipt or an authorized remote override can release the wake gate. An offline device remains locked rather than deriving a release from elapsed time.
 - Callback requests are HTTPS POSTs with a fresh nonce and challenge time on every poll. HMAC input is RFC 8785 canonical JSON without `mac`; request and response keys are independently derived with HKDF-SHA256. Redirects, stale observations, invalid MACs, and replayed nonces fail closed.
 - Account data uses a random 256-bit root key, domain-separated HKDF-SHA256 namespace keys, AES-256-GCM records with RFC 8785 AAD, low-S ES256 IEEE-P1363 device signatures, monotonic writer counters, and RFC 9180 HPKE device envelopes. Recovery wrapping has separately pinned HKDF/AAD inputs. Authentication recovery codes do not replace the Curfew Recovery Key.
 - Schema identifiers are served only from `curfew-protocols.hypertext.studio`; this reverse-DNS service host is unrelated to the Android application ID.
@@ -62,7 +62,7 @@ const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }))
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.2.3")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.3.0")
 ```
 
 ```swift
@@ -73,12 +73,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.2.3`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.3.0`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.2.3")
+implementation("studio.hypertext.curfew:curfew-protocols:0.3.0")
 ```
 
 ```kotlin
@@ -100,7 +100,7 @@ dotnet run --project tests/dotnet/CurfewProtocols.Decoder.csproj
 
 `tests/vectors/v2-golden.json` fixes canonical callback, encrypted-record, HPKE, recovery, and signature bytes. TypeScript, Swift, and Kotlin independently derive or verify those values so a platform cannot hide incompatible canonicalization by signing and verifying only its own output.
 
-Publishing is release-driven. A GitHub Release whose tag exactly matches `v<package version>` reruns all three language gates, publishes npm through npm trusted publishing/OIDC without a long-lived npm token, and publishes the Kotlin artifact to GitHub Packages. Swift Package Manager consumes the same immutable release tag. Repository operators must configure npm trusted publishing for this workflow before publishing v0.2.3. The npm job runs on macOS because npm's prepublish gate verifies the generated Swift package with CryptoKit. The Maven job runs independently so npm authorization cannot suppress the Kotlin release.
+Publishing is release-driven. A GitHub Release whose tag exactly matches `v<package version>` reruns all three language gates, publishes npm through npm trusted publishing/OIDC without a long-lived npm token, and publishes the Kotlin artifact to GitHub Packages. Swift Package Manager consumes the same immutable release tag. Repository operators must configure npm trusted publishing for this workflow before publishing v0.3.0. The npm job runs on macOS because npm's prepublish gate verifies the generated Swift package with CryptoKit. The Maven job runs independently so npm authorization cannot suppress the Kotlin release.
 
 See `AGENTS.md` for the change discipline (every schema edit requires regen, test, version bump, changelog entry).
 
