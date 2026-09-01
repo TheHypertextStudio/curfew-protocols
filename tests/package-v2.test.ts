@@ -37,6 +37,8 @@ describe("internal 0.0.x artifacts", () => {
     expect(() => parseYaml(workflow)).not.toThrow()
     expect(workflow).toContain('tags:\n      - "v0.0.*"')
     expect(workflow).toContain("Verify release tag matches package version")
+    expect(workflow).toContain("require('./package.json').version")
+    expect(workflow).not.toContain('require(\\"./package.json\\").version')
     expect(workflow).toContain("registry-url: https://npm.pkg.github.com")
     expect(workflow).toContain('scope: "@thehypertextstudio"')
     expect(workflow).toContain("--access restricted")
