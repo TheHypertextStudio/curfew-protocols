@@ -22,7 +22,7 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - name: Verify release tag matches package version
-        run: test "v$(node -p 'require(\"./package.json\").version')" = "${{ github.ref_name }}"
+        run: test "v$(node -p \"require('./package.json').version\")" = "${{ github.ref_name }}"
       - run: pnpm publish --access restricted --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
