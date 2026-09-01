@@ -4,6 +4,16 @@ All notable changes to `@thehypertextstudio/curfew-protocols` are documented her
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] — 2026-09-01
+
+### Fixed
+
+- Run the GitHub Packages publication gate on macOS, matching the supported Swift CryptoKit test environment, so publication can reach the internal registry after all language verification passes.
+
+### Changed
+
+- Document GitHub Packages as the only JavaScript publication destination; Curfew Protocols is an internal package rather than a public npm API.
+
 ## [0.0.5] — 2026-09-01
 
 ### Fixed
