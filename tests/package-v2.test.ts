@@ -66,6 +66,12 @@ describe("internal 0.0.x artifacts", () => {
     expect(workflow).toContain(`version: ${pkg.packageManager.replace("pnpm@", "")}`)
   })
 
+  it("runs generated-output checks without cross-file write races", async () => {
+    const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
+
+    expect(pkg.scripts.test).toContain("--no-file-parallelism")
+  })
+
   it("ships the no-deadline alarm contract without the retired duration fields", async () => {
     const validationPath = join(
       repoRoot,

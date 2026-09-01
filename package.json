@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "codegen": "tsx codegen/typescript.ts && tsx codegen/swift.ts && tsx codegen/kotlin.ts && tsx codegen/golden-tests.ts",
-    "test": "vitest run",
+    "test": "vitest run --no-file-parallelism",
     "test:kotlin": "./gradlew :generated:kotlin:test",
     "typecheck": "tsc --noEmit",
     "typecheck:consumer": "tsc --noEmit --skipLibCheck false tests/consumer-smoke.ts",
