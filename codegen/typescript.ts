@@ -150,6 +150,37 @@ async function main() {
     }
   }
 
+  // Post-verification identity claims are an internal Worker-to-Durable-Object
+  // type, not a WebSocket frame. Compile them from a separate root so the
+  // public DeviceSyncContract remains exactly the six socket variants.
+  const sync = JSON.parse(await readFile(join(schemasDir, "sync.json"), "utf8")) as {
+    definitions: Record<string, unknown>
+  }
+  const identityClaims = structuredClone(
+    sync.definitions.InternalDeviceIdentityClaims,
+  ) as Record<string, unknown>
+  const identityProperties = identityClaims.properties as Record<string, Record<string, string>>
+  for (const [name, property] of Object.entries(identityProperties)) {
+    const ref = property.$ref
+    if (ref?.startsWith("#/definitions/")) {
+      identityProperties[name] = structuredClone(
+        sync.definitions[ref.slice("#/definitions/".length)],
+      ) as Record<string, string>
+    }
+  }
+  const identitySource = await compile(
+    { title: "InternalDeviceIdentityClaims", ...identityClaims },
+    "InternalDeviceIdentityClaims",
+    { bannerComment: "", style: { semi: false, singleQuote: false } },
+  )
+  const identity = splitDeclarations(identitySource).find(
+    (block) => block.name === "InternalDeviceIdentityClaims",
+  )
+  if (identity === undefined) {
+    throw new Error("Identity claims codegen source emitted no declaration")
+  }
+  parts.push("// From sync.json internal identity claims", "", identity.text, "")
+
   await writeFile(join(outDir, "index.d.ts"), parts.join("\n"), "utf8")
   await writeFile(
     join(outDir, "index.js"),

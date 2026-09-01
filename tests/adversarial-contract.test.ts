@@ -237,9 +237,7 @@ describe("MCP and sync surfaces", () => {
       "utf8",
     )
 
-    expect(sync.properties.__codegenVerifiedIdentityClaims).toEqual({
-      $ref: "#/definitions/InternalDeviceIdentityClaims",
-    })
+    expect(sync.properties).toBeUndefined()
     expect(types).toContain("export interface InternalDeviceIdentityClaims")
     expect(swift).toContain("public struct InternalDeviceIdentityClaims")
   })

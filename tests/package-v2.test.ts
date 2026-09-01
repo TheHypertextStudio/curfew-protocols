@@ -42,6 +42,27 @@ describe("internal 0.0.x artifacts", () => {
     expect(workflow).toContain("--access restricted")
   })
 
+  it("disables the legacy public npm release jobs", async () => {
+    const workflow = await readFile(
+      join(repoRoot, ".github", "workflows", "release.yml"),
+      "utf8",
+    )
+
+    expect(workflow).toContain("workflow_dispatch")
+    expect(workflow).toMatch(/publish-npm:\n    if: \$\{\{ false \}\}/)
+    expect(workflow).toMatch(/publish-kotlin:\n    if: \$\{\{ false \}\}/)
+  })
+
+  it("uses the package-manager version in CI", async () => {
+    const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
+    const workflow = await readFile(
+      join(repoRoot, ".github", "workflows", "ci.yml"),
+      "utf8",
+    )
+
+    expect(workflow).toContain(`version: ${pkg.packageManager.replace("pnpm@", "")}`)
+  })
+
   it("ships the no-deadline alarm contract without the retired duration fields", async () => {
     const validationPath = join(
       repoRoot,

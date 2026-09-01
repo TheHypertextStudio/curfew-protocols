@@ -1126,38 +1126,19 @@ export interface ScheduleDayV2 {
 /**
  * Authenticated device WebSocket frames. Identity and coordinator commands are transported only as compact JWS values.
  */
-export type DeviceSyncContract = {
-  __codegenVerifiedIdentityClaims?: InternalDeviceIdentityClaims
-} & (
+export type DeviceSyncContract =
   | DeviceSocketHello
   | DeviceSocketWelcome
   | DeviceStatusPublication
   | RemoteCommandDelivery
   | RemoteCommandCursorAcknowledgement
   | RemoteCommandResultPublication
-)
 export type CompactJWS = string
 export type Cursor = string
 export type RemoteCommandResultPublication =
   | AppliedResultPublication
   | RejectedResultPublication
   | ExpiredResultPublication
-
-/**
- * Post-verification Worker-to-Durable-Object identity view; never trusted beside the assertion.
- */
-export interface InternalDeviceIdentityClaims {
-  userId: string
-  deviceId: CanonicalUUID
-  keyThumbprint: string
-  /**
-   * SHA-256 hash of the short-lived device access credential. This binds an enrolled device key to a credential issued only after browser account approval.
-   */
-  accessTokenHash: string
-  audience: "curfew-user-coordinator"
-  issuedAt: UTCInstant
-  expiresAt: UTCInstant
-}
 export interface DeviceSocketHello {
   type: "hello"
   identityAssertion: InternalDeviceIdentityAssertion
@@ -1233,4 +1214,22 @@ export interface ExpiredResultPublication {
   sequence: number
   stage: "expired"
   resolvedAt: UTCInstant
+}
+
+// From sync.json internal identity claims
+
+/**
+ * Post-verification Worker-to-Durable-Object identity view; never trusted beside the assertion.
+ */
+export interface InternalDeviceIdentityClaims {
+  userId: string
+  deviceId: string
+  keyThumbprint: string
+  /**
+   * SHA-256 hash of the short-lived device access credential. This binds an enrolled device key to a credential issued only after browser account approval.
+   */
+  accessTokenHash: string
+  audience: "curfew-user-coordinator"
+  issuedAt: string
+  expiresAt: string
 }

@@ -4,9 +4,6 @@
   "title": "DeviceSyncContract",
   "description": "Authenticated device WebSocket frames. Identity and coordinator commands are transported only as compact JWS values.",
   "type": "object",
-  "properties": {
-    "__codegenVerifiedIdentityClaims": { "$ref": "#/definitions/InternalDeviceIdentityClaims" }
-  },
   "oneOf": [
     { "$ref": "#/definitions/DeviceSocketHello" },
     { "$ref": "#/definitions/DeviceSocketWelcome" },
