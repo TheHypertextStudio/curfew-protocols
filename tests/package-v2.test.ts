@@ -42,6 +42,7 @@ describe("internal 0.0.x artifacts", () => {
     expect(workflow).toContain("registry-url: https://npm.pkg.github.com")
     expect(workflow).toContain('scope: "@thehypertextstudio"')
     expect(workflow).toContain("--access restricted")
+    expect(workflow).toMatch(/publish:\n    runs-on: macos-14/)
   })
 
   it("disables the legacy public npm release jobs", async () => {
