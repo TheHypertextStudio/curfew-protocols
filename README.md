@@ -15,7 +15,7 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 - `schemas/mcp-app.json` — the `resources/read` HTML content shape, `ui://curfew/status-and-devices` URI, MIME profile, and `_meta.ui.csp` origins.
 - `schemas/pending-request.json` — `MCPPendingRequest` envelope used to queue write requests between the local MCP binary and the Curfew app, including the `MCPWriteTool` and `MCPRequestStatus` enums.
 - `schemas/device.json` — platform-neutral device descriptors, local remote-control eligibility, capabilities, and normalized status snapshots, including optional desk presence.
-- `schemas/device-session.json` — enrollment plus RFC 9449-style proof-of-possession request shapes, including the short-lived coordinator nonce a device signs into its enrollment proof.
+- `schemas/device-session.json` — enrollment plus RFC 9449-style proof-of-possession request shapes, including the short-lived coordinator nonce a device signs into its enrollment proof and the browser-approval response that follows it.
 - `schemas/remote-command.json` — coordinator-signed, replay-safe lock commands, acknowledgements, and per-device results.
 - `schemas/oauth.json` — separate OAuth resource and scope authorities for native Curfew clients (`https://curfew-sync.hypertext.studio`) and remote MCP clients (`https://curfew-sync.hypertext.studio/mcp`). Native clients receive account, device, entitlement, encrypted-sync, and wake scopes but no unlock scope by default; MCP clients receive only the least-privilege read and unlock scopes they are granted.
 - `schemas/sync.json` — authenticated WebSocket hello/welcome, status, delivery, cursor acknowledgement, result, and internal identity-assertion frames.

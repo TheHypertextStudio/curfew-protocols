@@ -77,6 +77,7 @@ describe("remote command contract", () => {
     expect(device.definitions).toHaveProperty("DeviceStatusSnapshot")
     expect(session.definitions).toHaveProperty("DeviceEnrollmentRequest")
     expect(session.definitions).toHaveProperty("DeviceEnrollmentNonce")
+    expect(session.definitions).toHaveProperty("DeviceEnrollmentStartResponse")
     expect(session.definitions).toHaveProperty("DeviceProof")
     expect(remote.definitions).toHaveProperty("RemoteCommandAcknowledgement")
     expect(remote.definitions).toHaveProperty("RemoteCommandResult")
@@ -91,6 +92,15 @@ describe("remote command contract", () => {
       properties: {
         coordinatorNonce: { pattern: "^[A-Za-z0-9_-]{22,86}$" },
       },
+    })
+  })
+
+  it("returns a browser approval URL after the coordinator accepts enrollment proof", async () => {
+    const session = await schema("device-session.json")
+    expect(session.definitions.DeviceEnrollmentStartResponse).toMatchObject({
+      additionalProperties: false,
+      required: ["approvalUrl", "expiresAt"],
+      properties: { approvalUrl: { format: "uri" } },
     })
   })
 })
