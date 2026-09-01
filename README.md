@@ -1,4 +1,4 @@
-# @hypertext/curfew-protocols
+# @thehypertextstudio/curfew-protocols
 
 Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, the Curfew account and sync services, and generic callback adapters.
 
@@ -43,11 +43,11 @@ Version 0.3.0 makes the cross-platform wake contract callback-gated while the pa
 ## TypeScript consumer
 
 ```sh
-pnpm add @hypertext/curfew-protocols
+pnpm add @thehypertextstudio/curfew-protocols
 ```
 
 ```ts
-import type { DeviceDescriptor, RemoteLockCommand } from "@hypertext/curfew-protocols"
+import type { DeviceDescriptor, RemoteLockCommand } from "@thehypertextstudio/curfew-protocols"
 ```
 
 Draft-07 cannot express the alarm-duration arithmetic. Trust-boundary validators must register the generated custom keyword before compiling Curfew schemas:
@@ -58,6 +58,11 @@ import { addCurfewProtocolKeywords } from "@hypertext/curfew-protocols/validatio
 
 const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }))
 ```
+
+The committed `.npmrc` routes this scope to GitHub Packages. Each developer,
+CI job, and deployment environment supplies its own read-capable GitHub token
+through user-level configuration or `NODE_AUTH_TOKEN`; credentials are never
+committed. The tag publishing workflow receives its token from GitHub Actions.
 
 ## Swift consumer
 
