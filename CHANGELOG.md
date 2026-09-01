@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 
 - Run the GitHub Packages publication gate on macOS, matching the supported Swift CryptoKit test environment, so publication can reach the internal registry after all language verification passes.
+- Serialize Vitest test files because generated-output contract tests share and rewrite the committed output directory; this prevents a concurrent host-policy read from observing the Swift generator's temporary empty directory during publication.
 
 ### Changed
 
