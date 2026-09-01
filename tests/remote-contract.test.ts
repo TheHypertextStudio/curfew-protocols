@@ -103,6 +103,36 @@ describe("remote command contract", () => {
       properties: { approvalUrl: { format: "uri" } },
     })
   })
+
+  it("exposes enrollment continuation responses to generated consumers", async () => {
+    const session = await schema("device-session.json")
+    const types = await readFile(
+      join(repoRoot, "generated", "typescript", "index.d.ts"),
+      "utf8",
+    )
+    const swift = await readFile(
+      join(
+        repoRoot,
+        "generated",
+        "swift",
+        "Sources",
+        "CurfewProtocols",
+        "CurfewProtocols.swift",
+      ),
+      "utf8",
+    )
+
+    expect(session.properties).toMatchObject({
+      enrollmentNonce: { $ref: "#/definitions/DeviceEnrollmentNonce" },
+      enrollmentStartResponse: {
+        $ref: "#/definitions/DeviceEnrollmentStartResponse",
+      },
+    })
+    expect(types).toContain("export interface DeviceEnrollmentNonce")
+    expect(types).toContain("export interface DeviceEnrollmentStartResponse")
+    expect(swift).toContain("public struct DeviceEnrollmentNonce")
+    expect(swift).toContain("public struct DeviceEnrollmentStartResponse")
+  })
 })
 
 describe("platform-neutral decoding boundary", () => {

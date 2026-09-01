@@ -17,6 +17,7 @@
 //   let remoteCommandContract = try RemoteCommandContract(json)
 //   let curfewScheduleContract = try CurfewScheduleContract(json)
 //   let deviceSyncContract = try DeviceSyncContract(json)
+//   let internalDeviceIdentityClaims = try InternalDeviceIdentityClaims(json)
 
 import Foundation
 
@@ -1940,13 +1941,17 @@ public extension CallbackPollPolicy {
 public struct DeviceSessionContract: Codable {
     public let credential: DeviceCredential?
     public let enrollmentExchange: DeviceEnrollmentExchange?
+    public let enrollmentNonce: DeviceEnrollmentNonce?
     public let enrollmentRequest: DeviceEnrollmentRequest?
+    public let enrollmentStartResponse: DeviceEnrollmentStartResponse?
     public let proofClaims: DeviceProofClaims?
 
-    public init(credential: DeviceCredential?, enrollmentExchange: DeviceEnrollmentExchange?, enrollmentRequest: DeviceEnrollmentRequest?, proofClaims: DeviceProofClaims?) {
+    public init(credential: DeviceCredential?, enrollmentExchange: DeviceEnrollmentExchange?, enrollmentNonce: DeviceEnrollmentNonce?, enrollmentRequest: DeviceEnrollmentRequest?, enrollmentStartResponse: DeviceEnrollmentStartResponse?, proofClaims: DeviceProofClaims?) {
         self.credential = credential
         self.enrollmentExchange = enrollmentExchange
+        self.enrollmentNonce = enrollmentNonce
         self.enrollmentRequest = enrollmentRequest
+        self.enrollmentStartResponse = enrollmentStartResponse
         self.proofClaims = proofClaims
     }
 }
@@ -1972,13 +1977,17 @@ public extension DeviceSessionContract {
     func with(
         credential: DeviceCredential?? = nil,
         enrollmentExchange: DeviceEnrollmentExchange?? = nil,
+        enrollmentNonce: DeviceEnrollmentNonce?? = nil,
         enrollmentRequest: DeviceEnrollmentRequest?? = nil,
+        enrollmentStartResponse: DeviceEnrollmentStartResponse?? = nil,
         proofClaims: DeviceProofClaims?? = nil
     ) -> DeviceSessionContract {
         return DeviceSessionContract(
             credential: credential ?? self.credential,
             enrollmentExchange: enrollmentExchange ?? self.enrollmentExchange,
+            enrollmentNonce: enrollmentNonce ?? self.enrollmentNonce,
             enrollmentRequest: enrollmentRequest ?? self.enrollmentRequest,
+            enrollmentStartResponse: enrollmentStartResponse ?? self.enrollmentStartResponse,
             proofClaims: proofClaims ?? self.proofClaims
         )
     }
@@ -2158,6 +2167,57 @@ public extension DeviceProof {
     }
 }
 
+/// Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest.
+/// The device must echo coordinatorNonce in both the request and its signed
+/// DeviceProofClaims.
+// MARK: - DeviceEnrollmentNonce
+public struct DeviceEnrollmentNonce: Codable {
+    public let coordinatorNonce: String
+    public let expiresAt: String
+
+    public init(coordinatorNonce: String, expiresAt: String) {
+        self.coordinatorNonce = coordinatorNonce
+        self.expiresAt = expiresAt
+    }
+}
+
+// MARK: DeviceEnrollmentNonce convenience initializers and mutators
+
+public extension DeviceEnrollmentNonce {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceEnrollmentNonce.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        coordinatorNonce: String? = nil,
+        expiresAt: String? = nil
+    ) -> DeviceEnrollmentNonce {
+        return DeviceEnrollmentNonce(
+            coordinatorNonce: coordinatorNonce ?? self.coordinatorNonce,
+            expiresAt: expiresAt ?? self.expiresAt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
 /// Privacy-minimal native enrollment request. Device presentation, platform, application
 /// version, and human-readable names are encrypted account settings and never appear here.
 /// The protocol capability is included so a coordinator can refuse a wake campaign that
@@ -2292,6 +2352,62 @@ public extension DevicePublicKeyJWK {
             kty: kty ?? self.kty,
             x: x ?? self.x,
             y: y ?? self.y
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// The browser approval destination after the coordinator has accepted a nonce-bound device
+/// proof. The app opens approvalUrl in the system browser and polls or exchanges only while
+/// expiresAt remains in the future.
+// MARK: - DeviceEnrollmentStartResponse
+public struct DeviceEnrollmentStartResponse: Codable {
+    public let approvalURL: String
+    public let expiresAt: String
+
+    public enum CodingKeys: String, CodingKey {
+        case approvalURL = "approvalUrl"
+        case expiresAt
+    }
+
+    public init(approvalURL: String, expiresAt: String) {
+        self.approvalURL = approvalURL
+        self.expiresAt = expiresAt
+    }
+}
+
+// MARK: DeviceEnrollmentStartResponse convenience initializers and mutators
+
+public extension DeviceEnrollmentStartResponse {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DeviceEnrollmentStartResponse.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        approvalURL: String? = nil,
+        expiresAt: String? = nil
+    ) -> DeviceEnrollmentStartResponse {
+        return DeviceEnrollmentStartResponse(
+            approvalURL: approvalURL ?? self.approvalURL,
+            expiresAt: expiresAt ?? self.expiresAt
         )
     }
 
@@ -4834,6 +4950,88 @@ public enum TypeEnum: String, Codable {
     case result = "result"
     case status = "status"
     case welcome = "welcome"
+}
+
+/// Post-verification Worker-to-Durable-Object identity view; never trusted beside the
+/// assertion.
+// MARK: - InternalDeviceIdentityClaims
+public struct InternalDeviceIdentityClaims: Codable {
+    /// SHA-256 hash of the short-lived device access credential. This binds an enrolled device
+    /// key to a credential issued only after browser account approval.
+    public let accessTokenHash: String
+    public let audience: Audience
+    public let deviceID: String
+    public let expiresAt, issuedAt: String
+    public let keyThumbprint: String
+    public let userID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case accessTokenHash, audience
+        case deviceID = "deviceId"
+        case expiresAt, issuedAt, keyThumbprint
+        case userID = "userId"
+    }
+
+    public init(accessTokenHash: String, audience: Audience, deviceID: String, expiresAt: String, issuedAt: String, keyThumbprint: String, userID: String) {
+        self.accessTokenHash = accessTokenHash
+        self.audience = audience
+        self.deviceID = deviceID
+        self.expiresAt = expiresAt
+        self.issuedAt = issuedAt
+        self.keyThumbprint = keyThumbprint
+        self.userID = userID
+    }
+}
+
+// MARK: InternalDeviceIdentityClaims convenience initializers and mutators
+
+public extension InternalDeviceIdentityClaims {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(InternalDeviceIdentityClaims.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        accessTokenHash: String? = nil,
+        audience: Audience? = nil,
+        deviceID: String? = nil,
+        expiresAt: String? = nil,
+        issuedAt: String? = nil,
+        keyThumbprint: String? = nil,
+        userID: String? = nil
+    ) -> InternalDeviceIdentityClaims {
+        return InternalDeviceIdentityClaims(
+            accessTokenHash: accessTokenHash ?? self.accessTokenHash,
+            audience: audience ?? self.audience,
+            deviceID: deviceID ?? self.deviceID,
+            expiresAt: expiresAt ?? self.expiresAt,
+            issuedAt: issuedAt ?? self.issuedAt,
+            keyThumbprint: keyThumbprint ?? self.keyThumbprint,
+            userID: userID ?? self.userID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Audience: String, Codable {
+    case curfewUserCoordinator = "curfew-user-coordinator"
 }
 
 // MARK: - Helper functions for creating encoders and decoders

@@ -62,6 +62,17 @@ async function loadSchemas(): Promise<NamedSchema[]> {
       name: toPascalCase(baseName),
       schema: swiftCompatibleSchema(entry, raw),
     })
+    if (entry === "sync.json") {
+      const canonical = JSON.parse(raw) as { definitions: Record<string, unknown> }
+      out.push({
+        name: "InternalDeviceIdentityClaims",
+        schema: JSON.stringify({
+          title: "InternalDeviceIdentityClaims",
+          $ref: "#/definitions/InternalDeviceIdentityClaims",
+          definitions: canonical.definitions,
+        }),
+      })
+    }
   }
   return out
 }

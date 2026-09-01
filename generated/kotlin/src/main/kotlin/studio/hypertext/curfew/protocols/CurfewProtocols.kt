@@ -3,20 +3,21 @@
 
 // To parse the JSON, install kotlin's serialization plugin and do:
 //
-// val json                   = Json { allowStructuredMapKeys = true }
-// val curfewAccountContract  = json.parse(CurfewAccountContract.serializer(), jsonString)
-// val curfewAlarmContract    = json.parse(CurfewAlarmContract.serializer(), jsonString)
-// val curfewCallbackContract = json.parse(CurfewCallbackContract.serializer(), jsonString)
-// val deviceSessionContract  = json.parse(DeviceSessionContract.serializer(), jsonString)
-// val deviceContract         = json.parse(DeviceContract.serializer(), jsonString)
-// val curfewE2EEContract     = json.parse(CurfewE2EEContract.serializer(), jsonString)
-// val mCPAppResource         = json.parse(MCPAppResource.serializer(), jsonString)
-// val mCPToolRegistry        = json.parse(MCPToolRegistry.serializer(), jsonString)
-// val oAuthContract          = json.parse(OAuthContract.serializer(), jsonString)
-// val mCPPendingRequest      = json.parse(MCPPendingRequest.serializer(), jsonString)
-// val remoteCommandContract  = json.parse(RemoteCommandContract.serializer(), jsonString)
-// val curfewScheduleContract = json.parse(CurfewScheduleContract.serializer(), jsonString)
-// val deviceSyncContract     = json.parse(DeviceSyncContract.serializer(), jsonString)
+// val json                         = Json { allowStructuredMapKeys = true }
+// val curfewAccountContract        = json.parse(CurfewAccountContract.serializer(), jsonString)
+// val curfewAlarmContract          = json.parse(CurfewAlarmContract.serializer(), jsonString)
+// val curfewCallbackContract       = json.parse(CurfewCallbackContract.serializer(), jsonString)
+// val deviceSessionContract        = json.parse(DeviceSessionContract.serializer(), jsonString)
+// val deviceContract               = json.parse(DeviceContract.serializer(), jsonString)
+// val curfewE2EEContract           = json.parse(CurfewE2EEContract.serializer(), jsonString)
+// val mCPAppResource               = json.parse(MCPAppResource.serializer(), jsonString)
+// val mCPToolRegistry              = json.parse(MCPToolRegistry.serializer(), jsonString)
+// val oAuthContract                = json.parse(OAuthContract.serializer(), jsonString)
+// val mCPPendingRequest            = json.parse(MCPPendingRequest.serializer(), jsonString)
+// val remoteCommandContract        = json.parse(RemoteCommandContract.serializer(), jsonString)
+// val curfewScheduleContract       = json.parse(CurfewScheduleContract.serializer(), jsonString)
+// val deviceSyncContract           = json.parse(DeviceSyncContract.serializer(), jsonString)
+// val internalDeviceIdentityClaims = json.parse(InternalDeviceIdentityClaims.serializer(), jsonString)
 
 package studio.hypertext.curfew.protocols
 
@@ -563,7 +564,9 @@ data class CallbackPollPolicy (
 data class DeviceSessionContract (
     val credential: DeviceCredential? = null,
     val enrollmentExchange: DeviceEnrollmentExchange? = null,
+    val enrollmentNonce: DeviceEnrollmentNonce? = null,
     val enrollmentRequest: DeviceEnrollmentRequest? = null,
+    val enrollmentStartResponse: DeviceEnrollmentStartResponse? = null,
     val proofClaims: DeviceProofClaims? = null
 )
 
@@ -587,6 +590,17 @@ data class DeviceEnrollmentExchange (
 @Serializable
 data class DeviceProof (
     val compactJws: String
+)
+
+/**
+ * Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest.
+ * The device must echo coordinatorNonce in both the request and its signed
+ * DeviceProofClaims.
+ */
+@Serializable
+data class DeviceEnrollmentNonce (
+    val coordinatorNonce: String,
+    val expiresAt: String
 )
 
 /**
@@ -616,6 +630,17 @@ data class DevicePublicKeyJWK (
     val kty: Kty,
     val x: String,
     val y: String
+)
+
+/**
+ * The browser approval destination after the coordinator has accepted a nonce-bound device
+ * proof. The app opens approvalUrl in the system browser and polls or exchanges only while
+ * expiresAt remains in the future.
+ */
+@Serializable
+data class DeviceEnrollmentStartResponse (
+    val approvalUrl: String,
+    val expiresAt: String
 )
 
 /**
@@ -1356,4 +1381,29 @@ enum class Type(val value: String) {
     @SerialName("result") Result("result"),
     @SerialName("status") Status("status"),
     @SerialName("welcome") Welcome("welcome");
+}
+
+/**
+ * Post-verification Worker-to-Durable-Object identity view; never trusted beside the
+ * assertion.
+ */
+@Serializable
+data class InternalDeviceIdentityClaims (
+    /**
+     * SHA-256 hash of the short-lived device access credential. This binds an enrolled device
+     * key to a credential issued only after browser account approval.
+     */
+    val accessTokenHash: String,
+
+    val audience: Audience,
+    val deviceId: String,
+    val expiresAt: String,
+    val issuedAt: String,
+    val keyThumbprint: String,
+    val userId: String
+)
+
+@Serializable
+enum class Audience(val value: String) {
+    @SerialName("curfew-user-coordinator") CurfewUserCoordinator("curfew-user-coordinator");
 }

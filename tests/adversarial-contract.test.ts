@@ -1,5 +1,7 @@
+import { readFile } from "node:fs/promises"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
-import { definitionValidator, readSchema, validator } from "./schema-validator"
+import { definitionValidator, readSchema, repoRoot, validator } from "./schema-validator"
 
 const validCommand = {
   commandId: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
@@ -215,6 +217,31 @@ describe("MCP and sync surfaces", () => {
 
     expect(claims.required).toContain("accessTokenHash")
     expect(claims.properties.accessTokenHash.pattern).toBe("^[A-Za-z0-9_-]{43}$")
+  })
+
+  it("exposes verified identity claims as a generated, non-wire helper type", async () => {
+    const sync = await readSchema("sync.json")
+    const types = await readFile(
+      join(repoRoot, "generated", "typescript", "index.d.ts"),
+      "utf8",
+    )
+    const swift = await readFile(
+      join(
+        repoRoot,
+        "generated",
+        "swift",
+        "Sources",
+        "CurfewProtocols",
+        "CurfewProtocols.swift",
+      ),
+      "utf8",
+    )
+
+    expect(sync.properties.__codegenVerifiedIdentityClaims).toEqual({
+      $ref: "#/definitions/InternalDeviceIdentityClaims",
+    })
+    expect(types).toContain("export interface InternalDeviceIdentityClaims")
+    expect(swift).toContain("public struct InternalDeviceIdentityClaims")
   })
 
   it("rejects contradictory WebSocket result publication fields", async () => {

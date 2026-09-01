@@ -3,7 +3,7 @@ name: Publish GitHub Package
 on:
   push:
     tags:
-      - "v*"
+      - "v0.0.*"
 
 permissions:
   contents: read
@@ -21,6 +21,8 @@ jobs:
           scope: "@thehypertextstudio"
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
-      - run: pnpm publish --no-git-checks
+      - name: Verify release tag matches package version
+        run: test "v$(node -p 'require(\"./package.json\").version')" = "${{ github.ref_name }}"
+      - run: pnpm publish --access restricted --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

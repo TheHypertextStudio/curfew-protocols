@@ -361,6 +361,8 @@ export interface CallbackReceiptAcceptance {
  */
 export interface DeviceSessionContract {
   enrollmentRequest?: DeviceEnrollmentRequest
+  enrollmentNonce?: DeviceEnrollmentNonce
+  enrollmentStartResponse?: DeviceEnrollmentStartResponse
   enrollmentExchange?: DeviceEnrollmentExchange
   credential?: DeviceCredential
   proofClaims?: DeviceProofClaims
@@ -389,6 +391,22 @@ export interface DevicePublicKeyJWK {
 }
 export interface DeviceProof {
   compactJws: string
+}
+
+/**
+ * Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest. The device must echo coordinatorNonce in both the request and its signed DeviceProofClaims.
+ */
+export interface DeviceEnrollmentNonce {
+  coordinatorNonce: string
+  expiresAt: string
+}
+
+/**
+ * The browser approval destination after the coordinator has accepted a nonce-bound device proof. The app opens approvalUrl in the system browser and polls or exchanges only while expiresAt remains in the future.
+ */
+export interface DeviceEnrollmentStartResponse {
+  approvalUrl: string
+  expiresAt: string
 }
 export interface DeviceEnrollmentExchange {
   code: string
@@ -1108,19 +1126,38 @@ export interface ScheduleDayV2 {
 /**
  * Authenticated device WebSocket frames. Identity and coordinator commands are transported only as compact JWS values.
  */
-export type DeviceSyncContract =
+export type DeviceSyncContract = {
+  __codegenVerifiedIdentityClaims?: InternalDeviceIdentityClaims
+} & (
   | DeviceSocketHello
   | DeviceSocketWelcome
   | DeviceStatusPublication
   | RemoteCommandDelivery
   | RemoteCommandCursorAcknowledgement
   | RemoteCommandResultPublication
+)
 export type CompactJWS = string
 export type Cursor = string
 export type RemoteCommandResultPublication =
   | AppliedResultPublication
   | RejectedResultPublication
   | ExpiredResultPublication
+
+/**
+ * Post-verification Worker-to-Durable-Object identity view; never trusted beside the assertion.
+ */
+export interface InternalDeviceIdentityClaims {
+  userId: string
+  deviceId: CanonicalUUID
+  keyThumbprint: string
+  /**
+   * SHA-256 hash of the short-lived device access credential. This binds an enrolled device key to a credential issued only after browser account approval.
+   */
+  accessTokenHash: string
+  audience: "curfew-user-coordinator"
+  issuedAt: UTCInstant
+  expiresAt: UTCInstant
+}
 export interface DeviceSocketHello {
   type: "hello"
   identityAssertion: InternalDeviceIdentityAssertion

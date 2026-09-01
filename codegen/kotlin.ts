@@ -171,6 +171,17 @@ async function main() {
       name: toPascalCase(entry.replace(/\.json$/, "")),
       schema: kotlinCompatibleSchema(entry, raw),
     })
+    if (entry === "sync.json") {
+      const canonical = JSON.parse(raw) as { definitions: Record<string, unknown> }
+      await schemaInput.addSource({
+        name: "InternalDeviceIdentityClaims",
+        schema: JSON.stringify({
+          title: "InternalDeviceIdentityClaims",
+          $ref: "#/definitions/InternalDeviceIdentityClaims",
+          definitions: canonical.definitions,
+        }),
+      })
+    }
   }
 
   const inputData = new InputData()

@@ -4,6 +4,16 @@ All notable changes to `@thehypertextstudio/curfew-protocols` are documented her
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4] — 2026-09-01
+
+### Added
+
+- Generated TypeScript, Swift, and Kotlin consumers can use the browser enrollment continuation and verified device-identity claims without accepting those claims as a WebSocket frame.
+
+### Changed
+
+- Curfew-owned package releases use the internal `@thehypertextstudio` GitHub Packages scope and are restricted to matching `v0.0.*` tags.
+
 ## [0.3.0] — 2026-08-25
 
 ### Changed

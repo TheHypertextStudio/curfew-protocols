@@ -7,6 +7,8 @@
   "additionalProperties": false,
   "properties": {
     "enrollmentRequest": { "$ref": "#/definitions/DeviceEnrollmentRequest" },
+    "enrollmentNonce": { "$ref": "#/definitions/DeviceEnrollmentNonce" },
+    "enrollmentStartResponse": { "$ref": "#/definitions/DeviceEnrollmentStartResponse" },
     "enrollmentExchange": { "$ref": "#/definitions/DeviceEnrollmentExchange" },
     "credential": { "$ref": "#/definitions/DeviceCredential" },
     "proofClaims": { "$ref": "#/definitions/DeviceProofClaims" }
