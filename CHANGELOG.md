@@ -103,6 +103,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 #### Security
 
+- Device identity assertions now require the hash of the short-lived device credential issued after browser enrollment approval. This prevents an enrolled key alone from establishing a remote-control session.
+
 - The command enum is restricted to strengthening `lock_device`; remote unlock, override, schedule weakening, scripts, and arbitrary executable paths are not representable.
 - Fixed lock duration is bounded to 5 minutes through 12 hours and unapplied commands expire after five minutes.
 - Binary fields require unpadded base64url and remote enforcement inputs carry replay and stale-state defenses.

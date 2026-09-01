@@ -45,11 +45,12 @@
       "description": "Post-verification Worker-to-Durable-Object identity view; never trusted beside the assertion.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["userId", "deviceId", "keyThumbprint", "audience", "issuedAt", "expiresAt"],
+      "required": ["userId", "deviceId", "keyThumbprint", "accessTokenHash", "audience", "issuedAt", "expiresAt"],
       "properties": {
         "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
         "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
         "keyThumbprint": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "accessTokenHash": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$", "description": "SHA-256 hash of the short-lived device access credential. This binds an enrolled device key to a credential issued only after browser account approval." },
         "audience": { "type": "string", "const": "curfew-user-coordinator" },
         "issuedAt": { "$ref": "#/definitions/UTCInstant" },
         "expiresAt": { "$ref": "#/definitions/UTCInstant" }

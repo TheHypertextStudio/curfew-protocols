@@ -210,6 +210,13 @@ describe("MCP and sync surfaces", () => {
     )
   })
 
+  it("binds an authenticated device identity to its issued credential", async () => {
+    const claims = (await readSchema("sync.json")).definitions.InternalDeviceIdentityClaims
+
+    expect(claims.required).toContain("accessTokenHash")
+    expect(claims.properties.accessTokenHash.pattern).toBe("^[A-Za-z0-9_-]{43}$")
+  })
+
   it("rejects contradictory WebSocket result publication fields", async () => {
     const check = await definitionValidator(
       "sync.json",
