@@ -6,25 +6,61 @@ import { describe, expect, it } from "vitest"
 import { parse as parseYaml } from "yaml"
 import { repoRoot } from "./schema-validator"
 
-describe("0.3.0 artifacts", () => {
-  it("publishes matching npm and Kotlin Maven coordinates", async () => {
+describe("internal 0.0.x artifacts", () => {
+  it("publishes matching internal JavaScript and Kotlin Maven coordinates", async () => {
     const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
     const kotlinBuild = await readFile(
       join(repoRoot, "generated", "kotlin", "build.gradle.kts"),
       "utf8",
     )
 
-    expect(pkg.version).toBe("0.3.0")
+    expect(pkg.name).toBe("@thehypertextstudio/curfew-protocols")
+    expect(pkg.version).toMatch(/^0\.0\.[0-9]+$/)
     expect(pkg.files).toContain("generated/kotlin/build.gradle.kts")
     expect(pkg.files).toContain("generated/kotlin/src/main")
     expect(pkg.files).not.toContain("generated/kotlin")
     expect(kotlinBuild).toContain('group = "studio.hypertext.curfew"')
-    expect(kotlinBuild).toContain('version = "0.3.0"')
+    expect(kotlinBuild).toContain(`version = "${pkg.version}"`)
     expect(kotlinBuild).toContain("maven-publish")
     expect(pkg.exports["./validation"]).toEqual({
       types: "./generated/typescript/validation.d.ts",
       import: "./generated/typescript/validation.js",
     })
+  })
+
+  it("publishes only matching 0.0.x release tags to an internal GitHub package", async () => {
+    const workflow = await readFile(
+      join(repoRoot, ".github", "workflows", "publish-github-package.yml"),
+      "utf8",
+    )
+
+    expect(() => parseYaml(workflow)).not.toThrow()
+    expect(workflow).toContain('tags:\n      - "v0.0.*"')
+    expect(workflow).toContain("Verify release tag matches package version")
+    expect(workflow).toContain("registry-url: https://npm.pkg.github.com")
+    expect(workflow).toContain('scope: "@thehypertextstudio"')
+    expect(workflow).toContain("--access restricted")
+  })
+
+  it("disables the legacy public npm release jobs", async () => {
+    const workflow = await readFile(
+      join(repoRoot, ".github", "workflows", "release.yml"),
+      "utf8",
+    )
+
+    expect(workflow).toContain("workflow_dispatch")
+    expect(workflow).toMatch(/publish-npm:\n    if: \$\{\{ false \}\}/)
+    expect(workflow).toMatch(/publish-kotlin:\n    if: \$\{\{ false \}\}/)
+  })
+
+  it("uses the package-manager version in CI", async () => {
+    const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
+    const workflow = await readFile(
+      join(repoRoot, ".github", "workflows", "ci.yml"),
+      "utf8",
+    )
+
+    expect(workflow).toContain(`version: ${pkg.packageManager.replace("pnpm@", "")}`)
   })
 
   it("ships the no-deadline alarm contract without the retired duration fields", async () => {

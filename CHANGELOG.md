@@ -1,8 +1,18 @@
 # Changelog
 
-All notable changes to `@hypertext/curfew-protocols` are documented here.
+All notable changes to `@thehypertextstudio/curfew-protocols` are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.0.4] — 2026-09-01
+
+### Added
+
+- Generated TypeScript, Swift, and Kotlin consumers can use the browser enrollment continuation and verified device-identity claims without accepting those claims as a WebSocket frame.
+
+### Changed
+
+- Curfew-owned package releases use the internal `@thehypertextstudio` GitHub Packages scope and are restricted to matching `v0.0.*` tags.
 
 ## [0.3.0] — 2026-08-25
 
@@ -102,6 +112,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `codegen/typescript.ts` compiles each schema in isolation and concatenated the results, so a definition declared by two schemas was emitted twice. `CanonicalUUID` and `UTCInstant` — declared in both `remote-command.json` and `sync.json` — each appeared twice in `generated/typescript/index.d.ts`, a duplicate identifier that fails to compile for any importer. Codegen now emits each top-level name once and fails loudly if two schemas emit the same name with different bodies. `pnpm test` asserts the emitted bundle declares every name exactly once, and `pnpm typecheck:consumer` compiles the bundle with lib checking on (`pnpm typecheck` runs with `skipLibCheck`, which hid this).
 
 #### Security
+
+- Device identity assertions now require the hash of the short-lived device credential issued after browser enrollment approval. This prevents an enrolled key alone from establishing a remote-control session.
 
 - The command enum is restricted to strengthening `lock_device`; remote unlock, override, schedule weakening, scripts, and arbitrary executable paths are not representable.
 - Fixed lock duration is bounded to 5 minutes through 12 hours and unapplied commands expire after five minutes.

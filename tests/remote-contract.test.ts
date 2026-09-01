@@ -11,6 +11,24 @@ async function schema(name: string): Promise<Record<string, any>> {
 }
 
 describe("remote command contract", () => {
+  it("defines the sole coordinator-to-device delivery frame as a cursor-bound signed envelope", async () => {
+    const remote = await schema("sync.json")
+
+    expect(remote.oneOf).toContainEqual({
+      $ref: "#/definitions/RemoteCommandDelivery",
+    })
+    expect(remote.definitions.RemoteCommandDelivery).toMatchObject({
+      additionalProperties: false,
+      required: ["type", "cursor", "commandEnvelope"],
+      properties: {
+        type: { const: "command" },
+        commandEnvelope: {
+          required: ["compactJws"],
+        },
+      },
+    })
+  })
+
   it("supports only strengthening lock commands", async () => {
     const remote = await schema("remote-command.json")
     const kinds = remote.definitions.RemoteCommandKind.enum
@@ -58,10 +76,62 @@ describe("remote command contract", () => {
     expect(device.definitions).toHaveProperty("DeviceDescriptor")
     expect(device.definitions).toHaveProperty("DeviceStatusSnapshot")
     expect(session.definitions).toHaveProperty("DeviceEnrollmentRequest")
+    expect(session.definitions).toHaveProperty("DeviceEnrollmentNonce")
+    expect(session.definitions).toHaveProperty("DeviceEnrollmentStartResponse")
     expect(session.definitions).toHaveProperty("DeviceProof")
     expect(remote.definitions).toHaveProperty("RemoteCommandAcknowledgement")
     expect(remote.definitions).toHaveProperty("RemoteCommandResult")
     expect(remote.definitions).toHaveProperty("SignedRemoteCommandEnvelope")
+  })
+
+  it("defines a short-lived coordinator nonce before a device signs enrollment", async () => {
+    const session = await schema("device-session.json")
+    expect(session.definitions.DeviceEnrollmentNonce).toMatchObject({
+      additionalProperties: false,
+      required: ["coordinatorNonce", "expiresAt"],
+      properties: {
+        coordinatorNonce: { pattern: "^[A-Za-z0-9_-]{22,86}$" },
+      },
+    })
+  })
+
+  it("returns a browser approval URL after the coordinator accepts enrollment proof", async () => {
+    const session = await schema("device-session.json")
+    expect(session.definitions.DeviceEnrollmentStartResponse).toMatchObject({
+      additionalProperties: false,
+      required: ["approvalUrl", "expiresAt"],
+      properties: { approvalUrl: { format: "uri" } },
+    })
+  })
+
+  it("exposes enrollment continuation responses to generated consumers", async () => {
+    const session = await schema("device-session.json")
+    const types = await readFile(
+      join(repoRoot, "generated", "typescript", "index.d.ts"),
+      "utf8",
+    )
+    const swift = await readFile(
+      join(
+        repoRoot,
+        "generated",
+        "swift",
+        "Sources",
+        "CurfewProtocols",
+        "CurfewProtocols.swift",
+      ),
+      "utf8",
+    )
+
+    expect(session.properties).toMatchObject({
+      enrollmentNonce: { $ref: "#/definitions/DeviceEnrollmentNonce" },
+      enrollmentStartResponse: {
+        $ref: "#/definitions/DeviceEnrollmentStartResponse",
+      },
+    })
+    expect(types).toContain("export interface DeviceEnrollmentNonce")
+    expect(types).toContain("export interface DeviceEnrollmentStartResponse")
+    expect(swift).toContain("public struct DeviceEnrollmentNonce")
+    expect(swift).toContain("public struct DeviceEnrollmentStartResponse")
   })
 })
 

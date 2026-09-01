@@ -1,0 +1,28 @@
+name: Publish GitHub Package
+
+on:
+  push:
+    tags:
+      - "v0.0.*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@thehypertextstudio"
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Verify release tag matches package version
+        run: test "v$(node -p 'require(\"./package.json\").version')" = "${{ github.ref_name }}"
+      - run: pnpm publish --access restricted --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

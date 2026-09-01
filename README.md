@@ -1,10 +1,10 @@
-# @hypertext/curfew-protocols
+# @thehypertextstudio/curfew-protocols
 
 Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, the Curfew account and sync services, and generic callback adapters.
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
-## What's in v0.3.0
+## What's in v0.0.4
 
 - `schemas/schedule.json` — mutually exclusive fixed-unlock and account wake-campaign release policies, explicit IANA timezones and DST resolution, legacy migration, and Curfew's anti-bypass application timing.
 - `schemas/alarm.json` — alarm recurrence and selected devices plus a persisted scheduled/ringing/quiet/satisfied/overridden no-deadline campaign state machine.
@@ -15,12 +15,12 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 - `schemas/mcp-app.json` — the `resources/read` HTML content shape, `ui://curfew/status-and-devices` URI, MIME profile, and `_meta.ui.csp` origins.
 - `schemas/pending-request.json` — `MCPPendingRequest` envelope used to queue write requests between the local MCP binary and the Curfew app, including the `MCPWriteTool` and `MCPRequestStatus` enums.
 - `schemas/device.json` — platform-neutral device descriptors, local remote-control eligibility, capabilities, and normalized status snapshots, including optional desk presence.
-- `schemas/device-session.json` — privacy-minimal dual-key enrollment plus RFC 9449-style proof-of-possession request shapes. Device names and other presentation metadata remain inside encrypted records.
+- `schemas/device-session.json` — enrollment plus RFC 9449-style proof-of-possession request shapes, including the short-lived coordinator nonce a device signs into its enrollment proof and the browser-approval response that follows it.
 - `schemas/remote-command.json` — coordinator-signed, replay-safe lock commands, acknowledgements, and per-device results.
 - `schemas/oauth.json` — separate OAuth resource and scope authorities for native Curfew clients (`https://curfew-sync.hypertext.studio`) and remote MCP clients (`https://curfew-sync.hypertext.studio/mcp`). Native clients receive account, device, entitlement, encrypted-sync, and wake scopes but no unlock scope by default; MCP clients receive only the least-privilege read and unlock scopes they are granted.
 - `schemas/sync.json` — authenticated WebSocket hello/welcome, status, delivery, cursor acknowledgement, result, and internal identity-assertion frames.
 
-Version 0.3.0 makes the cross-platform wake contract callback-gated while the package remains pre-1.0. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
+Version 0.0.4 keeps the cross-platform wake contract callback-gated while the package remains pre-1.0. Existing strengthening-only remote lock commands remain representable; remote release is a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
 
 ## Wire rules
 
@@ -35,7 +35,7 @@ Version 0.3.0 makes the cross-platform wake contract callback-gated while the pa
 - Platform and capability identifiers are open strings. Unknown values must survive decoding; behavior is granted by capabilities, never by an operating-system name.
 - Desk presence is optional on a status publication, is one of `working`, `present_idle`, `absent`, or `unknown`, and carries its own observation instant. The four values mirror CurfewKit's `PresenceState` so a verdict written by the macOS app decodes unchanged: `working` is at the Mac and using it, `present_idle` is at the desk but not working (the only state a distraction nudge targets), `absent` means the camera looked and saw nobody, and `unknown` means there was no camera signal and the device declined to guess. The device crosses camera person-detection with HID idle locally and publishes only that verdict; raw sensor signals never cross the wire. A publisher that omits `presence` is reporting nothing about presence, which is not the same as `unknown`.
 - Fixed remote locks are bounded to 5 minutes through 12 hours. Unapplied commands expire after five minutes.
-- A device validates the signed account/device audience, key ID, issue/expiry times, nonce, monotonic sequence, idempotency key, status version, and schedule digest before enforcement.
+- A device identity assertion binds the enrolled key to the hash of its short-lived, browser-approved device credential. The coordinator therefore refuses a remote-control socket or opt-in that proves only key possession. A device validates the signed account/device audience, key ID, issue/expiry times, nonce, monotonic sequence, idempotency key, status version, and schedule digest before enforcement.
 - Replaying a command returns its original result. A valid new lock may extend but never shorten an active lockout.
 - Compact JWS envelopes contain no adjacent payload, key ID, or identity claims. Consumers execute only claims decoded from a successfully verified protected header and payload.
 - Generated Swift command/JWS/result types expose `validated()` methods for trust-boundary checks that `Codable` alone cannot enforce.
@@ -43,11 +43,11 @@ Version 0.3.0 makes the cross-platform wake contract callback-gated while the pa
 ## TypeScript consumer
 
 ```sh
-pnpm add @hypertext/curfew-protocols
+pnpm add @thehypertextstudio/curfew-protocols
 ```
 
 ```ts
-import type { DeviceDescriptor, RemoteLockCommand } from "@hypertext/curfew-protocols"
+import type { DeviceDescriptor, RemoteLockCommand } from "@thehypertextstudio/curfew-protocols"
 ```
 
 Draft-07 cannot express the alarm-duration arithmetic. Trust-boundary validators must register the generated custom keyword before compiling Curfew schemas:
@@ -58,6 +58,11 @@ import { addCurfewProtocolKeywords } from "@hypertext/curfew-protocols/validatio
 
 const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }))
 ```
+
+The committed `.npmrc` routes this scope to GitHub Packages. Each developer,
+CI job, and deployment environment supplies its own read-capable GitHub token
+through user-level configuration or `NODE_AUTH_TOKEN`; credentials are never
+committed. The tag publishing workflow receives its token from GitHub Actions.
 
 ## Swift consumer
 

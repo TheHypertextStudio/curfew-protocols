@@ -17,7 +17,7 @@ This repo is the versioned wire-format contract between the Curfew macOS app and
    - Run `pnpm test` (contract tests roundtrip every schema through both codegens; failure means the codegens disagree about a field shape).
    - Bump `package.json` version (before 1.0: additive = patch, breaking = minor; at or after 1.0: additive = minor, breaking = major) and add an entry to `CHANGELOG.md`.
    All four happen in the same PR.
-3. **Tag and publish in a single step.** After merge to `main`, run `pnpm publish` (the `prepublishOnly` script re-runs codegen + typecheck + test) and `git tag vX.Y.Z && git push --tags`. The tag and the npm version must match.
+3. **Tag and publish in a single step.** After merge to `main`, tag `vX.Y.Z` and push the tag. `.github/workflows/publish-github-package.yml` publishes `@thehypertextstudio/*` to GitHub Packages with the repository `GITHUB_TOKEN`; the tag and package version must match. Local publication uses `pnpm publish` with `NODE_AUTH_TOKEN`, never a committed credential.
 4. **No business logic in this repo.** No tool implementations, no request handlers — only shapes. If a change feels like adding logic, it belongs in the consumer repo.
 5. **Generated outputs are committed.** Consumers (the Swift app, the TS Worker) must be able to depend on this package without running `pnpm codegen` themselves. CI verifies the committed outputs match a fresh regeneration.
 
@@ -29,8 +29,8 @@ pnpm codegen     # regenerate TS + Swift + Kotlin outputs and native golden test
 pnpm test        # vitest contract tests
 pnpm typecheck   # tsc --noEmit (skipLibCheck: does not check generated/ .d.ts internals)
 pnpm typecheck:consumer  # compiles the emitted .d.ts itself, lib checking on
-pnpm test:kotlin # generated Kotlin/JVM compile and shared-vector tests
-pnpm publish     # publish to npm (runs prepublishOnly)
+  pnpm test:kotlin # generated Kotlin/JVM compile and shared-vector tests
+  pnpm publish     # publish to GitHub Packages (runs prepublishOnly)
 ```
 
 ## Change classification

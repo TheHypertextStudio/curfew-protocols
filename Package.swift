@@ -1,6 +1,6 @@
 // swift-tools-version:5.9
 //
-// Curfew Protocols — the Swift face of the @hypertext/curfew-protocols
+// Curfew Protocols — the Swift face of the @thehypertextstudio/curfew-protocols
 // versioned wire-format contract. The Swift sources under
 // `generated/swift/Sources/CurfewProtocols/` are emitted from the canonical
 // JSON Schemas in `schemas/` by `codegen/swift.ts`. They are committed so
