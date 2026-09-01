@@ -1,6 +1,6 @@
 {
   "name": "@thehypertextstudio/curfew-protocols",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Versioned cross-platform Curfew contract for schedules, wake campaigns, E2EE sync, accounts, callbacks, devices, and MCP.",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
