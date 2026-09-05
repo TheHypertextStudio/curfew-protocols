@@ -142,13 +142,13 @@ describe("remote command state invariants", () => {
 })
 
 describe("MCP and sync surfaces", () => {
-  it("makes the account-safe registry enforceable with scopes and outputs", async () => {
+  it("makes the account-scoped registry enforceable with scopes and outputs", async () => {
     const schema = await readSchema("mcp-tools.json")
     const registry = schema.const
     const validate = await validator("mcp-tools.json")
 
     expect(validate(registry), JSON.stringify(validate.errors)).toBe(true)
-    expect(registry.remoteTools).toHaveLength(6)
+    expect(registry.remoteTools).toHaveLength(8)
     for (const tool of registry.remoteTools) {
       expect(tool).toHaveProperty("requiredScopes")
       expect(tool).toHaveProperty("outputSchema")
@@ -161,6 +161,16 @@ describe("MCP and sync surfaces", () => {
       minimum: 5,
       maximum: 60,
     })
+    const lockDevice = registry.remoteTools.find(
+      (tool: { name: string }) => tool.name === "curfew.lock.device",
+    )
+    const lockAll = registry.remoteTools.find(
+      (tool: { name: string }) => tool.name === "curfew.lock.all",
+    )
+    expect(lockDevice.requiredScopes).toEqual(["curfew:lock:device"])
+    expect(lockAll.requiredScopes).toEqual(["curfew:lock:all"])
+    expect(lockDevice.inputSchema.properties).toHaveProperty("deviceIds")
+    expect(lockAll.inputSchema.properties).not.toHaveProperty("deviceIds")
   })
 
   it("uses the approved account MCP resource and colon-delimited scopes", async () => {
@@ -172,6 +182,8 @@ describe("MCP and sync surfaces", () => {
       "curfew:devices:read",
       "curfew:entitlements:read",
       "curfew:wake:read",
+      "curfew:lock:device",
+      "curfew:lock:all",
       "curfew:unlock:request",
       "curfew:unlock:direct",
     ])

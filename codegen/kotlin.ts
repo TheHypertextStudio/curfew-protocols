@@ -32,6 +32,29 @@ const BANNER = `// AUTO-GENERATED from schemas/*.json by codegen/kotlin.ts.
 // Do not edit by hand. Re-run \`pnpm codegen\` after schema changes.
 `
 
+const VALIDATION_SUPPORT = `
+class CurfewProtocolValidationException(val code: String) : IllegalArgumentException(code)
+
+fun RemoteLockoutTarget.validated(): RemoteLockoutTarget {
+    val selected = deviceIds
+    val all = allOptedInDevices
+    val canonicalUUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+    return when {
+        selected != null && all == null && selected.size in 1..32 &&
+            selected.distinct().size == selected.size && selected.all(canonicalUUID::matches) -> this
+        selected == null && all == true -> this
+        else -> throw CurfewProtocolValidationException("invalid_remote_lockout_target")
+    }
+}
+
+fun RemoteCommandJWKS.validated(): RemoteCommandJWKS {
+    if (keys.size !in 1..8 || keys.map { it.kid }.distinct().size != keys.size) {
+        throw CurfewProtocolValidationException("invalid_remote_command_key_set")
+    }
+    return this
+}
+`
+
 function toPascalCase(value: string): string {
   return value
     .split(/[-_]/)
@@ -199,7 +222,7 @@ async function main() {
   const output = join(outDir, "CurfewProtocols.kt")
   await writeFile(
     output,
-    `${BANNER}\n${result.lines.join("\n").trimEnd()}\n`,
+    `${BANNER}\n${result.lines.join("\n").trimEnd()}\n${VALIDATION_SUPPORT}`,
     "utf8",
   )
   const packageMetadata = JSON.parse(

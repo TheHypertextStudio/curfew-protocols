@@ -33,6 +33,8 @@
         "curfew:devices:read",
         "curfew:entitlements:read",
         "curfew:wake:read",
+        "curfew:lock:device",
+        "curfew:lock:all",
         "curfew:unlock:request",
         "curfew:unlock:direct"
       ]

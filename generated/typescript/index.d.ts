@@ -354,6 +354,28 @@ export interface CallbackReceiptAcceptance {
   macDisposition: "valid"
 }
 
+// From device-poll.json
+
+export type Cursor = string
+export type CompactJWS = string
+
+/**
+ * Bounded response for proof-authenticated device polling. Each item is the same canonical delivery frame used by the device WebSocket.
+ */
+export interface RemoteCommandDeliveryBatch {
+  /**
+   * @maxItems 100
+   */
+  commands: RemoteCommandDelivery[]
+}
+export interface RemoteCommandDelivery {
+  type: "command"
+  cursor: Cursor
+  commandEnvelope: {
+    compactJws: CompactJWS
+  }
+}
+
 // From device-session.json
 
 /**
@@ -361,6 +383,7 @@ export interface CallbackReceiptAcceptance {
  */
 export interface DeviceSessionContract {
   enrollmentRequest?: DeviceEnrollmentRequest
+  enrollmentReceipt?: NativeDeviceEnrollmentReceipt
   enrollmentNonce?: DeviceEnrollmentNonce
   enrollmentStartResponse?: DeviceEnrollmentStartResponse
   enrollmentExchange?: DeviceEnrollmentExchange
@@ -382,6 +405,10 @@ export interface DeviceEnrollmentRequest {
   state: string
   coordinatorNonce: string
   deviceProof: DeviceProof
+  /**
+   * The owner's explicit choice made in the native setup surface. False enrolls for sync without allowing remote lock commands.
+   */
+  remoteControlEnabled: boolean
 }
 export interface DevicePublicKeyJWK {
   kty: "EC"
@@ -394,11 +421,22 @@ export interface DeviceProof {
 }
 
 /**
- * Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest. The device must echo coordinatorNonce in both the request and its signed DeviceProofClaims.
+ * Authenticated native enrollment result. The coordinator returns its canonical account binding so the app can provision the privileged verifier without deriving identity from an unverified token payload.
+ */
+export interface NativeDeviceEnrollmentReceipt {
+  userId: string
+  deviceId: string
+  enrolledAt: string
+  protocolVersion: string
+}
+
+/**
+ * Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest. The device must echo coordinatorNonce in both the request and its signed DeviceProofClaims, and use the coordinator's current account key epoch instead of assuming an initial value.
  */
 export interface DeviceEnrollmentNonce {
   coordinatorNonce: string
   expiresAt: string
+  keyEpoch: number
 }
 
 /**
@@ -899,6 +937,574 @@ export type MCPToolRegistry = {
         properties: {requestId: {type: "string"; format: "uuid"}; status: {type: "string"; const: "cancelled"}}
         required: ["requestId", "status"]
       }
+    },
+    {
+      name: "curfew.lock.device"
+      description: "Queues a strengthening-only fixed lockout for the explicitly selected remote-control-enabled Curfew devices. Curfew never exposes a remote unlock through this tool."
+      requiredScopes: ["curfew:lock:device"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          commandId: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          idempotencyKey: {type: "string"; pattern: "^[A-Za-z0-9_-]{22,86}$"}
+          deviceIds: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            uniqueItems: true
+            items: {
+              type: "string"
+              pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+          durationSeconds: {type: "integer"; minimum: 300; maximum: 43200}
+        }
+        required: ["commandId", "idempotencyKey", "deviceIds", "durationSeconds"]
+      }
+      outputSchema: {
+        type: "object"
+        definitions: {
+          CanonicalUUID: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          UTCInstant: {
+            type: "string"
+            pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+          }
+          RemoteCommandReceipt: {
+            description: "Structural projection of remote-command.json RemoteCommandReceipt used by both remote lock tool outputs. Keep this closed oneOf in lockstep with the canonical transport receipt."
+            oneOf: [
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "queuedAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "queued"}
+                  queuedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "deliveredAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "delivered"}
+                  deliveredAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "applied"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                  appliedDeadline: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "rejected"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                  rejectionCode: {
+                    type: "string"
+                    enum: [
+                      "ineligible",
+                      "stale_status",
+                      "out_of_order",
+                      "invalid_signature",
+                      "invalid_deadline",
+                      "device_unavailable"
+                    ]
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "expired"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              }
+            ]
+          }
+        }
+        additionalProperties: false
+        properties: {
+          receipts: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            items: {
+              description: "Structural projection of remote-command.json RemoteCommandReceipt used by both remote lock tool outputs. Keep this closed oneOf in lockstep with the canonical transport receipt."
+              oneOf: [
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "queuedAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["queued"]}
+                    queuedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "deliveredAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["delivered"]}
+                    deliveredAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["applied"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                    appliedDeadline: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["rejected"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                    rejectionCode: {
+                      type: "string"
+                      enum: [
+                        "ineligible",
+                        "stale_status",
+                        "out_of_order",
+                        "invalid_signature",
+                        "invalid_deadline",
+                        "device_unavailable"
+                      ]
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["expired"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+        required: ["receipts"]
+      }
+    },
+    {
+      name: "curfew.lock.all"
+      description: "Queues a strengthening-only fixed lockout for every currently remote-control-enabled Curfew device in the account. The coordinator resolves consented devices at issuance and returns one receipt per device."
+      requiredScopes: ["curfew:lock:all"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          commandId: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          idempotencyKey: {type: "string"; pattern: "^[A-Za-z0-9_-]{22,86}$"}
+          durationSeconds: {type: "integer"; minimum: 300; maximum: 43200}
+        }
+        required: ["commandId", "idempotencyKey", "durationSeconds"]
+      }
+      outputSchema: {
+        type: "object"
+        definitions: {
+          CanonicalUUID: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          UTCInstant: {
+            type: "string"
+            pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+          }
+          RemoteCommandReceipt: {
+            description: "Structural projection of remote-command.json RemoteCommandReceipt used by both remote lock tool outputs. Keep this closed oneOf in lockstep with the canonical transport receipt."
+            oneOf: [
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "queuedAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "queued"}
+                  queuedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "deliveredAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "delivered"}
+                  deliveredAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "applied"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                  appliedDeadline: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "rejected"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                  rejectionCode: {
+                    type: "string"
+                    enum: [
+                      "ineligible",
+                      "stale_status",
+                      "out_of_order",
+                      "invalid_signature",
+                      "invalid_deadline",
+                      "device_unavailable"
+                    ]
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "expired"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              }
+            ]
+          }
+        }
+        additionalProperties: false
+        properties: {
+          receipts: {
+            type: "array"
+            items: {
+              description: "Structural projection of remote-command.json RemoteCommandReceipt used by both remote lock tool outputs. Keep this closed oneOf in lockstep with the canonical transport receipt."
+              oneOf: [
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "queuedAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["queued"]}
+                    queuedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "deliveredAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["delivered"]}
+                    deliveredAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["applied"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                    appliedDeadline: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["rejected"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                    rejectionCode: {
+                      type: "string"
+                      enum: [
+                        "ineligible",
+                        "stale_status",
+                        "out_of_order",
+                        "invalid_signature",
+                        "invalid_deadline",
+                        "device_unavailable"
+                      ]
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["expired"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+        required: ["receipts"]
+      }
     }
   ]
 }
@@ -909,6 +1515,8 @@ export type CurfewOAuthScope =
   | "curfew:devices:read"
   | "curfew:entitlements:read"
   | "curfew:wake:read"
+  | "curfew:lock:device"
+  | "curfew:lock:all"
   | "curfew:unlock:request"
   | "curfew:unlock:direct"
 export type CurfewFirstPartyOAuthScope =
@@ -983,6 +1591,17 @@ export type RemoteCommandKind = "lock_device"
 export type RemoteDeadlinePolicy = FixedDurationPolicy | NextScheduledUnlockPolicy
 export type RemoteCommandAcknowledgement = DeliveredAcknowledgement
 export type RemoteCommandResult = AppliedCommandResult | RejectedCommandResult | ExpiredCommandResult
+export type RemoteLockoutTarget = SelectedDeviceTargets | AllOptedInDeviceTargets
+
+/**
+ * Current state of one immutable command/device pair. Repeating the same idempotent request returns the current state of the original command, allowing a client to observe queued or delivered work reaching applied, rejected, or expired without creating another command.
+ */
+export type RemoteCommandReceipt =
+  | QueuedCommandReceipt
+  | DeliveredCommandReceipt
+  | AppliedCommandReceipt
+  | RejectedCommandReceipt
+  | ExpiredCommandReceipt
 
 /**
  * Replay-safe, coordinator-signed remote lock commands and stage-specific per-device results.
@@ -992,6 +1611,9 @@ export interface RemoteCommandContract {
   verifiedPayload?: RemoteLockCommand
   acknowledgement?: RemoteCommandAcknowledgement
   result?: RemoteCommandResult
+  lockoutCommand?: RemoteLockoutCommand
+  receipt?: RemoteCommandReceipt
+  verificationKeys?: RemoteCommandJWKS
 }
 export interface SignedRemoteCommandEnvelope {
   compactJws: string
@@ -1057,6 +1679,122 @@ export interface ExpiredCommandResult {
   sequence: number
   stage: "expired"
   resolvedAt: UTCInstant
+}
+
+/**
+ * MCP-facing strengthening-only lockout request. The coordinator authorizes its caller and expands the closed target selector into one signed RemoteLockCommand per eligible device; this request is never delivered directly to a native host.
+ */
+export interface RemoteLockoutCommand {
+  commandId: CanonicalUUID
+  idempotencyKey: string
+  userId: string
+  target: RemoteLockoutTarget
+  durationSeconds: number
+}
+
+/**
+ * An explicit, non-empty set of opted-in devices selected by an MCP client. The coordinator expands only owner-owned, consented devices into signed per-device commands.
+ */
+export interface SelectedDeviceTargets {
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  deviceIds: [CanonicalUUID, ...CanonicalUUID[]]
+}
+
+/**
+ * Selects every currently owner-owned device with explicit remote-control consent. It never carries device IDs, so a request cannot ambiguously mix all-device and selected-device semantics.
+ */
+export interface AllOptedInDeviceTargets {
+  allOptedInDevices: true
+}
+export interface QueuedCommandReceipt {
+  commandId: CanonicalUUID
+  deviceId: CanonicalUUID
+  status: "queued"
+  queuedAt: UTCInstant
+}
+export interface DeliveredCommandReceipt {
+  commandId: CanonicalUUID
+  deviceId: CanonicalUUID
+  status: "delivered"
+  deliveredAt: UTCInstant
+}
+export interface AppliedCommandReceipt {
+  commandId: CanonicalUUID
+  deviceId: CanonicalUUID
+  status: "applied"
+  resolvedAt: UTCInstant
+  appliedDeadline: UTCInstant
+}
+export interface RejectedCommandReceipt {
+  commandId: CanonicalUUID
+  deviceId: CanonicalUUID
+  status: "rejected"
+  resolvedAt: UTCInstant
+  rejectionCode:
+    | "ineligible"
+    | "stale_status"
+    | "out_of_order"
+    | "invalid_signature"
+    | "invalid_deadline"
+    | "device_unavailable"
+}
+export interface ExpiredCommandReceipt {
+  commandId: CanonicalUUID
+  deviceId: CanonicalUUID
+  status: "expired"
+  resolvedAt: UTCInstant
+}
+
+/**
+ * Bounded public key set used only for coordinator remote-command signatures.
+ */
+export interface RemoteCommandJWKS {
+  /**
+   * @minItems 1
+   * @maxItems 8
+   */
+  keys:
+    | [RemoteCommandJWK]
+    | [RemoteCommandJWK, RemoteCommandJWK]
+    | [RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK]
+    | [RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK]
+    | [RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK]
+    | [RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK, RemoteCommandJWK]
+    | [
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK
+      ]
+    | [
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK,
+        RemoteCommandJWK
+      ]
+}
+
+/**
+ * One public coordinator key accepted for ES256 remote-command verification.
+ */
+export interface RemoteCommandJWK {
+  kty: "EC"
+  crv: "P-256"
+  alg: "ES256"
+  use: "sig"
+  kid: string
+  x: Base64URLSHA256
+  y: Base64URLSHA256
 }
 
 // From schedule.json
@@ -1133,8 +1871,6 @@ export type DeviceSyncContract =
   | RemoteCommandDelivery
   | RemoteCommandCursorAcknowledgement
   | RemoteCommandResultPublication
-export type CompactJWS = string
-export type Cursor = string
 export type RemoteCommandResultPublication =
   | AppliedResultPublication
   | RejectedResultPublication
@@ -1164,13 +1900,6 @@ export interface DeviceStatusPublication {
   presence?: DevicePresence
   nextTransitionAt?: UTCInstant | null
   activeLockoutEndsAt?: UTCInstant | null
-}
-export interface RemoteCommandDelivery {
-  type: "command"
-  cursor: Cursor
-  commandEnvelope: {
-    compactJws: CompactJWS
-  }
 }
 export interface RemoteCommandCursorAcknowledgement {
   type: "delivered"

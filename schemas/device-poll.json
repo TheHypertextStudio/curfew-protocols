@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/device-poll.json",
+  "title": "RemoteCommandDeliveryBatch",
+  "description": "Bounded response for proof-authenticated device polling. Each item is the same canonical delivery frame used by the device WebSocket.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["commands"],
+  "properties": {
+    "commands": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/definitions/RemoteCommandDelivery" }
+    }
+  },
+  "definitions": {
+    "Cursor": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,128}$" },
+    "CompactJWS": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{86}$" },
+    "RemoteCommandDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "cursor", "commandEnvelope"],
+      "properties": {
+        "type": { "type": "string", "const": "command" },
+        "cursor": { "$ref": "#/definitions/Cursor" },
+        "commandEnvelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["compactJws"],
+          "properties": { "compactJws": { "$ref": "#/definitions/CompactJWS" } }
+        }
+      }
+    }
+  }
+}

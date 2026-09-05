@@ -11,6 +11,7 @@ export interface DerivedCampaignDurationRule {
 
 export interface CurfewKeywordHost {
   addKeyword(definition: typeof derivedCampaignDurationKeyword): unknown
+  addKeyword(definition: typeof uniquePropertyKeyword): unknown
 }
 
 export declare function calculateDerivedCampaignDuration(
@@ -24,6 +25,14 @@ export declare const derivedCampaignDurationKeyword: {
   readonly type: "object"
   readonly errors: false
   validate(rule: DerivedCampaignDurationRule, value: Record<string, unknown>): boolean
+}
+
+export declare const uniquePropertyKeyword: {
+  readonly keyword: "x-curfew-unique-property"
+  readonly schemaType: "string"
+  readonly type: "array"
+  readonly errors: false
+  validate(property: string, value: unknown[]): boolean
 }
 
 export declare function addCurfewProtocolKeywords<T extends CurfewKeywordHost>(ajv: T): T

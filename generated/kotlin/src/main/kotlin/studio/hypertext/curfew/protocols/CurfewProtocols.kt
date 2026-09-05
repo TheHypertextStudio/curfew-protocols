@@ -7,6 +7,7 @@
 // val curfewAccountContract        = json.parse(CurfewAccountContract.serializer(), jsonString)
 // val curfewAlarmContract          = json.parse(CurfewAlarmContract.serializer(), jsonString)
 // val curfewCallbackContract       = json.parse(CurfewCallbackContract.serializer(), jsonString)
+// val remoteCommandDeliveryBatch   = json.parse(RemoteCommandDeliveryBatch.serializer(), jsonString)
 // val deviceSessionContract        = json.parse(DeviceSessionContract.serializer(), jsonString)
 // val deviceContract               = json.parse(DeviceContract.serializer(), jsonString)
 // val curfewE2EEContract           = json.parse(CurfewE2EEContract.serializer(), jsonString)
@@ -552,6 +553,32 @@ data class CallbackPollPolicy (
 )
 
 /**
+ * Bounded response for proof-authenticated device polling. Each item is the same canonical
+ * delivery frame used by the device WebSocket.
+ */
+@Serializable
+data class RemoteCommandDeliveryBatch (
+    val commands: List<RemoteCommandDelivery>
+)
+
+@Serializable
+data class RemoteCommandDelivery (
+    val commandEnvelope: CommandCommandEnvelope,
+    val cursor: String,
+    val type: CommandType
+)
+
+@Serializable
+data class CommandCommandEnvelope (
+    val compactJws: String
+)
+
+@Serializable
+enum class CommandType(val value: String) {
+    @SerialName("command") Command("command");
+}
+
+/**
  * Device enrollment and proof-of-possession session messages. Signed claims are decoded
  * only from verified compact JWS payloads. For a JSON request with a body, bodyDigest is
  * the unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. When DeviceProof is
@@ -565,6 +592,7 @@ data class DeviceSessionContract (
     val credential: DeviceCredential? = null,
     val enrollmentExchange: DeviceEnrollmentExchange? = null,
     val enrollmentNonce: DeviceEnrollmentNonce? = null,
+    val enrollmentReceipt: NativeDeviceEnrollmentReceipt? = null,
     val enrollmentRequest: DeviceEnrollmentRequest? = null,
     val enrollmentStartResponse: DeviceEnrollmentStartResponse? = null,
     val proofClaims: DeviceProofClaims? = null
@@ -595,12 +623,27 @@ data class DeviceProof (
 /**
  * Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest.
  * The device must echo coordinatorNonce in both the request and its signed
- * DeviceProofClaims.
+ * DeviceProofClaims, and use the coordinator's current account key epoch instead of
+ * assuming an initial value.
  */
 @Serializable
 data class DeviceEnrollmentNonce (
     val coordinatorNonce: String,
-    val expiresAt: String
+    val expiresAt: String,
+    val keyEpoch: Long
+)
+
+/**
+ * Authenticated native enrollment result. The coordinator returns its canonical account
+ * binding so the app can provision the privileged verifier without deriving identity from
+ * an unverified token payload.
+ */
+@Serializable
+data class NativeDeviceEnrollmentReceipt (
+    val deviceId: String,
+    val enrolledAt: String,
+    val protocolVersion: String,
+    val userId: String
 )
 
 /**
@@ -620,6 +663,13 @@ data class DeviceEnrollmentRequest (
     val keyEpoch: Long,
     val pkceChallenge: String,
     val protocolVersion: String,
+
+    /**
+     * The owner's explicit choice made in the native setup surface. False enrolls for sync
+     * without allowing remote lock commands.
+     */
+    val remoteControlEnabled: Boolean,
+
     val signingPublicKeyJwk: DevicePublicKeyJWK,
     val state: String
 )
@@ -1017,6 +1067,8 @@ enum class Resource(val value: String) {
 enum class CurfewOAuthScope(val value: String) {
     @SerialName("curfew:devices:read") CurfewDevicesRead("curfew:devices:read"),
     @SerialName("curfew:entitlements:read") CurfewEntitlementsRead("curfew:entitlements:read"),
+    @SerialName("curfew:lock:all") CurfewLockAll("curfew:lock:all"),
+    @SerialName("curfew:lock:device") CurfewLockDevice("curfew:lock:device"),
     @SerialName("curfew:unlock:direct") CurfewUnlockDirect("curfew:unlock:direct"),
     @SerialName("curfew:unlock:request") CurfewUnlockRequest("curfew:unlock:request"),
     @SerialName("curfew:wake:read") CurfewWakeRead("curfew:wake:read");
@@ -1131,7 +1183,10 @@ enum class MCPWriteTool(val value: String) {
 data class RemoteCommandContract (
     val acknowledgement: DAcknowledgement? = null,
     val envelope: SignedRemoteCommandEnvelope? = null,
+    val lockoutCommand: RemoteLockoutCommand? = null,
+    val receipt: RemoteCommandReceipt? = null,
     val result: RemoteCommandResult? = null,
+    val verificationKeys: RemoteCommandJWKS? = null,
     val verifiedPayload: RemoteLockCommand? = null
 )
 
@@ -1154,14 +1209,48 @@ data class SignedRemoteCommandEnvelope (
     val compactJws: String
 )
 
+/**
+ * MCP-facing strengthening-only lockout request. The coordinator authorizes its caller and
+ * expands the closed target selector into one signed RemoteLockCommand per eligible device;
+ * this request is never delivered directly to a native host.
+ */
 @Serializable
-data class RemoteCommandResult (
-    val appliedDeadline: String? = null,
+data class RemoteLockoutCommand (
+    val commandId: String,
+    val durationSeconds: Long,
+    val idempotencyKey: String,
+    val target: RemoteLockoutTarget,
+    val userId: String
+)
+
+/**
+ * An explicit, non-empty set of opted-in devices selected by an MCP client. The coordinator
+ * expands only owner-owned, consented devices into signed per-device commands.
+ *
+ * Selects every currently owner-owned device with explicit remote-control consent. It never
+ * carries device IDs, so a request cannot ambiguously mix all-device and selected-device
+ * semantics.
+ */
+@Serializable
+data class RemoteLockoutTarget (
+    val deviceIds: List<String>? = null,
+    val allOptedInDevices: Boolean? = null
+)
+
+/**
+ * Current state of one immutable command/device pair. Repeating the same idempotent request
+ * returns the current state of the original command, allowing a client to observe queued or
+ * delivered work reaching applied, rejected, or expired without creating another command.
+ */
+@Serializable
+data class RemoteCommandReceipt (
     val commandId: String,
     val deviceId: String,
-    val resolvedAt: String,
-    val sequence: Long,
-    val stage: RemoteCommandResultStage,
+    val queuedAt: String? = null,
+    val status: RemoteCommandReceiptStatus,
+    val deliveredAt: String? = null,
+    val appliedDeadline: String? = null,
+    val resolvedAt: String? = null,
     val rejectionCode: RejectionCode? = null
 )
 
@@ -1176,10 +1265,62 @@ enum class RejectionCode(val value: String) {
 }
 
 @Serializable
+enum class RemoteCommandReceiptStatus(val value: String) {
+    @SerialName("applied") Applied("applied"),
+    @SerialName("delivered") Delivered("delivered"),
+    @SerialName("expired") Expired("expired"),
+    @SerialName("queued") Queued("queued"),
+    @SerialName("rejected") Rejected("rejected");
+}
+
+@Serializable
+data class RemoteCommandResult (
+    val appliedDeadline: String? = null,
+    val commandId: String,
+    val deviceId: String,
+    val resolvedAt: String,
+    val sequence: Long,
+    val stage: RemoteCommandResultStage,
+    val rejectionCode: RejectionCode? = null
+)
+
+@Serializable
 enum class RemoteCommandResultStage(val value: String) {
     @SerialName("applied") Applied("applied"),
     @SerialName("expired") Expired("expired"),
     @SerialName("rejected") Rejected("rejected");
+}
+
+/**
+ * Bounded public key set used only for coordinator remote-command signatures.
+ */
+@Serializable
+data class RemoteCommandJWKS (
+    val keys: List<RemoteCommandJWK>
+)
+
+/**
+ * One public coordinator key accepted for ES256 remote-command verification.
+ */
+@Serializable
+data class RemoteCommandJWK (
+    val alg: Alg,
+    val crv: Crv,
+    val kid: String,
+    val kty: Kty,
+    val use: Use,
+    val x: String,
+    val y: String
+)
+
+@Serializable
+enum class Alg(val value: String) {
+    @SerialName("ES256") Es256("ES256");
+}
+
+@Serializable
+enum class Use(val value: String) {
+    @SerialName("sig") Sig("sig");
 }
 
 /**
@@ -1323,7 +1464,7 @@ enum class ReleasePolicyKind(val value: String) {
 data class DeviceSyncContract (
     val identityAssertion: InternalDeviceIdentityAssertion? = null,
     val resumeCursor: String? = null,
-    val type: Type,
+    val type: DeviceSyncContractType,
     val cursor: String? = null,
     val serverTime: String? = null,
     val activeLockoutEndsAt: String? = null,
@@ -1335,7 +1476,7 @@ data class DeviceSyncContract (
     val scheduleDigest: String? = null,
     val statusVersion: Long? = null,
     val timeZone: String? = null,
-    val commandEnvelope: CommandEnvelope? = null,
+    val commandEnvelope: DeviceSyncContractCommandEnvelope? = null,
     val acknowledgedAt: String? = null,
     val commandId: String? = null,
     val sequence: Long? = null,
@@ -1346,7 +1487,7 @@ data class DeviceSyncContract (
 )
 
 @Serializable
-data class CommandEnvelope (
+data class DeviceSyncContractCommandEnvelope (
     val compactJws: String
 )
 
@@ -1374,7 +1515,7 @@ data class DeviceSyncContractPresence (
 )
 
 @Serializable
-enum class Type(val value: String) {
+enum class DeviceSyncContractType(val value: String) {
     @SerialName("command") Command("command"),
     @SerialName("delivered") Delivered("delivered"),
     @SerialName("hello") Hello("hello"),
@@ -1406,4 +1547,25 @@ data class InternalDeviceIdentityClaims (
 @Serializable
 enum class Audience(val value: String) {
     @SerialName("curfew-user-coordinator") CurfewUserCoordinator("curfew-user-coordinator");
+}
+
+class CurfewProtocolValidationException(val code: String) : IllegalArgumentException(code)
+
+fun RemoteLockoutTarget.validated(): RemoteLockoutTarget {
+    val selected = deviceIds
+    val all = allOptedInDevices
+    val canonicalUUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+    return when {
+        selected != null && all == null && selected.size in 1..32 &&
+            selected.distinct().size == selected.size && selected.all(canonicalUUID::matches) -> this
+        selected == null && all == true -> this
+        else -> throw CurfewProtocolValidationException("invalid_remote_lockout_target")
+    }
+}
+
+fun RemoteCommandJWKS.validated(): RemoteCommandJWKS {
+    if (keys.size !in 1..8 || keys.map { it.kid }.distinct().size != keys.size) {
+        throw CurfewProtocolValidationException("invalid_remote_command_key_set")
+    }
+    return this
 }

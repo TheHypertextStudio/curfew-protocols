@@ -41,6 +41,35 @@ async function main() {
     `[${quoted.join(", ")}]`,
   )
   await emit(
+    "RemoteLockoutTargetTests.swift.template",
+    join(
+      repoRoot,
+      "generated",
+      "swift",
+      "Tests",
+      "CurfewProtocolsTests",
+      "RemoteLockoutTargetTests.swift",
+    ),
+    "",
+  )
+  await emit(
+    "RemoteLockoutTargetTest.kt.template",
+    join(
+      repoRoot,
+      "generated",
+      "kotlin",
+      "src",
+      "test",
+      "kotlin",
+      "studio",
+      "hypertext",
+      "curfew",
+      "protocols",
+      "RemoteLockoutTargetTest.kt",
+    ),
+    "",
+  )
+  await emit(
     "CurfewV2GoldenVectorsTest.kt.template",
     join(
       repoRoot,

@@ -278,6 +278,8 @@ public enum CurfewProtocolValidationError: String, Error, Equatable, Sendable {
     case invalidCursor = "invalid_cursor"
     case invalidDeadlinePolicy = "invalid_deadline_policy"
     case invalidPublicKey = "invalid_public_key"
+    case invalidRemoteCommandKeySet = "invalid_remote_command_key_set"
+    case invalidRemoteLockoutTarget = "invalid_remote_lockout_target"
     case invalidResultState = "invalid_result_state"
     case invalidSequence = "invalid_sequence"
     case invalidSyncFrame = "invalid_sync_frame"
@@ -385,6 +387,42 @@ public extension RemoteLockCommand {
 
     static func decodeValidated(_ data: Data) throws -> Self {
         try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension RemoteLockoutTarget {
+    @discardableResult
+    func validated() throws -> Self {
+        switch (deviceIDS, allOptedInDevices) {
+        case let (.some(deviceIDs), nil)
+            where (1 ... 32).contains(deviceIDs.count)
+            && Set(deviceIDs).count == deviceIDs.count
+            && deviceIDs.allSatisfy({
+                CurfewProtocolPattern.matches($0, CurfewProtocolPattern.uuid)
+            }):
+            return self
+        case (nil, .some(true)):
+            return self
+        default:
+            throw CurfewProtocolValidationError.invalidRemoteLockoutTarget
+        }
+    }
+
+    static func decodeValidated(_ data: Data) throws -> Self {
+        try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension RemoteCommandJWKS {
+    @discardableResult
+    func validated() throws -> Self {
+        let keyIDs = keys.map(\\.kid)
+        guard (1 ... 8).contains(keys.count),
+              Set(keyIDs).count == keyIDs.count
+        else {
+            throw CurfewProtocolValidationError.invalidRemoteCommandKeySet
+        }
+        return self
     }
 }
 

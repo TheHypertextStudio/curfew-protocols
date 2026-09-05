@@ -224,8 +224,27 @@ export const derivedCampaignDurationKeyword = {
   },
 }
 
+export const uniquePropertyKeyword = {
+  keyword: "x-curfew-unique-property",
+  schemaType: "string",
+  type: "array",
+  errors: false,
+  validate(property, value) {
+    if (!Array.isArray(value)) return false
+    const seen = new Set()
+    for (const item of value) {
+      if (item === null || typeof item !== "object") return false
+      const candidate = item[property]
+      if (typeof candidate !== "string" || seen.has(candidate)) return false
+      seen.add(candidate)
+    }
+    return true
+  },
+}
+
 export function addCurfewProtocolKeywords(ajv) {
   ajv.addKeyword(derivedCampaignDurationKeyword)
+  ajv.addKeyword(uniquePropertyKeyword)
   return ajv
 }
 `
@@ -243,6 +262,7 @@ export interface DerivedCampaignDurationRule {
 
 export interface CurfewKeywordHost {
   addKeyword(definition: typeof derivedCampaignDurationKeyword): unknown
+  addKeyword(definition: typeof uniquePropertyKeyword): unknown
 }
 
 export declare function calculateDerivedCampaignDuration(
@@ -256,6 +276,14 @@ export declare const derivedCampaignDurationKeyword: {
   readonly type: "object"
   readonly errors: false
   validate(rule: DerivedCampaignDurationRule, value: Record<string, unknown>): boolean
+}
+
+export declare const uniquePropertyKeyword: {
+  readonly keyword: "x-curfew-unique-property"
+  readonly schemaType: "string"
+  readonly type: "array"
+  readonly errors: false
+  validate(property: string, value: unknown[]): boolean
 }
 
 export declare function addCurfewProtocolKeywords<T extends CurfewKeywordHost>(ajv: T): T

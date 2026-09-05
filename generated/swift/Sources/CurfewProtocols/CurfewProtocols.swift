@@ -7,6 +7,7 @@
 //   let curfewAccountContract = try CurfewAccountContract(json)
 //   let curfewAlarmContract = try CurfewAlarmContract(json)
 //   let curfewCallbackContract = try CurfewCallbackContract(json)
+//   let remoteCommandDeliveryBatch = try RemoteCommandDeliveryBatch(json)
 //   let deviceSessionContract = try DeviceSessionContract(json)
 //   let deviceContract = try DeviceContract(json)
 //   let curfewE2EEContract = try CurfewE2EEContract(json)
@@ -1930,6 +1931,152 @@ public extension CallbackPollPolicy {
     }
 }
 
+/// Bounded response for proof-authenticated device polling. Each item is the same canonical
+/// delivery frame used by the device WebSocket.
+// MARK: - RemoteCommandDeliveryBatch
+public struct RemoteCommandDeliveryBatch: Codable {
+    public let commands: [RemoteCommandDelivery]
+
+    public init(commands: [RemoteCommandDelivery]) {
+        self.commands = commands
+    }
+}
+
+// MARK: RemoteCommandDeliveryBatch convenience initializers and mutators
+
+public extension RemoteCommandDeliveryBatch {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandDeliveryBatch.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        commands: [RemoteCommandDelivery]? = nil
+    ) -> RemoteCommandDeliveryBatch {
+        return RemoteCommandDeliveryBatch(
+            commands: commands ?? self.commands
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - RemoteCommandDelivery
+public struct RemoteCommandDelivery: Codable {
+    public let commandEnvelope: CommandCommandEnvelope
+    public let cursor: String
+    public let type: CommandType
+
+    public init(commandEnvelope: CommandCommandEnvelope, cursor: String, type: CommandType) {
+        self.commandEnvelope = commandEnvelope
+        self.cursor = cursor
+        self.type = type
+    }
+}
+
+// MARK: RemoteCommandDelivery convenience initializers and mutators
+
+public extension RemoteCommandDelivery {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandDelivery.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        commandEnvelope: CommandCommandEnvelope? = nil,
+        cursor: String? = nil,
+        type: CommandType? = nil
+    ) -> RemoteCommandDelivery {
+        return RemoteCommandDelivery(
+            commandEnvelope: commandEnvelope ?? self.commandEnvelope,
+            cursor: cursor ?? self.cursor,
+            type: type ?? self.type
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - CommandCommandEnvelope
+public struct CommandCommandEnvelope: Codable {
+    public let compactJws: String
+
+    public init(compactJws: String) {
+        self.compactJws = compactJws
+    }
+}
+
+// MARK: CommandCommandEnvelope convenience initializers and mutators
+
+public extension CommandCommandEnvelope {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CommandCommandEnvelope.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        compactJws: String? = nil
+    ) -> CommandCommandEnvelope {
+        return CommandCommandEnvelope(
+            compactJws: compactJws ?? self.compactJws
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum CommandType: String, Codable {
+    case command = "command"
+}
+
 /// Device enrollment and proof-of-possession session messages. Signed claims are decoded
 /// only from verified compact JWS payloads. For a JSON request with a body, bodyDigest is
 /// the unpadded base64url SHA-256 of RFC 8785 JCS canonical UTF-8 JSON. When DeviceProof is
@@ -1942,14 +2089,16 @@ public struct DeviceSessionContract: Codable {
     public let credential: DeviceCredential?
     public let enrollmentExchange: DeviceEnrollmentExchange?
     public let enrollmentNonce: DeviceEnrollmentNonce?
+    public let enrollmentReceipt: NativeDeviceEnrollmentReceipt?
     public let enrollmentRequest: DeviceEnrollmentRequest?
     public let enrollmentStartResponse: DeviceEnrollmentStartResponse?
     public let proofClaims: DeviceProofClaims?
 
-    public init(credential: DeviceCredential?, enrollmentExchange: DeviceEnrollmentExchange?, enrollmentNonce: DeviceEnrollmentNonce?, enrollmentRequest: DeviceEnrollmentRequest?, enrollmentStartResponse: DeviceEnrollmentStartResponse?, proofClaims: DeviceProofClaims?) {
+    public init(credential: DeviceCredential?, enrollmentExchange: DeviceEnrollmentExchange?, enrollmentNonce: DeviceEnrollmentNonce?, enrollmentReceipt: NativeDeviceEnrollmentReceipt?, enrollmentRequest: DeviceEnrollmentRequest?, enrollmentStartResponse: DeviceEnrollmentStartResponse?, proofClaims: DeviceProofClaims?) {
         self.credential = credential
         self.enrollmentExchange = enrollmentExchange
         self.enrollmentNonce = enrollmentNonce
+        self.enrollmentReceipt = enrollmentReceipt
         self.enrollmentRequest = enrollmentRequest
         self.enrollmentStartResponse = enrollmentStartResponse
         self.proofClaims = proofClaims
@@ -1978,6 +2127,7 @@ public extension DeviceSessionContract {
         credential: DeviceCredential?? = nil,
         enrollmentExchange: DeviceEnrollmentExchange?? = nil,
         enrollmentNonce: DeviceEnrollmentNonce?? = nil,
+        enrollmentReceipt: NativeDeviceEnrollmentReceipt?? = nil,
         enrollmentRequest: DeviceEnrollmentRequest?? = nil,
         enrollmentStartResponse: DeviceEnrollmentStartResponse?? = nil,
         proofClaims: DeviceProofClaims?? = nil
@@ -1986,6 +2136,7 @@ public extension DeviceSessionContract {
             credential: credential ?? self.credential,
             enrollmentExchange: enrollmentExchange ?? self.enrollmentExchange,
             enrollmentNonce: enrollmentNonce ?? self.enrollmentNonce,
+            enrollmentReceipt: enrollmentReceipt ?? self.enrollmentReceipt,
             enrollmentRequest: enrollmentRequest ?? self.enrollmentRequest,
             enrollmentStartResponse: enrollmentStartResponse ?? self.enrollmentStartResponse,
             proofClaims: proofClaims ?? self.proofClaims
@@ -2169,15 +2320,18 @@ public extension DeviceProof {
 
 /// Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest.
 /// The device must echo coordinatorNonce in both the request and its signed
-/// DeviceProofClaims.
+/// DeviceProofClaims, and use the coordinator's current account key epoch instead of
+/// assuming an initial value.
 // MARK: - DeviceEnrollmentNonce
 public struct DeviceEnrollmentNonce: Codable {
     public let coordinatorNonce: String
     public let expiresAt: String
+    public let keyEpoch: Int
 
-    public init(coordinatorNonce: String, expiresAt: String) {
+    public init(coordinatorNonce: String, expiresAt: String, keyEpoch: Int) {
         self.coordinatorNonce = coordinatorNonce
         self.expiresAt = expiresAt
+        self.keyEpoch = keyEpoch
     }
 }
 
@@ -2201,11 +2355,78 @@ public extension DeviceEnrollmentNonce {
 
     func with(
         coordinatorNonce: String? = nil,
-        expiresAt: String? = nil
+        expiresAt: String? = nil,
+        keyEpoch: Int? = nil
     ) -> DeviceEnrollmentNonce {
         return DeviceEnrollmentNonce(
             coordinatorNonce: coordinatorNonce ?? self.coordinatorNonce,
-            expiresAt: expiresAt ?? self.expiresAt
+            expiresAt: expiresAt ?? self.expiresAt,
+            keyEpoch: keyEpoch ?? self.keyEpoch
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Authenticated native enrollment result. The coordinator returns its canonical account
+/// binding so the app can provision the privileged verifier without deriving identity from
+/// an unverified token payload.
+// MARK: - NativeDeviceEnrollmentReceipt
+public struct NativeDeviceEnrollmentReceipt: Codable {
+    public let deviceID: String
+    public let enrolledAt: String
+    public let protocolVersion: String
+    public let userID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case deviceID = "deviceId"
+        case enrolledAt, protocolVersion
+        case userID = "userId"
+    }
+
+    public init(deviceID: String, enrolledAt: String, protocolVersion: String, userID: String) {
+        self.deviceID = deviceID
+        self.enrolledAt = enrolledAt
+        self.protocolVersion = protocolVersion
+        self.userID = userID
+    }
+}
+
+// MARK: NativeDeviceEnrollmentReceipt convenience initializers and mutators
+
+public extension NativeDeviceEnrollmentReceipt {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(NativeDeviceEnrollmentReceipt.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        deviceID: String? = nil,
+        enrolledAt: String? = nil,
+        protocolVersion: String? = nil,
+        userID: String? = nil
+    ) -> NativeDeviceEnrollmentReceipt {
+        return NativeDeviceEnrollmentReceipt(
+            deviceID: deviceID ?? self.deviceID,
+            enrolledAt: enrolledAt ?? self.enrolledAt,
+            protocolVersion: protocolVersion ?? self.protocolVersion,
+            userID: userID ?? self.userID
         )
     }
 
@@ -2233,16 +2454,19 @@ public struct DeviceEnrollmentRequest: Codable {
     public let keyEpoch: Int
     public let pkceChallenge: String
     public let protocolVersion: String
+    /// The owner's explicit choice made in the native setup surface. False enrolls for sync
+    /// without allowing remote lock commands.
+    public let remoteControlEnabled: Bool
     public let signingPublicKeyJwk: DevicePublicKeyJWK
     public let state: String
 
     public enum CodingKeys: String, CodingKey {
         case coordinatorNonce
         case deviceID = "deviceId"
-        case deviceProof, encryptionPublicKeyJwk, enrolledAt, keyEpoch, pkceChallenge, protocolVersion, signingPublicKeyJwk, state
+        case deviceProof, encryptionPublicKeyJwk, enrolledAt, keyEpoch, pkceChallenge, protocolVersion, remoteControlEnabled, signingPublicKeyJwk, state
     }
 
-    public init(coordinatorNonce: String, deviceID: String, deviceProof: DeviceProof, encryptionPublicKeyJwk: DevicePublicKeyJWK, enrolledAt: String, keyEpoch: Int, pkceChallenge: String, protocolVersion: String, signingPublicKeyJwk: DevicePublicKeyJWK, state: String) {
+    public init(coordinatorNonce: String, deviceID: String, deviceProof: DeviceProof, encryptionPublicKeyJwk: DevicePublicKeyJWK, enrolledAt: String, keyEpoch: Int, pkceChallenge: String, protocolVersion: String, remoteControlEnabled: Bool, signingPublicKeyJwk: DevicePublicKeyJWK, state: String) {
         self.coordinatorNonce = coordinatorNonce
         self.deviceID = deviceID
         self.deviceProof = deviceProof
@@ -2251,6 +2475,7 @@ public struct DeviceEnrollmentRequest: Codable {
         self.keyEpoch = keyEpoch
         self.pkceChallenge = pkceChallenge
         self.protocolVersion = protocolVersion
+        self.remoteControlEnabled = remoteControlEnabled
         self.signingPublicKeyJwk = signingPublicKeyJwk
         self.state = state
     }
@@ -2283,6 +2508,7 @@ public extension DeviceEnrollmentRequest {
         keyEpoch: Int? = nil,
         pkceChallenge: String? = nil,
         protocolVersion: String? = nil,
+        remoteControlEnabled: Bool? = nil,
         signingPublicKeyJwk: DevicePublicKeyJWK? = nil,
         state: String? = nil
     ) -> DeviceEnrollmentRequest {
@@ -2295,6 +2521,7 @@ public extension DeviceEnrollmentRequest {
             keyEpoch: keyEpoch ?? self.keyEpoch,
             pkceChallenge: pkceChallenge ?? self.pkceChallenge,
             protocolVersion: protocolVersion ?? self.protocolVersion,
+            remoteControlEnabled: remoteControlEnabled ?? self.remoteControlEnabled,
             signingPublicKeyJwk: signingPublicKeyJwk ?? self.signingPublicKeyJwk,
             state: state ?? self.state
         )
@@ -3696,6 +3923,8 @@ public enum Resource: String, Codable {
 public enum CurfewOAuthScope: String, Codable {
     case curfewDevicesRead = "curfew:devices:read"
     case curfewEntitlementsRead = "curfew:entitlements:read"
+    case curfewLockAll = "curfew:lock:all"
+    case curfewLockDevice = "curfew:lock:device"
     case curfewUnlockDirect = "curfew:unlock:direct"
     case curfewUnlockRequest = "curfew:unlock:request"
     case curfewWakeRead = "curfew:wake:read"
@@ -3837,13 +4066,19 @@ public enum MCPWriteTool: String, Codable {
 public struct RemoteCommandContract: Codable {
     public let acknowledgement: DAcknowledgement?
     public let envelope: SignedRemoteCommandEnvelope?
+    public let lockoutCommand: RemoteLockoutCommand?
+    public let receipt: RemoteCommandReceipt?
     public let result: RemoteCommandResult?
+    public let verificationKeys: RemoteCommandJWKS?
     public let verifiedPayload: RemoteLockCommand?
 
-    public init(acknowledgement: DAcknowledgement?, envelope: SignedRemoteCommandEnvelope?, result: RemoteCommandResult?, verifiedPayload: RemoteLockCommand?) {
+    public init(acknowledgement: DAcknowledgement?, envelope: SignedRemoteCommandEnvelope?, lockoutCommand: RemoteLockoutCommand?, receipt: RemoteCommandReceipt?, result: RemoteCommandResult?, verificationKeys: RemoteCommandJWKS?, verifiedPayload: RemoteLockCommand?) {
         self.acknowledgement = acknowledgement
         self.envelope = envelope
+        self.lockoutCommand = lockoutCommand
+        self.receipt = receipt
         self.result = result
+        self.verificationKeys = verificationKeys
         self.verifiedPayload = verifiedPayload
     }
 }
@@ -3869,13 +4104,19 @@ public extension RemoteCommandContract {
     func with(
         acknowledgement: DAcknowledgement?? = nil,
         envelope: SignedRemoteCommandEnvelope?? = nil,
+        lockoutCommand: RemoteLockoutCommand?? = nil,
+        receipt: RemoteCommandReceipt?? = nil,
         result: RemoteCommandResult?? = nil,
+        verificationKeys: RemoteCommandJWKS?? = nil,
         verifiedPayload: RemoteLockCommand?? = nil
     ) -> RemoteCommandContract {
         return RemoteCommandContract(
             acknowledgement: acknowledgement ?? self.acknowledgement,
             envelope: envelope ?? self.envelope,
+            lockoutCommand: lockoutCommand ?? self.lockoutCommand,
+            receipt: receipt ?? self.receipt,
             result: result ?? self.result,
+            verificationKeys: verificationKeys ?? self.verificationKeys,
             verifiedPayload: verifiedPayload ?? self.verifiedPayload
         )
     }
@@ -4003,6 +4244,229 @@ public extension SignedRemoteCommandEnvelope {
     }
 }
 
+/// MCP-facing strengthening-only lockout request. The coordinator authorizes its caller and
+/// expands the closed target selector into one signed RemoteLockCommand per eligible device;
+/// this request is never delivered directly to a native host.
+// MARK: - RemoteLockoutCommand
+public struct RemoteLockoutCommand: Codable {
+    public let commandID: String
+    public let durationSeconds: Int
+    public let idempotencyKey: String
+    public let target: RemoteLockoutTarget
+    public let userID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case commandID = "commandId"
+        case durationSeconds, idempotencyKey, target
+        case userID = "userId"
+    }
+
+    public init(commandID: String, durationSeconds: Int, idempotencyKey: String, target: RemoteLockoutTarget, userID: String) {
+        self.commandID = commandID
+        self.durationSeconds = durationSeconds
+        self.idempotencyKey = idempotencyKey
+        self.target = target
+        self.userID = userID
+    }
+}
+
+// MARK: RemoteLockoutCommand convenience initializers and mutators
+
+public extension RemoteLockoutCommand {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteLockoutCommand.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        commandID: String? = nil,
+        durationSeconds: Int? = nil,
+        idempotencyKey: String? = nil,
+        target: RemoteLockoutTarget? = nil,
+        userID: String? = nil
+    ) -> RemoteLockoutCommand {
+        return RemoteLockoutCommand(
+            commandID: commandID ?? self.commandID,
+            durationSeconds: durationSeconds ?? self.durationSeconds,
+            idempotencyKey: idempotencyKey ?? self.idempotencyKey,
+            target: target ?? self.target,
+            userID: userID ?? self.userID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// An explicit, non-empty set of opted-in devices selected by an MCP client. The coordinator
+/// expands only owner-owned, consented devices into signed per-device commands.
+///
+/// Selects every currently owner-owned device with explicit remote-control consent. It never
+/// carries device IDs, so a request cannot ambiguously mix all-device and selected-device
+/// semantics.
+// MARK: - RemoteLockoutTarget
+public struct RemoteLockoutTarget: Codable {
+    public let deviceIDS: [String]?
+    public let allOptedInDevices: Bool?
+
+    public enum CodingKeys: String, CodingKey {
+        case deviceIDS = "deviceIds"
+        case allOptedInDevices
+    }
+
+    public init(deviceIDS: [String]?, allOptedInDevices: Bool?) {
+        self.deviceIDS = deviceIDS
+        self.allOptedInDevices = allOptedInDevices
+    }
+}
+
+// MARK: RemoteLockoutTarget convenience initializers and mutators
+
+public extension RemoteLockoutTarget {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteLockoutTarget.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        deviceIDS: [String]?? = nil,
+        allOptedInDevices: Bool?? = nil
+    ) -> RemoteLockoutTarget {
+        return RemoteLockoutTarget(
+            deviceIDS: deviceIDS ?? self.deviceIDS,
+            allOptedInDevices: allOptedInDevices ?? self.allOptedInDevices
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Current state of one immutable command/device pair. Repeating the same idempotent request
+/// returns the current state of the original command, allowing a client to observe queued or
+/// delivered work reaching applied, rejected, or expired without creating another command.
+// MARK: - RemoteCommandReceipt
+public struct RemoteCommandReceipt: Codable {
+    public let commandID, deviceID: String
+    public let queuedAt: String?
+    public let status: RemoteCommandReceiptStatus
+    public let deliveredAt, appliedDeadline, resolvedAt: String?
+    public let rejectionCode: RejectionCode?
+
+    public enum CodingKeys: String, CodingKey {
+        case commandID = "commandId"
+        case deviceID = "deviceId"
+        case queuedAt, status, deliveredAt, appliedDeadline, resolvedAt, rejectionCode
+    }
+
+    public init(commandID: String, deviceID: String, queuedAt: String?, status: RemoteCommandReceiptStatus, deliveredAt: String?, appliedDeadline: String?, resolvedAt: String?, rejectionCode: RejectionCode?) {
+        self.commandID = commandID
+        self.deviceID = deviceID
+        self.queuedAt = queuedAt
+        self.status = status
+        self.deliveredAt = deliveredAt
+        self.appliedDeadline = appliedDeadline
+        self.resolvedAt = resolvedAt
+        self.rejectionCode = rejectionCode
+    }
+}
+
+// MARK: RemoteCommandReceipt convenience initializers and mutators
+
+public extension RemoteCommandReceipt {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandReceipt.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        commandID: String? = nil,
+        deviceID: String? = nil,
+        queuedAt: String?? = nil,
+        status: RemoteCommandReceiptStatus? = nil,
+        deliveredAt: String?? = nil,
+        appliedDeadline: String?? = nil,
+        resolvedAt: String?? = nil,
+        rejectionCode: RejectionCode?? = nil
+    ) -> RemoteCommandReceipt {
+        return RemoteCommandReceipt(
+            commandID: commandID ?? self.commandID,
+            deviceID: deviceID ?? self.deviceID,
+            queuedAt: queuedAt ?? self.queuedAt,
+            status: status ?? self.status,
+            deliveredAt: deliveredAt ?? self.deliveredAt,
+            appliedDeadline: appliedDeadline ?? self.appliedDeadline,
+            resolvedAt: resolvedAt ?? self.resolvedAt,
+            rejectionCode: rejectionCode ?? self.rejectionCode
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum RejectionCode: String, Codable {
+    case deviceUnavailable = "device_unavailable"
+    case ineligible = "ineligible"
+    case invalidDeadline = "invalid_deadline"
+    case invalidSignature = "invalid_signature"
+    case outOfOrder = "out_of_order"
+    case staleStatus = "stale_status"
+}
+
+public enum RemoteCommandReceiptStatus: String, Codable {
+    case applied = "applied"
+    case delivered = "delivered"
+    case expired = "expired"
+    case queued = "queued"
+    case rejected = "rejected"
+}
+
 // MARK: - RemoteCommandResult
 public struct RemoteCommandResult: Codable {
     public let appliedDeadline: String?
@@ -4077,19 +4541,131 @@ public extension RemoteCommandResult {
     }
 }
 
-public enum RejectionCode: String, Codable {
-    case deviceUnavailable = "device_unavailable"
-    case ineligible = "ineligible"
-    case invalidDeadline = "invalid_deadline"
-    case invalidSignature = "invalid_signature"
-    case outOfOrder = "out_of_order"
-    case staleStatus = "stale_status"
-}
-
 public enum RemoteCommandResultStage: String, Codable {
     case applied = "applied"
     case expired = "expired"
     case rejected = "rejected"
+}
+
+/// Bounded public key set used only for coordinator remote-command signatures.
+// MARK: - RemoteCommandJWKS
+public struct RemoteCommandJWKS: Codable {
+    public let keys: [RemoteCommandJWK]
+
+    public init(keys: [RemoteCommandJWK]) {
+        self.keys = keys
+    }
+}
+
+// MARK: RemoteCommandJWKS convenience initializers and mutators
+
+public extension RemoteCommandJWKS {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandJWKS.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        keys: [RemoteCommandJWK]? = nil
+    ) -> RemoteCommandJWKS {
+        return RemoteCommandJWKS(
+            keys: keys ?? self.keys
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// One public coordinator key accepted for ES256 remote-command verification.
+// MARK: - RemoteCommandJWK
+public struct RemoteCommandJWK: Codable {
+    public let alg: Alg
+    public let crv: Crv
+    public let kid: String
+    public let kty: Kty
+    public let use: Use
+    public let x, y: String
+
+    public init(alg: Alg, crv: Crv, kid: String, kty: Kty, use: Use, x: String, y: String) {
+        self.alg = alg
+        self.crv = crv
+        self.kid = kid
+        self.kty = kty
+        self.use = use
+        self.x = x
+        self.y = y
+    }
+}
+
+// MARK: RemoteCommandJWK convenience initializers and mutators
+
+public extension RemoteCommandJWK {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandJWK.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        alg: Alg? = nil,
+        crv: Crv? = nil,
+        kid: String? = nil,
+        kty: Kty? = nil,
+        use: Use? = nil,
+        x: String? = nil,
+        y: String? = nil
+    ) -> RemoteCommandJWK {
+        return RemoteCommandJWK(
+            alg: alg ?? self.alg,
+            crv: crv ?? self.crv,
+            kid: kid ?? self.kid,
+            kty: kty ?? self.kty,
+            use: use ?? self.use,
+            x: x ?? self.x,
+            y: y ?? self.y
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Alg: String, Codable {
+    case es256 = "ES256"
+}
+
+public enum Use: String, Codable {
+    case sig = "sig"
 }
 
 /// Post-verification payload decoded only from SignedRemoteCommandEnvelope.compactJws.
@@ -4669,7 +5245,7 @@ public enum ReleasePolicyKind: String, Codable {
 public struct DeviceSyncContract: Codable {
     public let identityAssertion: InternalDeviceIdentityAssertion?
     public let resumeCursor: String?
-    public let type: TypeEnum
+    public let type: DeviceSyncContractType
     public let cursor: String?
     public let serverTime: String?
     public let activeLockoutEndsAt: String?
@@ -4681,7 +5257,7 @@ public struct DeviceSyncContract: Codable {
     public let scheduleDigest: String?
     public let statusVersion: Int?
     public let timeZone: String?
-    public let commandEnvelope: CommandEnvelope?
+    public let commandEnvelope: DeviceSyncContractCommandEnvelope?
     public let acknowledgedAt: String?
     public let commandID: String?
     public let sequence: Int?
@@ -4697,7 +5273,7 @@ public struct DeviceSyncContract: Codable {
         case sequence, appliedDeadline, resolvedAt, stage, rejectionCode
     }
 
-    public init(identityAssertion: InternalDeviceIdentityAssertion?, resumeCursor: String?, type: TypeEnum, cursor: String?, serverTime: String?, activeLockoutEndsAt: String?, deviceID: String?, nextTransitionAt: String?, observedAt: String?, phase: DevicePhase?, presence: DeviceSyncContractPresence?, scheduleDigest: String?, statusVersion: Int?, timeZone: String?, commandEnvelope: CommandEnvelope?, acknowledgedAt: String?, commandID: String?, sequence: Int?, appliedDeadline: String?, resolvedAt: String?, stage: RemoteCommandResultStage?, rejectionCode: RejectionCode?) {
+    public init(identityAssertion: InternalDeviceIdentityAssertion?, resumeCursor: String?, type: DeviceSyncContractType, cursor: String?, serverTime: String?, activeLockoutEndsAt: String?, deviceID: String?, nextTransitionAt: String?, observedAt: String?, phase: DevicePhase?, presence: DeviceSyncContractPresence?, scheduleDigest: String?, statusVersion: Int?, timeZone: String?, commandEnvelope: DeviceSyncContractCommandEnvelope?, acknowledgedAt: String?, commandID: String?, sequence: Int?, appliedDeadline: String?, resolvedAt: String?, stage: RemoteCommandResultStage?, rejectionCode: RejectionCode?) {
         self.identityAssertion = identityAssertion
         self.resumeCursor = resumeCursor
         self.type = type
@@ -4744,7 +5320,7 @@ public extension DeviceSyncContract {
     func with(
         identityAssertion: InternalDeviceIdentityAssertion?? = nil,
         resumeCursor: String?? = nil,
-        type: TypeEnum? = nil,
+        type: DeviceSyncContractType? = nil,
         cursor: String?? = nil,
         serverTime: String?? = nil,
         activeLockoutEndsAt: String?? = nil,
@@ -4756,7 +5332,7 @@ public extension DeviceSyncContract {
         scheduleDigest: String?? = nil,
         statusVersion: Int?? = nil,
         timeZone: String?? = nil,
-        commandEnvelope: CommandEnvelope?? = nil,
+        commandEnvelope: DeviceSyncContractCommandEnvelope?? = nil,
         acknowledgedAt: String?? = nil,
         commandID: String?? = nil,
         sequence: Int?? = nil,
@@ -4800,8 +5376,8 @@ public extension DeviceSyncContract {
     }
 }
 
-// MARK: - CommandEnvelope
-public struct CommandEnvelope: Codable {
+// MARK: - DeviceSyncContractCommandEnvelope
+public struct DeviceSyncContractCommandEnvelope: Codable {
     public let compactJws: String
 
     public init(compactJws: String) {
@@ -4809,11 +5385,11 @@ public struct CommandEnvelope: Codable {
     }
 }
 
-// MARK: CommandEnvelope convenience initializers and mutators
+// MARK: DeviceSyncContractCommandEnvelope convenience initializers and mutators
 
-public extension CommandEnvelope {
+public extension DeviceSyncContractCommandEnvelope {
     init(data: Data) throws {
-        self = try newJSONDecoder().decode(CommandEnvelope.self, from: data)
+        self = try newJSONDecoder().decode(DeviceSyncContractCommandEnvelope.self, from: data)
     }
 
     init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -4829,8 +5405,8 @@ public extension CommandEnvelope {
 
     func with(
         compactJws: String? = nil
-    ) -> CommandEnvelope {
-        return CommandEnvelope(
+    ) -> DeviceSyncContractCommandEnvelope {
+        return DeviceSyncContractCommandEnvelope(
             compactJws: compactJws ?? self.compactJws
         )
     }
@@ -4943,7 +5519,7 @@ public extension DeviceSyncContractPresence {
     }
 }
 
-public enum TypeEnum: String, Codable {
+public enum DeviceSyncContractType: String, Codable {
     case command = "command"
     case delivered = "delivered"
     case hello = "hello"
@@ -5303,6 +5879,8 @@ public enum CurfewProtocolValidationError: String, Error, Equatable, Sendable {
     case invalidCursor = "invalid_cursor"
     case invalidDeadlinePolicy = "invalid_deadline_policy"
     case invalidPublicKey = "invalid_public_key"
+    case invalidRemoteCommandKeySet = "invalid_remote_command_key_set"
+    case invalidRemoteLockoutTarget = "invalid_remote_lockout_target"
     case invalidResultState = "invalid_result_state"
     case invalidSequence = "invalid_sequence"
     case invalidSyncFrame = "invalid_sync_frame"
@@ -5410,6 +5988,42 @@ public extension RemoteLockCommand {
 
     static func decodeValidated(_ data: Data) throws -> Self {
         try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension RemoteLockoutTarget {
+    @discardableResult
+    func validated() throws -> Self {
+        switch (deviceIDS, allOptedInDevices) {
+        case let (.some(deviceIDs), nil)
+            where (1 ... 32).contains(deviceIDs.count)
+            && Set(deviceIDs).count == deviceIDs.count
+            && deviceIDs.allSatisfy({
+                CurfewProtocolPattern.matches($0, CurfewProtocolPattern.uuid)
+            }):
+            return self
+        case (nil, .some(true)):
+            return self
+        default:
+            throw CurfewProtocolValidationError.invalidRemoteLockoutTarget
+        }
+    }
+
+    static func decodeValidated(_ data: Data) throws -> Self {
+        try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension RemoteCommandJWKS {
+    @discardableResult
+    func validated() throws -> Self {
+        let keyIDs = keys.map(\.kid)
+        guard (1 ... 8).contains(keys.count),
+              Set(keyIDs).count == keyIDs.count
+        else {
+            throw CurfewProtocolValidationError.invalidRemoteCommandKeySet
+        }
+        return self
     }
 }
 
