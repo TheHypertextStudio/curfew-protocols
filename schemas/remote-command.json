@@ -10,6 +10,8 @@
     "verifiedPayload": { "$ref": "#/definitions/RemoteLockCommand" },
     "acknowledgement": { "$ref": "#/definitions/RemoteCommandAcknowledgement" },
     "result": { "$ref": "#/definitions/RemoteCommandResult" },
+    "resultReceiptEnvelope": { "$ref": "#/definitions/SignedRemoteCommandResultReceiptEnvelope" },
+    "resultReceiptProof": { "$ref": "#/definitions/RemoteCommandResultReceiptProof" },
     "lockoutCommand": { "$ref": "#/definitions/RemoteLockoutCommand" },
     "receipt": { "$ref": "#/definitions/RemoteCommandReceipt" },
     "verificationKeys": { "$ref": "#/definitions/RemoteCommandJWKS" }
@@ -17,6 +19,7 @@
   "definitions": {
     "CanonicalUUID": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
     "UTCInstant": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" },
+    "CoordinatorReceiptInstant": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,3})?Z$" },
     "Base64URLSHA256": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
     "RemoteCommandKind": { "type": "string", "enum": ["lock_device"] },
     "SelectedDeviceTargets": {
@@ -94,6 +97,17 @@
         "typ": { "type": "string", "const": "curfew-command+jwt" }
       }
     },
+    "CoordinatorResultReceiptJWSHeader": {
+      "description": "Post-verification protected header decoded from SignedRemoteCommandResultReceiptEnvelope.compactJws.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "kid", "typ"],
+      "properties": {
+        "alg": { "type": "string", "const": "ES256" },
+        "kid": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "typ": { "type": "string", "const": "curfew-result-receipt+jwt" }
+      }
+    },
     "RemoteCommandJWK": {
       "description": "One public coordinator key accepted for ES256 remote-command verification.",
       "type": "object",
@@ -152,6 +166,31 @@
       "required": ["compactJws"],
       "properties": {
         "compactJws": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{86}$" }
+      }
+    },
+    "SignedRemoteCommandResultReceiptEnvelope": {
+      "description": "Coordinator-signed proof that one exact terminal result was durably accepted. Native daemons must verify the JWS before removing the matching result from their outbox.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compactJws"],
+      "properties": {
+        "compactJws": { "type": "string", "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{86}$" }
+      }
+    },
+    "RemoteCommandResultReceiptProof": {
+      "description": "Post-verification payload binding coordinator acceptance to unpadded base64url SHA-256 over the UTF-8 bytes of RFC 8785 JCS for the exact schema-valid RemoteCommandResult, with absent variant fields omitted. expiresAt must be later than acceptedAt and no more than 300 seconds later; verifiers also reject a proof expired against their trusted clock.",
+      "type": "object",
+      "x-curfew-bounded-interval": { "startProperty": "acceptedAt", "endProperty": "expiresAt", "capSeconds": 300 },
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "sequence", "resultDigest", "acceptedAt", "expiresAt", "coordinatorAudience"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "resultDigest": { "$ref": "#/definitions/Base64URLSHA256" },
+        "acceptedAt": { "$ref": "#/definitions/CoordinatorReceiptInstant" },
+        "expiresAt": { "$ref": "#/definitions/CoordinatorReceiptInstant" },
+        "coordinatorAudience": { "type": "string", "const": "curfew-device-agent" }
       }
     },
     "DeliveredAcknowledgement": {

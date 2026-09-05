@@ -8,6 +8,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 No unreleased changes.
 
+## [0.0.9] — 2026-09-05
+
+### Added
+
+- Add a distinct ES256 `SignedRemoteCommandResultReceiptEnvelope` and its post-verification `RemoteCommandResultReceiptProof` payload. The proof binds coordinator acceptance to one command, device, sequence, audience, expiry, and canonical result digest.
+
+### Security
+
+- Require a coordinator-signed acceptance proof before a privileged native daemon may remove a terminal command result from its durable outbox. An unprivileged local process can relay the proof but cannot forge successful server persistence.
+
+### Release
+
+- Publish the reviewer-driven security correction as `0.0.9` through GitHub Packages after merge and all TypeScript, Swift, Kotlin, and JVM gates pass.
+
 ## [0.0.8] — 2026-09-04
 
 ### Added

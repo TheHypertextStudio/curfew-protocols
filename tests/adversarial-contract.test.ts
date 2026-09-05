@@ -23,12 +23,28 @@ describe("signed trust boundaries", () => {
   it("carries only compact JWS on the wire", async () => {
     const schema = await readSchema("remote-command.json")
     const envelope = schema.definitions.SignedRemoteCommandEnvelope
+    const resultReceipt = schema.definitions.SignedRemoteCommandResultReceiptEnvelope
     const proof = (await readSchema("device-session.json")).definitions.DeviceProof
 
     expect(envelope.required).toEqual(["compactJws"])
     expect(Object.keys(envelope.properties)).toEqual(["compactJws"])
+    expect(resultReceipt.required).toEqual(["compactJws"])
+    expect(Object.keys(resultReceipt.properties)).toEqual(["compactJws"])
     expect(proof.required).toEqual(["compactJws"])
     expect(Object.keys(proof.properties)).toEqual(["compactJws"])
+  })
+
+  it("uses a distinct protected type for signed result receipts", async () => {
+    const schema = await readSchema("remote-command.json")
+
+    expect(schema.definitions.CoordinatorResultReceiptJWSHeader).toMatchObject({
+      additionalProperties: false,
+      required: ["alg", "kid", "typ"],
+      properties: {
+        alg: { const: "ES256" },
+        typ: { const: "curfew-result-receipt+jwt" },
+      },
+    })
   })
 
   it("rejects unsigned duplicate payload and key claims", async () => {

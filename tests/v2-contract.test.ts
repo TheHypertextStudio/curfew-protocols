@@ -649,6 +649,28 @@ describe("cross-language golden vectors", () => {
     expect(vector.requestKey).not.toBe(vector.responseKey)
   })
 
+  it("pins the canonical remote-command result digest", async () => {
+    const vectors = JSON.parse(
+      await readFile(join(repoRoot, "tests", "vectors", "v2-golden.json"), "utf8"),
+    ) as {
+      cryptography?: {
+        remoteCommandResult?: {
+          resultUnsigned: Record<string, unknown>
+          resultCanonical: string
+          resultDigest: string
+        }
+      }
+    }
+    const vector = vectors.cryptography?.remoteCommandResult
+    expect(vector).toBeDefined()
+    expect(canonicalJSON(vector!.resultUnsigned)).toBe(vector!.resultCanonical)
+    expect(
+      createHash("sha256")
+        .update(Buffer.from(vector!.resultCanonical, "utf8"))
+        .digest("base64url"),
+    ).toBe(vector!.resultDigest)
+  })
+
   it("pins encrypted-record, HPKE, and recovery cryptographic bytes", async () => {
     const vectors = JSON.parse(
       await readFile(join(repoRoot, "tests", "vectors", "v2-golden.json"), "utf8"),

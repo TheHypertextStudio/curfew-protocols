@@ -266,6 +266,75 @@ describe("remote command contract", () => {
     expect(remote.definitions).toHaveProperty("RemoteCommandAcknowledgement")
     expect(remote.definitions).toHaveProperty("RemoteCommandResult")
     expect(remote.definitions).toHaveProperty("SignedRemoteCommandEnvelope")
+    expect(remote.definitions).toHaveProperty("SignedRemoteCommandResultReceiptEnvelope")
+    expect(remote.definitions).toHaveProperty("RemoteCommandResultReceiptProof")
+  })
+
+  it("binds daemon result deletion to a short-lived coordinator-signed result digest", async () => {
+    const proof = await definitionValidator(
+      "remote-command.json",
+      "RemoteCommandResultReceiptProof",
+    )
+    const envelope = await definitionValidator(
+      "remote-command.json",
+      "SignedRemoteCommandResultReceiptEnvelope",
+    )
+    const valid = {
+      commandId: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+      deviceId: "018f4f45-7a98-7f53-89af-a4805f705d20",
+      sequence: 42,
+      resultDigest: "D".repeat(43),
+      acceptedAt: "2026-09-05T12:00:00Z",
+      expiresAt: "2026-09-05T12:05:00Z",
+      coordinatorAudience: "curfew-device-agent",
+    }
+
+    expect(proof(valid), JSON.stringify(proof.errors)).toBe(true)
+    expect(proof({ ...valid, resultDigest: "short" })).toBe(false)
+    expect(proof({ ...valid, coordinatorAudience: "browser" })).toBe(false)
+    expect(proof({ ...valid, stage: "applied" })).toBe(false)
+    expect(proof({ ...valid, expiresAt: valid.acceptedAt })).toBe(false)
+    expect(proof({ ...valid, expiresAt: "2026-09-05T12:05:01Z" })).toBe(false)
+    expect(
+      proof({
+        ...valid,
+        acceptedAt: "2026-09-05T12:00:00.000Z",
+        expiresAt: "2026-09-05T12:05:00.001Z",
+      }),
+    ).toBe(false)
+    expect(proof({ ...valid, acceptedAt: "2026-09-05T12:00:00.0001Z" })).toBe(false)
+    expect(
+      envelope({ compactJws: `${"A".repeat(22)}.${"B".repeat(22)}.${"C".repeat(86)}` }),
+      JSON.stringify(envelope.errors),
+    ).toBe(true)
+    const remote = await schema("remote-command.json")
+    expect(remote.definitions.RemoteCommandResultReceiptProof.description).toContain(
+      "RFC 8785 JCS",
+    )
+    expect(remote.definitions.RemoteCommandResultReceiptProof.description).toContain(
+      "absent variant fields omitted",
+    )
+  })
+
+  it("generates five-minute result-receipt validation for Swift and Kotlin", async () => {
+    const swift = await readFile(
+      join(repoRoot, "generated/swift/Sources/CurfewProtocols/CurfewProtocols.swift"),
+      "utf8",
+    )
+    const kotlin = await readFile(
+      join(
+        repoRoot,
+        "generated/kotlin/src/main/kotlin/studio/hypertext/curfew/protocols/CurfewProtocols.kt",
+      ),
+      "utf8",
+    )
+
+    for (const source of [swift, kotlin]) {
+      expect(source).toContain("invalid_result_receipt")
+      expect(source).toContain("300")
+    }
+    expect(kotlin).toContain("java.time.Duration.ofSeconds(300)")
+    expect(kotlin).not.toContain(".seconds > 300")
   })
 
   it("defines a short-lived coordinator nonce before a device signs enrollment", async () => {

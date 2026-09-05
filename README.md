@@ -4,17 +4,18 @@ Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, t
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
-## Remote-control contract in v0.0.8
+## Remote-control contract in v0.0.9
 
-This branch prepares the single `0.0.8` internal coordination contract for the matching Curfew Sync and native-host worktrees. The tag and GitHub Packages artifact are created only after merge to `main`.
+Version `0.0.9` adds the signed result-acceptance proof required by the matching Curfew Sync and native-host implementations.
 
 - `RemoteLockoutCommand` is the MCP-facing, strengthening-only request. Its closed target selector is either a non-empty, duplicate-free `deviceIds` array or `{ "allOptedInDevices": true }`; callers cannot mix the two forms. Generated Swift and Kotlin bindings expose `validated()` checks that reject absent, mixed, false, empty, or duplicate selectors before use.
 - `curfew.lock.device` requires `curfew:lock:device` and accepts only explicit device IDs. `curfew.lock.all` requires `curfew:lock:all` and accepts no device IDs. Both accept only a fixed 5-minute to 12-hour lock duration and return the same closed, stage-specific per-device `RemoteCommandReceipt` shape: queued, delivered, applied, rejected, or expired records carry their required operational timestamp and outcome fields. Each exported input and output schema is independently compilable, including the lock-output receipt definition closure, so an MCP client may use a served schema without registering the registry root first.
 - The coordinator resolves the all-device selector only against current account ownership and explicit remote-control consent, then creates one existing signed `RemoteLockCommand` transport envelope per eligible device. Native hosts still verify the audience, signature, expiry, replay nonce, and sequence before local enforcement.
 - Proof-authenticated HTTP polling returns a bounded `RemoteCommandDeliveryBatch` containing the same cursor-bound signed-envelope frames used by the device WebSocket. Internal queue metadata never becomes a second device wire format.
+- A successful terminal-result upload returns a short-lived `SignedRemoteCommandResultReceiptEnvelope`. Its ES256 payload binds the command, device, sequence, coordinator audience, and SHA-256 digest of the exact canonical result; the privileged daemon removes its durable result only after verifying that proof.
 - No remote command can unlock a device, weaken a schedule, execute an arbitrary action, or bypass the device daemon.
 
-## What's in v0.0.8
+## What's in v0.0.9
 
 - `schemas/schedule.json` — mutually exclusive fixed-unlock and account wake-campaign release policies, explicit IANA timezones and DST resolution, legacy migration, and Curfew's anti-bypass application timing.
 - `schemas/alarm.json` — alarm recurrence and selected devices plus a persisted scheduled/ringing/quiet/satisfied/overridden no-deadline campaign state machine.
@@ -27,11 +28,11 @@ This branch prepares the single `0.0.8` internal coordination contract for the m
 - `schemas/device.json` — platform-neutral device descriptors, local remote-control eligibility, capabilities, and normalized status snapshots, including optional desk presence.
 - `schemas/device-session.json` — enrollment plus RFC 9449-style proof-of-possession request shapes, including the short-lived coordinator nonce a device signs into its enrollment proof and the browser-approval response that follows it.
 - `schemas/device-poll.json` — a bounded proof-authenticated polling response containing canonical remote-command delivery frames.
-- `schemas/remote-command.json` — closed MCP-facing lockout command targets and receipts alongside coordinator-signed, replay-safe per-device lock commands, acknowledgements, and results.
+- `schemas/remote-command.json` — closed MCP-facing lockout command targets and receipts alongside coordinator-signed, replay-safe per-device lock commands, acknowledgements, results, and result-acceptance proofs.
 - `schemas/oauth.json` — separate OAuth resource and scope authorities for native Curfew clients (`https://curfew-sync.hypertext.studio`) and remote MCP clients (`https://curfew-sync.hypertext.studio/mcp`). Native clients receive account, device, entitlement, encrypted-sync, and wake scopes but no unlock scope by default; MCP clients receive only the least-privilege read, lock, and unlock scopes they are granted.
 - `schemas/sync.json` — authenticated WebSocket hello/welcome, status, delivery, cursor acknowledgement, result, and internal identity-assertion frames.
 
-Version 0.0.8 keeps the cross-platform wake contract callback-gated while the package remains pre-1.0. Strengthening-only remote lock commands and their polling delivery frames are represented without adding any unlock command. Remote release remains a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
+Version 0.0.9 keeps the cross-platform wake contract callback-gated while the package remains pre-1.0. Strengthening-only remote lock commands and their polling delivery frames are represented without adding any unlock command. Remote release remains a separate, reasoned, audited, time-bounded override and cannot masquerade as a lock command.
 
 ## Wire rules
 
@@ -49,6 +50,7 @@ Version 0.0.8 keeps the cross-platform wake contract callback-gated while the pa
 - A device identity assertion binds the enrolled key to the hash of its short-lived, browser-approved device credential. The coordinator therefore refuses a remote-control socket or opt-in that proves only key possession. A device validates the signed account/device audience, key ID, issue/expiry times, nonce, monotonic sequence, idempotency key, status version, and schedule digest before enforcement.
 - Replaying an idempotent command returns its current receipt without creating another command, so a client can observe the original command reach a terminal state. A valid new lock may extend but never shorten an active lockout.
 - Compact JWS envelopes contain no adjacent payload, key ID, or identity claims. Consumers execute only claims decoded from a successfully verified protected header and payload.
+- A user-session process cannot attest that the coordinator persisted a daemon result. Only a valid, short-lived coordinator JWS over that result's canonical digest authorizes removal from the privileged outbox.
 - Generated Swift command/JWS/result types and Swift/Kotlin remote-lock target types expose `validated()` methods for trust-boundary checks that decoding alone cannot enforce.
 
 ## TypeScript consumer
@@ -78,7 +80,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.8")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.9")
 ```
 
 ```swift
@@ -89,12 +91,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.8`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.9`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.8")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.9")
 ```
 
 ```kotlin

@@ -53,6 +53,24 @@ fun RemoteCommandJWKS.validated(): RemoteCommandJWKS {
     }
     return this
 }
+
+fun RemoteCommandResultReceiptProof.validated(
+    now: java.time.Instant? = null,
+): RemoteCommandResultReceiptProof {
+    val canonicalUUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+    val digest = Regex("^[A-Za-z0-9_-]{43}$")
+    val accepted = runCatching { java.time.Instant.parse(acceptedAt) }.getOrNull()
+    val expiry = runCatching { java.time.Instant.parse(expiresAt) }.getOrNull()
+    if (!canonicalUUID.matches(commandId) || !canonicalUUID.matches(deviceId) ||
+        !digest.matches(resultDigest) || sequence < 1 ||
+        coordinatorAudience != CoordinatorAudience.CurfewDeviceAgent ||
+        accepted == null || expiry == null || !expiry.isAfter(accepted) ||
+        java.time.Duration.between(accepted, expiry) > java.time.Duration.ofSeconds(300) ||
+        (now != null && !expiry.isAfter(now))) {
+        throw CurfewProtocolValidationException("invalid_result_receipt")
+    }
+    return this
+}
 `
 
 function toPascalCase(value: string): string {

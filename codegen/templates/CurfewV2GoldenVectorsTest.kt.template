@@ -118,6 +118,23 @@ class CurfewV2GoldenVectorsTest {
     }
 
     @Test
+    fun verifiesCanonicalRemoteCommandResultDigest() {
+        val root = locateRepositoryRoot()
+        val manifest = json.parseToJsonElement(
+            root.resolve("tests/vectors/v2-golden.json").readText(),
+        ).jsonObject
+        val vector = manifest.getValue("cryptography").jsonObject
+            .getValue("remoteCommandResult").jsonObject
+        val canonical = canonicalJson(vector.getValue("resultUnsigned"))
+
+        assertEquals(vector.getValue("resultCanonical").jsonPrimitive.content, canonical)
+        assertEquals(
+            vector.getValue("resultDigest").jsonPrimitive.content,
+            encodeBase64Url(MessageDigest.getInstance("SHA-256").digest(canonical.encodeToByteArray())),
+        )
+    }
+
+    @Test
     fun verifiesEncryptedSyncCryptography() {
         val root = locateRepositoryRoot()
         val cryptography = json.parseToJsonElement(

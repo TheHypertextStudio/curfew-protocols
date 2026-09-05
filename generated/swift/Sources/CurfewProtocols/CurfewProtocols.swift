@@ -4069,15 +4069,19 @@ public struct RemoteCommandContract: Codable {
     public let lockoutCommand: RemoteLockoutCommand?
     public let receipt: RemoteCommandReceipt?
     public let result: RemoteCommandResult?
+    public let resultReceiptEnvelope: SignedRemoteCommandResultReceiptEnvelope?
+    public let resultReceiptProof: RemoteCommandResultReceiptProof?
     public let verificationKeys: RemoteCommandJWKS?
     public let verifiedPayload: RemoteLockCommand?
 
-    public init(acknowledgement: DAcknowledgement?, envelope: SignedRemoteCommandEnvelope?, lockoutCommand: RemoteLockoutCommand?, receipt: RemoteCommandReceipt?, result: RemoteCommandResult?, verificationKeys: RemoteCommandJWKS?, verifiedPayload: RemoteLockCommand?) {
+    public init(acknowledgement: DAcknowledgement?, envelope: SignedRemoteCommandEnvelope?, lockoutCommand: RemoteLockoutCommand?, receipt: RemoteCommandReceipt?, result: RemoteCommandResult?, resultReceiptEnvelope: SignedRemoteCommandResultReceiptEnvelope?, resultReceiptProof: RemoteCommandResultReceiptProof?, verificationKeys: RemoteCommandJWKS?, verifiedPayload: RemoteLockCommand?) {
         self.acknowledgement = acknowledgement
         self.envelope = envelope
         self.lockoutCommand = lockoutCommand
         self.receipt = receipt
         self.result = result
+        self.resultReceiptEnvelope = resultReceiptEnvelope
+        self.resultReceiptProof = resultReceiptProof
         self.verificationKeys = verificationKeys
         self.verifiedPayload = verifiedPayload
     }
@@ -4107,6 +4111,8 @@ public extension RemoteCommandContract {
         lockoutCommand: RemoteLockoutCommand?? = nil,
         receipt: RemoteCommandReceipt?? = nil,
         result: RemoteCommandResult?? = nil,
+        resultReceiptEnvelope: SignedRemoteCommandResultReceiptEnvelope?? = nil,
+        resultReceiptProof: RemoteCommandResultReceiptProof?? = nil,
         verificationKeys: RemoteCommandJWKS?? = nil,
         verifiedPayload: RemoteLockCommand?? = nil
     ) -> RemoteCommandContract {
@@ -4116,6 +4122,8 @@ public extension RemoteCommandContract {
             lockoutCommand: lockoutCommand ?? self.lockoutCommand,
             receipt: receipt ?? self.receipt,
             result: result ?? self.result,
+            resultReceiptEnvelope: resultReceiptEnvelope ?? self.resultReceiptEnvelope,
+            resultReceiptProof: resultReceiptProof ?? self.resultReceiptProof,
             verificationKeys: verificationKeys ?? self.verificationKeys,
             verifiedPayload: verifiedPayload ?? self.verifiedPayload
         )
@@ -4547,6 +4555,136 @@ public enum RemoteCommandResultStage: String, Codable {
     case rejected = "rejected"
 }
 
+/// Coordinator-signed proof that one exact terminal result was durably accepted. Native
+/// daemons must verify the JWS before removing the matching result from their outbox.
+// MARK: - SignedRemoteCommandResultReceiptEnvelope
+public struct SignedRemoteCommandResultReceiptEnvelope: Codable {
+    public let compactJws: String
+
+    public init(compactJws: String) {
+        self.compactJws = compactJws
+    }
+}
+
+// MARK: SignedRemoteCommandResultReceiptEnvelope convenience initializers and mutators
+
+public extension SignedRemoteCommandResultReceiptEnvelope {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(SignedRemoteCommandResultReceiptEnvelope.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        compactJws: String? = nil
+    ) -> SignedRemoteCommandResultReceiptEnvelope {
+        return SignedRemoteCommandResultReceiptEnvelope(
+            compactJws: compactJws ?? self.compactJws
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Post-verification payload binding coordinator acceptance to unpadded base64url SHA-256
+/// over the UTF-8 bytes of RFC 8785 JCS for the exact schema-valid RemoteCommandResult, with
+/// absent variant fields omitted. expiresAt must be later than acceptedAt and no more than
+/// 300 seconds later; verifiers also reject a proof expired against their trusted clock.
+// MARK: - RemoteCommandResultReceiptProof
+public struct RemoteCommandResultReceiptProof: Codable {
+    public let acceptedAt: String
+    public let commandID: String
+    public let coordinatorAudience: CoordinatorAudience
+    public let deviceID: String
+    public let expiresAt: String
+    public let resultDigest: String
+    public let sequence: Int
+
+    public enum CodingKeys: String, CodingKey {
+        case acceptedAt
+        case commandID = "commandId"
+        case coordinatorAudience
+        case deviceID = "deviceId"
+        case expiresAt, resultDigest, sequence
+    }
+
+    public init(acceptedAt: String, commandID: String, coordinatorAudience: CoordinatorAudience, deviceID: String, expiresAt: String, resultDigest: String, sequence: Int) {
+        self.acceptedAt = acceptedAt
+        self.commandID = commandID
+        self.coordinatorAudience = coordinatorAudience
+        self.deviceID = deviceID
+        self.expiresAt = expiresAt
+        self.resultDigest = resultDigest
+        self.sequence = sequence
+    }
+}
+
+// MARK: RemoteCommandResultReceiptProof convenience initializers and mutators
+
+public extension RemoteCommandResultReceiptProof {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(RemoteCommandResultReceiptProof.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        acceptedAt: String? = nil,
+        commandID: String? = nil,
+        coordinatorAudience: CoordinatorAudience? = nil,
+        deviceID: String? = nil,
+        expiresAt: String? = nil,
+        resultDigest: String? = nil,
+        sequence: Int? = nil
+    ) -> RemoteCommandResultReceiptProof {
+        return RemoteCommandResultReceiptProof(
+            acceptedAt: acceptedAt ?? self.acceptedAt,
+            commandID: commandID ?? self.commandID,
+            coordinatorAudience: coordinatorAudience ?? self.coordinatorAudience,
+            deviceID: deviceID ?? self.deviceID,
+            expiresAt: expiresAt ?? self.expiresAt,
+            resultDigest: resultDigest ?? self.resultDigest,
+            sequence: sequence ?? self.sequence
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum CoordinatorAudience: String, Codable {
+    case curfewDeviceAgent = "curfew-device-agent"
+}
+
 /// Bounded public key set used only for coordinator remote-command signatures.
 // MARK: - RemoteCommandJWKS
 public struct RemoteCommandJWKS: Codable {
@@ -4767,10 +4905,6 @@ public extension RemoteLockCommand {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
-}
-
-public enum CoordinatorAudience: String, Codable {
-    case curfewDeviceAgent = "curfew-device-agent"
 }
 
 // MARK: - RemoteDeadlinePolicy
@@ -5881,6 +6015,7 @@ public enum CurfewProtocolValidationError: String, Error, Equatable, Sendable {
     case invalidPublicKey = "invalid_public_key"
     case invalidRemoteCommandKeySet = "invalid_remote_command_key_set"
     case invalidRemoteLockoutTarget = "invalid_remote_lockout_target"
+    case invalidResultReceipt = "invalid_result_receipt"
     case invalidResultState = "invalid_result_state"
     case invalidSequence = "invalid_sequence"
     case invalidSyncFrame = "invalid_sync_frame"
@@ -5922,6 +6057,40 @@ public extension SignedRemoteCommandEnvelope {
 
     static func decodeValidated(_ data: Data) throws -> Self {
         try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension SignedRemoteCommandResultReceiptEnvelope {
+    @discardableResult
+    func validated() throws -> Self {
+        guard CurfewProtocolPattern.matches(compactJws, CurfewProtocolPattern.compactJWS) else {
+            throw CurfewProtocolValidationError.invalidCompactJWS
+        }
+        return self
+    }
+
+    static func decodeValidated(_ data: Data) throws -> Self {
+        try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension RemoteCommandResultReceiptProof {
+    @discardableResult
+    func validated(at now: Date? = nil) throws -> Self {
+        guard CurfewProtocolPattern.matches(commandID, CurfewProtocolPattern.uuid),
+              CurfewProtocolPattern.matches(deviceID, CurfewProtocolPattern.uuid),
+              CurfewProtocolPattern.matches(resultDigest, CurfewProtocolPattern.base64URLSHA256),
+              sequence >= 1,
+              coordinatorAudience == .curfewDeviceAgent,
+              let accepted = CurfewProtocolPattern.date(acceptedAt),
+              let expiry = CurfewProtocolPattern.date(expiresAt),
+              expiry > accepted,
+              expiry.timeIntervalSince(accepted) <= 300,
+              now.map({ expiry > $0 }) ?? true
+        else {
+            throw CurfewProtocolValidationError.invalidResultReceipt
+        }
+        return self
     }
 }
 

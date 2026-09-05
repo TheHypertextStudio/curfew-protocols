@@ -25,6 +25,18 @@
     "receiptCanonical": "{\"campaignId\":\"018f4f45-7a98-7f53-89af-a4805f705d20\",\"expiresAt\":\"2026-08-10T14:00:20Z\",\"nonce\":\"Fb17b59pB_k3RG7VSz0hEw\",\"observedAt\":\"2026-08-10T14:00:06Z\",\"status\":\"satisfied\"}",
     "responseKey": "CHQURvt7SQSzxVSvThktbCYeDj3MDdbCW515whOwPn0",
     "receiptMac": "QX7X_95wB6aQjro_mBnT3SybkuyKftBj1CSgvYpWszw",
+    "remoteCommandResult": {
+      "resultUnsigned": {
+        "commandId": "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+        "deviceId": "018f4f45-7a98-7f53-89af-a4805f705d20",
+        "sequence": 42,
+        "stage": "applied",
+        "resolvedAt": "2026-09-05T12:00:00.123Z",
+        "appliedDeadline": "2026-09-05T12:30:00.456Z"
+      },
+      "resultCanonical": "{\"appliedDeadline\":\"2026-09-05T12:30:00.456Z\",\"commandId\":\"018f4f45-4d34-7d98-a6c5-4de1bd63a21c\",\"deviceId\":\"018f4f45-7a98-7f53-89af-a4805f705d20\",\"resolvedAt\":\"2026-09-05T12:00:00.123Z\",\"sequence\":42,\"stage\":\"applied\"}",
+      "resultDigest": "fklqwyZFhC9HaRAqnZyalSkC3UQLKW9nOMuNyCgttOY"
+    },
     "encryptedRecord": {
       "rootKey": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
       "namespaceKeySalt": "curfew-encrypted-record-v2",
