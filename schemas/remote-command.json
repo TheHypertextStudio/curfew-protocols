@@ -9,13 +9,59 @@
     "envelope": { "$ref": "#/definitions/SignedRemoteCommandEnvelope" },
     "verifiedPayload": { "$ref": "#/definitions/RemoteLockCommand" },
     "acknowledgement": { "$ref": "#/definitions/RemoteCommandAcknowledgement" },
-    "result": { "$ref": "#/definitions/RemoteCommandResult" }
+    "result": { "$ref": "#/definitions/RemoteCommandResult" },
+    "lockoutCommand": { "$ref": "#/definitions/RemoteLockoutCommand" },
+    "receipt": { "$ref": "#/definitions/RemoteCommandReceipt" },
+    "verificationKeys": { "$ref": "#/definitions/RemoteCommandJWKS" }
   },
   "definitions": {
     "CanonicalUUID": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
     "UTCInstant": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" },
     "Base64URLSHA256": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
     "RemoteCommandKind": { "type": "string", "enum": ["lock_device"] },
+    "SelectedDeviceTargets": {
+      "description": "An explicit, non-empty set of opted-in devices selected by an MCP client. The coordinator expands only owner-owned, consented devices into signed per-device commands.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deviceIds"],
+      "properties": {
+        "deviceIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "$ref": "#/definitions/CanonicalUUID" }
+        }
+      }
+    },
+    "AllOptedInDeviceTargets": {
+      "description": "Selects every currently owner-owned device with explicit remote-control consent. It never carries device IDs, so a request cannot ambiguously mix all-device and selected-device semantics.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allOptedInDevices"],
+      "properties": {
+        "allOptedInDevices": { "type": "boolean", "const": true }
+      }
+    },
+    "RemoteLockoutTarget": {
+      "oneOf": [
+        { "$ref": "#/definitions/SelectedDeviceTargets" },
+        { "$ref": "#/definitions/AllOptedInDeviceTargets" }
+      ]
+    },
+    "RemoteLockoutCommand": {
+      "description": "MCP-facing strengthening-only lockout request. The coordinator authorizes its caller and expands the closed target selector into one signed RemoteLockCommand per eligible device; this request is never delivered directly to a native host.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "idempotencyKey", "userId", "target", "durationSeconds"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "idempotencyKey": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "target": { "$ref": "#/definitions/RemoteLockoutTarget" },
+        "durationSeconds": { "type": "integer", "minimum": 300, "maximum": 43200 }
+      }
+    },
     "FixedDurationPolicy": {
       "type": "object",
       "additionalProperties": false,
@@ -46,6 +92,37 @@
         "alg": { "type": "string", "const": "ES256" },
         "kid": { "type": "string", "minLength": 1, "maxLength": 80 },
         "typ": { "type": "string", "const": "curfew-command+jwt" }
+      }
+    },
+    "RemoteCommandJWK": {
+      "description": "One public coordinator key accepted for ES256 remote-command verification.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kty", "crv", "alg", "use", "kid", "x", "y"],
+      "properties": {
+        "kty": { "type": "string", "const": "EC" },
+        "crv": { "type": "string", "const": "P-256" },
+        "alg": { "type": "string", "const": "ES256" },
+        "use": { "type": "string", "const": "sig" },
+        "kid": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "x": { "$ref": "#/definitions/Base64URLSHA256" },
+        "y": { "$ref": "#/definitions/Base64URLSHA256" }
+      }
+    },
+    "RemoteCommandJWKS": {
+      "description": "Bounded public key set used only for coordinator remote-command signatures.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keys"],
+      "properties": {
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "x-curfew-unique-property": "kid",
+          "items": { "$ref": "#/definitions/RemoteCommandJWK" }
+        }
       }
     },
     "RemoteLockCommand": {
@@ -90,6 +167,73 @@
       }
     },
     "RemoteCommandAcknowledgement": { "oneOf": [{ "$ref": "#/definitions/DeliveredAcknowledgement" }] },
+    "QueuedCommandReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "status", "queuedAt"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "status": { "type": "string", "const": "queued" },
+        "queuedAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "DeliveredCommandReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "status", "deliveredAt"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "status": { "type": "string", "const": "delivered" },
+        "deliveredAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "AppliedCommandReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "status": { "type": "string", "const": "applied" },
+        "resolvedAt": { "$ref": "#/definitions/UTCInstant" },
+        "appliedDeadline": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "RejectedCommandReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "status": { "type": "string", "const": "rejected" },
+        "resolvedAt": { "$ref": "#/definitions/UTCInstant" },
+        "rejectionCode": { "type": "string", "enum": ["ineligible", "stale_status", "out_of_order", "invalid_signature", "invalid_deadline", "device_unavailable"] }
+      }
+    },
+    "ExpiredCommandReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commandId", "deviceId", "status", "resolvedAt"],
+      "properties": {
+        "commandId": { "$ref": "#/definitions/CanonicalUUID" },
+        "deviceId": { "$ref": "#/definitions/CanonicalUUID" },
+        "status": { "type": "string", "const": "expired" },
+        "resolvedAt": { "$ref": "#/definitions/UTCInstant" }
+      }
+    },
+    "RemoteCommandReceipt": {
+      "description": "Current state of one immutable command/device pair. Repeating the same idempotent request returns the current state of the original command, allowing a client to observe queued or delivered work reaching applied, rejected, or expired without creating another command.",
+      "oneOf": [
+        { "$ref": "#/definitions/QueuedCommandReceipt" },
+        { "$ref": "#/definitions/DeliveredCommandReceipt" },
+        { "$ref": "#/definitions/AppliedCommandReceipt" },
+        { "$ref": "#/definitions/RejectedCommandReceipt" },
+        { "$ref": "#/definitions/ExpiredCommandReceipt" }
+      ]
+    },
     "AppliedCommandResult": {
       "type": "object",
       "additionalProperties": false,

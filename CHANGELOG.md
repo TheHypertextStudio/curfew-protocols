@@ -4,11 +4,40 @@ All notable changes to `@thehypertextstudio/curfew-protocols` are documented her
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+No unreleased changes.
+
+## [0.0.8] — 2026-09-04
+
+### Added
+
+- Closed `RemoteLockoutCommand` target selectors, per-device `RemoteCommandReceipt` records, and generated TypeScript, Swift, and Kotlin bindings for a strengthening-only remote lock flow.
+- Separate `curfew:lock:device` and `curfew:lock:all` scopes plus the matching `curfew.lock.device` and `curfew.lock.all` MCP registry entries. Explicit target lists are duplicate-free; all-device requests cannot carry an explicit device list.
+- A bounded `RemoteCommandDeliveryBatch` for proof-authenticated device polling. It carries only the same cursor-bound signed-envelope frames used by the device WebSocket, never coordinator queue internals.
+
+### Fixed
+
+- Made every exported MCP tool input and output schema independently compilable after extraction. In particular, both remote lock outputs now carry the closed `RemoteCommandReceipt` definition closure they reference instead of relying on `mcp-tools.json` root definitions.
+- Made idempotent lock retries return the original command's current receipt, allowing MCP clients to observe queued or delivered work reach a terminal state without issuing another command.
+- Replaced permissive UUID formats at MCP lock boundaries with the lowercase canonical UUID contract used by device delivery and receipts.
+
+### Security
+
+- Preserve the existing signed, device-specific `RemoteLockCommand` transport boundary. The coordinator must resolve all-device selections only from active owner-owned opt-ins before issuing a per-device envelope; native hosts continue to reject invalid audience, expiry, replay, sequence, or signature inputs.
+- Generated Swift and Kotlin target bindings now reject absent, mixed, false, empty, and duplicate remote-lock selectors before coordinator use. The two remote lock tools share a closed stage-specific receipt projection, so an applied, rejected, or expired result cannot omit its required resolution detail.
+- TypeScript, Swift, and Kotlin trust-boundary validation now rejects oversized or noncanonical device selections and duplicate coordinator key identifiers.
+
+### Release
+
+- Prepare the single coordinated `0.0.8` GitHub Packages release. JavaScript and Kotlin publication runs only after every language gate and proves the tagged commit is already reachable from `main`; this branch does not publish.
+
 ## [0.0.7] — 2026-09-01
 
 ### Fixed
 
 - Run the GitHub Packages publication gate on macOS, matching the supported Swift CryptoKit test environment, so publication can reach the internal registry after all language verification passes.
+- Serialize Vitest test files because generated-output contract tests share and rewrite the committed output directory; this prevents a concurrent host-policy read from observing the Swift generator's temporary empty directory during publication.
 
 ### Changed
 

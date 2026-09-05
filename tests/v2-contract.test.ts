@@ -471,6 +471,7 @@ describe("E2EE account synchronization", () => {
       state: "B".repeat(43),
       coordinatorNonce: "C".repeat(43),
       deviceProof: { compactJws: `A.B.${"C".repeat(86)}` },
+      remoteControlEnabled: false,
     }
     expect(
       request(enrollmentRequest),

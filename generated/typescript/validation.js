@@ -24,7 +24,26 @@ export const derivedCampaignDurationKeyword = {
   },
 }
 
+export const uniquePropertyKeyword = {
+  keyword: "x-curfew-unique-property",
+  schemaType: "string",
+  type: "array",
+  errors: false,
+  validate(property, value) {
+    if (!Array.isArray(value)) return false
+    const seen = new Set()
+    for (const item of value) {
+      if (item === null || typeof item !== "object") return false
+      const candidate = item[property]
+      if (typeof candidate !== "string" || seen.has(candidate)) return false
+      seen.add(candidate)
+    }
+    return true
+  },
+}
+
 export function addCurfewProtocolKeywords(ajv) {
   ajv.addKeyword(derivedCampaignDurationKeyword)
+  ajv.addKeyword(uniquePropertyKeyword)
   return ajv
 }

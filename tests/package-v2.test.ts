@@ -28,7 +28,7 @@ describe("internal 0.0.x artifacts", () => {
     })
   })
 
-  it("publishes only matching 0.0.x release tags to an internal GitHub package", async () => {
+  it("publishes only matching 0.0.x release tags to internal GitHub packages", async () => {
     const workflow = await readFile(
       join(repoRoot, ".github", "workflows", "publish-github-package.yml"),
       "utf8",
@@ -42,18 +42,27 @@ describe("internal 0.0.x artifacts", () => {
     expect(workflow).toContain("registry-url: https://npm.pkg.github.com")
     expect(workflow).toContain('scope: "@thehypertextstudio"')
     expect(workflow).toContain("--access restricted")
-    expect(workflow).toMatch(/publish:\n    runs-on: macos-14/)
+    expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-14/)
+    expect(workflow).toMatch(/publish-kotlin:[\s\S]*?runs-on: ubuntu-latest/)
+    expect(workflow).toContain(":generated:kotlin:publish")
+    expect(workflow).toContain("packages: write")
+    expect(workflow).not.toContain("registry.npmjs.org")
+    expect(workflow).not.toContain("npm publish --access public")
+    expect(workflow).toContain("fetch-depth: 0")
+    expect(workflow).toContain("git merge-base --is-ancestor")
   })
 
-  it("disables the legacy public npm release jobs", async () => {
+  it("keeps the manual release workflow verification-only", async () => {
     const workflow = await readFile(
       join(repoRoot, ".github", "workflows", "release.yml"),
       "utf8",
     )
 
     expect(workflow).toContain("workflow_dispatch")
-    expect(workflow).toMatch(/publish-npm:\n    if: \$\{\{ false \}\}/)
-    expect(workflow).toMatch(/publish-kotlin:\n    if: \$\{\{ false \}\}/)
+    expect(workflow).not.toContain("publish-npm:")
+    expect(workflow).not.toContain("publish-kotlin:")
+    expect(workflow).not.toContain("registry.npmjs.org")
+    expect(workflow).not.toContain("npm publish")
   })
 
   it("uses the package-manager version in CI", async () => {
@@ -64,6 +73,34 @@ describe("internal 0.0.x artifacts", () => {
     )
 
     expect(workflow).toContain(`version: ${pkg.packageManager.replace("pnpm@", "")}`)
+  })
+
+  it("documents only the current 0.0.x consumer coordinates", async () => {
+    const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
+    const readme = await readFile(join(repoRoot, "README.md"), "utf8")
+
+    expect(readme).toContain(`exact: "${pkg.version}"`)
+    expect(readme).toContain(`:${pkg.version}")`)
+    expect(readme).not.toContain("0.3.0")
+  })
+
+  it("runs generated-output checks without cross-file write races", async () => {
+    const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
+
+    expect(pkg.scripts.test).toContain("--no-file-parallelism")
+  })
+
+  it("keeps remote lock scopes internal to the GitHub Packages contract", async () => {
+    const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
+    const oauth = JSON.parse(
+      await readFile(join(repoRoot, "schemas", "oauth.json"), "utf8"),
+    )
+
+    expect(oauth.definitions.CurfewOAuthScope.enum).toEqual(
+      expect.arrayContaining(["curfew:lock:device", "curfew:lock:all"]),
+    )
+    expect(pkg.publishConfig.registry).toBe("https://npm.pkg.github.com")
+    expect(pkg.name).toMatch(/^@thehypertextstudio\//)
   })
 
   it("ships the no-deadline alarm contract without the retired duration fields", async () => {
@@ -108,9 +145,9 @@ describe("internal 0.0.x artifacts", () => {
     ).toBe(false)
   })
 
-  it("publishes npm and Kotlin independently after all language gates", async () => {
+  it("publishes npm and Kotlin to GitHub independently after all language gates", async () => {
     const workflow = await readFile(
-      join(repoRoot, ".github", "workflows", "release.yml"),
+      join(repoRoot, ".github", "workflows", "publish-github-package.yml"),
       "utf8",
     )
     const kotlinBuild = await readFile(
@@ -120,7 +157,7 @@ describe("internal 0.0.x artifacts", () => {
 
     expect(() => parseYaml(workflow)).not.toThrow()
 
-    expect(workflow).toContain("npm publish --access public")
+    expect(workflow).toContain("pnpm publish --access restricted")
     expect(workflow).toContain(":generated:kotlin:publish")
     expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-14/)
     expect(workflow).toMatch(/publish-kotlin:[\s\S]*?runs-on: ubuntu-latest/)
@@ -130,9 +167,9 @@ describe("internal 0.0.x artifacts", () => {
     expect(workflow).toMatch(
       /publish-kotlin:[\s\S]*?needs: \[verify-typescript, verify-swift, verify-kotlin\]/,
     )
-    expect(workflow).toContain("id-token: write")
     expect(workflow).toContain("packages: write")
-    expect(workflow).not.toContain("NPM_TOKEN")
+    expect(workflow).toContain("NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}")
+    expect(workflow).not.toContain("registry.npmjs.org")
     expect(kotlinBuild).toContain(
       "https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols",
     )

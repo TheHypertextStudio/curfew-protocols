@@ -11,6 +11,8 @@ import { execSync } from "node:child_process"
 import { readFile, readdir } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import Ajv from "ajv"
+import addFormats from "ajv-formats"
 import { describe, expect, it } from "vitest"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -62,7 +64,7 @@ describe("schemas", () => {
     )
   })
 
-  it("mcp-tools.json publishes only the six account-safe remote MCP tools", async () => {
+  it("mcp-tools.json publishes the account-scoped remote MCP tools", async () => {
     const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
     const parsed = JSON.parse(raw)
     const remoteTools = parsed.const?.remoteTools as
@@ -79,6 +81,8 @@ describe("schemas", () => {
       "request_remote_unlock",
       "get_remote_unlock_request",
       "cancel_remote_unlock",
+      "curfew.lock.device",
+      "curfew.lock.all",
     ])
     expect(remoteTools?.map(({ requiredScopes }) => requiredScopes)).toEqual([
       ["curfew:devices:read"],
@@ -87,8 +91,37 @@ describe("schemas", () => {
       ["curfew:unlock:request"],
       ["curfew:unlock:request"],
       ["curfew:unlock:request"],
+      ["curfew:lock:device"],
+      ["curfew:lock:all"],
     ])
     expect(JSON.stringify(remoteTools)).not.toContain("display_name")
+  })
+
+  it("publishes independently compilable schemas for every MCP tool input and output", async () => {
+    const raw = await readFile(join(repoRoot, "schemas", "mcp-tools.json"), "utf8")
+    const parsed = JSON.parse(raw) as {
+      const?: {
+        tools?: Array<{ name: string; inputSchema: object; outputSchema: object }>
+        remoteTools?: Array<{ name: string; inputSchema: object; outputSchema: object }>
+      }
+    }
+    const tools = [...(parsed.const?.tools ?? []), ...(parsed.const?.remoteTools ?? [])]
+
+    expect(tools).not.toHaveLength(0)
+    for (const tool of tools) {
+      for (const [kind, schema] of [
+        ["input", tool.inputSchema],
+        ["output", tool.outputSchema],
+      ] as const) {
+        const ajv = new Ajv({ allErrors: true, strict: true })
+        addFormats(ajv)
+
+        expect(
+          () => ajv.compile(structuredClone(schema)),
+          `${tool.name} ${kind} schema must compile after Curfew Sync serves it without the registry root`,
+        ).not.toThrow()
+      }
+    }
   })
 
   it("publishes the exact MCP resource and least-privilege OAuth scopes", async () => {
@@ -102,6 +135,8 @@ describe("schemas", () => {
       "curfew:devices:read",
       "curfew:entitlements:read",
       "curfew:wake:read",
+      "curfew:lock:device",
+      "curfew:lock:all",
       "curfew:unlock:request",
       "curfew:unlock:direct",
     ])

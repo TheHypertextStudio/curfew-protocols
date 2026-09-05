@@ -7,6 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "enrollmentRequest": { "$ref": "#/definitions/DeviceEnrollmentRequest" },
+    "enrollmentReceipt": { "$ref": "#/definitions/NativeDeviceEnrollmentReceipt" },
     "enrollmentNonce": { "$ref": "#/definitions/DeviceEnrollmentNonce" },
     "enrollmentStartResponse": { "$ref": "#/definitions/DeviceEnrollmentStartResponse" },
     "enrollmentExchange": { "$ref": "#/definitions/DeviceEnrollmentExchange" },
@@ -26,13 +27,14 @@
       }
     },
     "DeviceEnrollmentNonce": {
-      "description": "Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest. The device must echo coordinatorNonce in both the request and its signed DeviceProofClaims.",
+      "description": "Short-lived coordinator challenge returned before a device signs DeviceEnrollmentRequest. The device must echo coordinatorNonce in both the request and its signed DeviceProofClaims, and use the coordinator's current account key epoch instead of assuming an initial value.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["coordinatorNonce", "expiresAt"],
+      "required": ["coordinatorNonce", "expiresAt", "keyEpoch"],
       "properties": {
         "coordinatorNonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
-        "expiresAt": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" }
+        "expiresAt": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" },
+        "keyEpoch": { "type": "integer", "minimum": 1 }
       }
     },
     "DeviceEnrollmentStartResponse": {
@@ -49,7 +51,7 @@
       "description": "Privacy-minimal native enrollment request. Device presentation, platform, application version, and human-readable names are encrypted account settings and never appear here. The protocol capability is included so a coordinator can refuse a wake campaign that targets an incompatible device. Key thumbprints are derived from the public signing key rather than accepted as competing input.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["deviceId", "encryptionPublicKeyJwk", "signingPublicKeyJwk", "keyEpoch", "enrolledAt", "protocolVersion", "pkceChallenge", "state", "coordinatorNonce", "deviceProof"],
+      "required": ["deviceId", "encryptionPublicKeyJwk", "signingPublicKeyJwk", "keyEpoch", "enrolledAt", "protocolVersion", "pkceChallenge", "state", "coordinatorNonce", "deviceProof", "remoteControlEnabled"],
       "properties": {
         "deviceId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
         "encryptionPublicKeyJwk": { "$ref": "#/definitions/DevicePublicKeyJWK" },
@@ -60,7 +62,20 @@
         "pkceChallenge": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
         "state": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
         "coordinatorNonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{22,86}$" },
-        "deviceProof": { "$ref": "#/definitions/DeviceProof" }
+        "deviceProof": { "$ref": "#/definitions/DeviceProof" },
+        "remoteControlEnabled": { "description": "The owner's explicit choice made in the native setup surface. False enrolls for sync without allowing remote lock commands.", "type": "boolean" }
+      }
+    },
+    "NativeDeviceEnrollmentReceipt": {
+      "description": "Authenticated native enrollment result. The coordinator returns its canonical account binding so the app can provision the privileged verifier without deriving identity from an unverified token payload.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["userId", "deviceId", "enrolledAt", "protocolVersion"],
+      "properties": {
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "deviceId": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "enrolledAt": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$" },
+        "protocolVersion": { "type": "string", "pattern": "^0\\.[0-9]+$" }
       }
     },
     "DeviceEnrollmentExchange": {

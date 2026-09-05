@@ -38,6 +38,55 @@ export async function definitionValidator(
   return ajv.compile({ $ref: `${target.$id}#/definitions/${definition}` })
 }
 
+export async function mcpToolOutputValidator(
+  toolName: string,
+): Promise<ValidateFunction> {
+  const registry = await readSchema("mcp-tools.json")
+  const remoteTools = (registry.const as { remoteTools?: unknown }).remoteTools
+  if (!Array.isArray(remoteTools)) {
+    throw new Error("MCP tool registry has no remoteTools array")
+  }
+  const tool = remoteTools.find(
+    (candidate): candidate is { name: string; outputSchema: unknown } =>
+      typeof candidate === "object" &&
+      candidate !== null &&
+      (candidate as { name?: unknown }).name === toolName &&
+      "outputSchema" in candidate,
+  )
+  if (tool === undefined) throw new Error(`Unknown remote MCP tool: ${toolName}`)
+
+  const ajv = curfewAjv()
+  const names = (await readdir(join(repoRoot, "schemas"))).filter((entry) =>
+    entry.endsWith(".json"),
+  )
+  for (const entry of names) {
+    ajv.addSchema(await readSchema(entry))
+  }
+  return ajv.compile(structuredClone(tool.outputSchema as Record<string, unknown>))
+}
+
+export async function mcpToolInputValidator(
+  toolName: string,
+): Promise<ValidateFunction> {
+  const registry = await readSchema("mcp-tools.json")
+  const remoteTools = (registry.const as { remoteTools?: unknown }).remoteTools
+  if (!Array.isArray(remoteTools)) {
+    throw new Error("MCP tool registry has no remoteTools array")
+  }
+  const tool = remoteTools.find(
+    (candidate): candidate is { name: string; inputSchema: unknown } =>
+      typeof candidate === "object" &&
+      candidate !== null &&
+      (candidate as { name?: unknown }).name === toolName &&
+      "inputSchema" in candidate,
+  )
+  if (tool === undefined) throw new Error(`Unknown remote MCP tool: ${toolName}`)
+
+  return curfewAjv().compile(
+    structuredClone(tool.inputSchema as Record<string, unknown>),
+  )
+}
+
 function curfewAjv(): Ajv {
   const ajv = new Ajv({ allErrors: true, strict: true })
   addFormats(ajv)
