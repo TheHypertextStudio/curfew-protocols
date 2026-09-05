@@ -1591,6 +1591,7 @@ export type RemoteCommandKind = "lock_device"
 export type RemoteDeadlinePolicy = FixedDurationPolicy | NextScheduledUnlockPolicy
 export type RemoteCommandAcknowledgement = DeliveredAcknowledgement
 export type RemoteCommandResult = AppliedCommandResult | RejectedCommandResult | ExpiredCommandResult
+export type CoordinatorReceiptInstant = string
 export type RemoteLockoutTarget = SelectedDeviceTargets | AllOptedInDeviceTargets
 
 /**
@@ -1611,6 +1612,8 @@ export interface RemoteCommandContract {
   verifiedPayload?: RemoteLockCommand
   acknowledgement?: RemoteCommandAcknowledgement
   result?: RemoteCommandResult
+  resultReceiptEnvelope?: SignedRemoteCommandResultReceiptEnvelope
+  resultReceiptProof?: RemoteCommandResultReceiptProof
   lockoutCommand?: RemoteLockoutCommand
   receipt?: RemoteCommandReceipt
   verificationKeys?: RemoteCommandJWKS
@@ -1679,6 +1682,26 @@ export interface ExpiredCommandResult {
   sequence: number
   stage: "expired"
   resolvedAt: UTCInstant
+}
+
+/**
+ * Coordinator-signed proof that one exact terminal result was durably accepted. Native daemons must verify the JWS before removing the matching result from their outbox.
+ */
+export interface SignedRemoteCommandResultReceiptEnvelope {
+  compactJws: string
+}
+
+/**
+ * Post-verification payload binding coordinator acceptance to unpadded base64url SHA-256 over the UTF-8 bytes of RFC 8785 JCS for the exact schema-valid RemoteCommandResult, with absent variant fields omitted. expiresAt must be later than acceptedAt and no more than 300 seconds later; verifiers also reject a proof expired against their trusted clock.
+ */
+export interface RemoteCommandResultReceiptProof {
+  commandId: CanonicalUUID
+  deviceId: CanonicalUUID
+  sequence: number
+  resultDigest: Base64URLSHA256
+  acceptedAt: CoordinatorReceiptInstant
+  expiresAt: CoordinatorReceiptInstant
+  coordinatorAudience: "curfew-device-agent"
 }
 
 /**

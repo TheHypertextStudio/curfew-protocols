@@ -74,6 +74,22 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         XCTAssertEqual(base64URL(Data(receiptMac)), cryptography["receiptMac"] as? String)
     }
 
+    func testVerifiesCanonicalRemoteCommandResultDigest() throws {
+        let root = try repositoryRoot()
+        let manifest = try XCTUnwrap(
+            try json(at: root.appendingPathComponent("tests/vectors/v2-golden.json")) as? [String: Any]
+        )
+        let cryptography = try XCTUnwrap(manifest["cryptography"] as? [String: Any])
+        let vector = try XCTUnwrap(cryptography["remoteCommandResult"] as? [String: Any])
+        let canonical = try canonicalJSON(try XCTUnwrap(vector["resultUnsigned"]))
+
+        XCTAssertEqual(canonical, vector["resultCanonical"] as? String)
+        XCTAssertEqual(
+            base64URL(Data(SHA256.hash(data: Data(canonical.utf8)))),
+            vector["resultDigest"] as? String
+        )
+    }
+
     func testVerifiesEncryptedSyncCryptography() throws {
         let root = try repositoryRoot()
         let manifest = try XCTUnwrap(

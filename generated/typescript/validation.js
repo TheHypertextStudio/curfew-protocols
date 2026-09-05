@@ -42,8 +42,22 @@ export const uniquePropertyKeyword = {
   },
 }
 
+export const boundedIntervalKeyword = {
+  keyword: "x-curfew-bounded-interval",
+  schemaType: "object",
+  type: "object",
+  errors: false,
+  validate(rule, value) {
+    const start = Date.parse(value[rule.startProperty])
+    const end = Date.parse(value[rule.endProperty])
+    return Number.isFinite(start) && Number.isFinite(end) &&
+      end > start && end - start <= rule.capSeconds * 1000
+  },
+}
+
 export function addCurfewProtocolKeywords(ajv) {
   ajv.addKeyword(derivedCampaignDurationKeyword)
   ajv.addKeyword(uniquePropertyKeyword)
+  ajv.addKeyword(boundedIntervalKeyword)
   return ajv
 }

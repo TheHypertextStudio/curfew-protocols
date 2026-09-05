@@ -1186,6 +1186,8 @@ data class RemoteCommandContract (
     val lockoutCommand: RemoteLockoutCommand? = null,
     val receipt: RemoteCommandReceipt? = null,
     val result: RemoteCommandResult? = null,
+    val resultReceiptEnvelope: SignedRemoteCommandResultReceiptEnvelope? = null,
+    val resultReceiptProof: RemoteCommandResultReceiptProof? = null,
     val verificationKeys: RemoteCommandJWKS? = null,
     val verifiedPayload: RemoteLockCommand? = null
 )
@@ -1292,6 +1294,37 @@ enum class RemoteCommandResultStage(val value: String) {
 }
 
 /**
+ * Coordinator-signed proof that one exact terminal result was durably accepted. Native
+ * daemons must verify the JWS before removing the matching result from their outbox.
+ */
+@Serializable
+data class SignedRemoteCommandResultReceiptEnvelope (
+    val compactJws: String
+)
+
+/**
+ * Post-verification payload binding coordinator acceptance to unpadded base64url SHA-256
+ * over the UTF-8 bytes of RFC 8785 JCS for the exact schema-valid RemoteCommandResult, with
+ * absent variant fields omitted. expiresAt must be later than acceptedAt and no more than
+ * 300 seconds later; verifiers also reject a proof expired against their trusted clock.
+ */
+@Serializable
+data class RemoteCommandResultReceiptProof (
+    val acceptedAt: String,
+    val commandId: String,
+    val coordinatorAudience: CoordinatorAudience,
+    val deviceId: String,
+    val expiresAt: String,
+    val resultDigest: String,
+    val sequence: Long
+)
+
+@Serializable
+enum class CoordinatorAudience(val value: String) {
+    @SerialName("curfew-device-agent") CurfewDeviceAgent("curfew-device-agent");
+}
+
+/**
  * Bounded public key set used only for coordinator remote-command signatures.
  */
 @Serializable
@@ -1342,11 +1375,6 @@ data class RemoteLockCommand (
     val statusVersion: Long,
     val userId: String
 )
-
-@Serializable
-enum class CoordinatorAudience(val value: String) {
-    @SerialName("curfew-device-agent") CurfewDeviceAgent("curfew-device-agent");
-}
 
 @Serializable
 data class RemoteDeadlinePolicy (
@@ -1566,6 +1594,24 @@ fun RemoteLockoutTarget.validated(): RemoteLockoutTarget {
 fun RemoteCommandJWKS.validated(): RemoteCommandJWKS {
     if (keys.size !in 1..8 || keys.map { it.kid }.distinct().size != keys.size) {
         throw CurfewProtocolValidationException("invalid_remote_command_key_set")
+    }
+    return this
+}
+
+fun RemoteCommandResultReceiptProof.validated(
+    now: java.time.Instant? = null,
+): RemoteCommandResultReceiptProof {
+    val canonicalUUID = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+    val digest = Regex("^[A-Za-z0-9_-]{43}$")
+    val accepted = runCatching { java.time.Instant.parse(acceptedAt) }.getOrNull()
+    val expiry = runCatching { java.time.Instant.parse(expiresAt) }.getOrNull()
+    if (!canonicalUUID.matches(commandId) || !canonicalUUID.matches(deviceId) ||
+        !digest.matches(resultDigest) || sequence < 1 ||
+        coordinatorAudience != CoordinatorAudience.CurfewDeviceAgent ||
+        accepted == null || expiry == null || !expiry.isAfter(accepted) ||
+        java.time.Duration.between(accepted, expiry) > java.time.Duration.ofSeconds(300) ||
+        (now != null && !expiry.isAfter(now))) {
+        throw CurfewProtocolValidationException("invalid_result_receipt")
     }
     return this
 }

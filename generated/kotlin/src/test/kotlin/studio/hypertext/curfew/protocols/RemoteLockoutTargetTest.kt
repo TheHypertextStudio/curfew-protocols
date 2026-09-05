@@ -2,12 +2,43 @@
 package studio.hypertext.curfew.protocols
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 
 class RemoteLockoutTargetTest {
+    @Test
+    fun validatesBoundedResultReceiptLifetimeAndTrustedClock() {
+        val proof = RemoteCommandResultReceiptProof(
+            acceptedAt = "2026-09-05T12:00:00Z",
+            commandId = "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+            coordinatorAudience = CoordinatorAudience.CurfewDeviceAgent,
+            deviceId = "018f4f45-7a98-7f53-89af-a4805f705d20",
+            expiresAt = "2026-09-05T12:05:00Z",
+            resultDigest = "D".repeat(43),
+            sequence = 42,
+        )
+
+        assertEquals(proof, proof.validated(java.time.Instant.parse("2026-09-05T12:04:59Z")))
+        assertFailsWith<CurfewProtocolValidationException> {
+            proof.copy(expiresAt = "2026-09-05T12:00:00Z").validated()
+        }
+        assertFailsWith<CurfewProtocolValidationException> {
+            proof.copy(expiresAt = "2026-09-05T12:05:01Z").validated()
+        }
+        assertFailsWith<CurfewProtocolValidationException> {
+            proof.copy(
+                acceptedAt = "2026-09-05T12:00:00.000Z",
+                expiresAt = "2026-09-05T12:05:00.001Z",
+            ).validated()
+        }
+        assertFailsWith<CurfewProtocolValidationException> {
+            proof.validated(java.time.Instant.parse("2026-09-05T12:05:01Z"))
+        }
+    }
+
     private val json = Json { ignoreUnknownKeys = false }
 
     @Test

@@ -280,6 +280,7 @@ public enum CurfewProtocolValidationError: String, Error, Equatable, Sendable {
     case invalidPublicKey = "invalid_public_key"
     case invalidRemoteCommandKeySet = "invalid_remote_command_key_set"
     case invalidRemoteLockoutTarget = "invalid_remote_lockout_target"
+    case invalidResultReceipt = "invalid_result_receipt"
     case invalidResultState = "invalid_result_state"
     case invalidSequence = "invalid_sequence"
     case invalidSyncFrame = "invalid_sync_frame"
@@ -321,6 +322,40 @@ public extension SignedRemoteCommandEnvelope {
 
     static func decodeValidated(_ data: Data) throws -> Self {
         try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension SignedRemoteCommandResultReceiptEnvelope {
+    @discardableResult
+    func validated() throws -> Self {
+        guard CurfewProtocolPattern.matches(compactJws, CurfewProtocolPattern.compactJWS) else {
+            throw CurfewProtocolValidationError.invalidCompactJWS
+        }
+        return self
+    }
+
+    static func decodeValidated(_ data: Data) throws -> Self {
+        try newJSONDecoder().decode(Self.self, from: data).validated()
+    }
+}
+
+public extension RemoteCommandResultReceiptProof {
+    @discardableResult
+    func validated(at now: Date? = nil) throws -> Self {
+        guard CurfewProtocolPattern.matches(commandID, CurfewProtocolPattern.uuid),
+              CurfewProtocolPattern.matches(deviceID, CurfewProtocolPattern.uuid),
+              CurfewProtocolPattern.matches(resultDigest, CurfewProtocolPattern.base64URLSHA256),
+              sequence >= 1,
+              coordinatorAudience == .curfewDeviceAgent,
+              let accepted = CurfewProtocolPattern.date(acceptedAt),
+              let expiry = CurfewProtocolPattern.date(expiresAt),
+              expiry > accepted,
+              expiry.timeIntervalSince(accepted) <= 300,
+              now.map({ expiry > $0 }) ?? true
+        else {
+            throw CurfewProtocolValidationError.invalidResultReceipt
+        }
+        return self
     }
 }
 
