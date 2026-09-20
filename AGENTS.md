@@ -57,3 +57,11 @@ pnpm typecheck:consumer  # compiles the emitted .d.ts itself, lib checking on
 - `package.json` version bumped.
 - Swift consumers (`swift build` against this package's `Package.swift`) succeed.
 - Kotlin consumers (`pnpm test:kotlin`) compile and pass the shared vector corpus.
+
+## Worktree preparation
+
+Run `./bootstrap worktree prepare` for a fresh worktree. Keep native shared
+caches intact and keep `node_modules`, `.build`, DerivedData, and application
+state local to the checkout. Use existing build and test commands after setup.
+Do not replace the shared engine with another dependency installer or setup
+framework.
