@@ -164,7 +164,7 @@ describe("MCP and sync surfaces", () => {
     const validate = await validator("mcp-tools.json")
 
     expect(validate(registry), JSON.stringify(validate.errors)).toBe(true)
-    expect(registry.remoteTools).toHaveLength(10)
+    expect(registry.remoteTools).toHaveLength(11)
     for (const tool of registry.remoteTools) {
       expect(tool).toHaveProperty("requiredScopes")
       expect(tool).toHaveProperty("outputSchema")

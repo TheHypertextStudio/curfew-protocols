@@ -4,7 +4,12 @@ Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, t
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
-## Remote-control contract in v0.0.10
+## Remote-control contract
+
+Version `0.0.11` adds `list_pending_remote_unlock_requests`, a bounded, paginated
+list of request IDs belonging to the exact OAuth client. An MCP App can recover
+pending approval and cancellation after its host discards local panel storage;
+the existing caller-owned request lookup supplies the details for each ID.
 
 Version `0.0.10` separates the reported Curfew enforcement phase from wake-campaign gate status. `list_devices` may carry a server-timed enforcement snapshot and a distinct owner-chosen remote-control alias; neither is a decrypted device name or schedule. The coordinator must require an explicit label and opt-in before allowing remote targeting.
 
@@ -88,7 +93,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.10")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.11")
 ```
 
 ```swift
@@ -99,12 +104,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.10`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.11`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.10")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.11")
 ```
 
 ```kotlin

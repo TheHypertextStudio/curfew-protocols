@@ -391,6 +391,23 @@
         }
       },
       {
+        "name": "list_pending_remote_unlock_requests",
+        "description": "Lists pending remote unlock request IDs created by this exact OAuth client, in bounded pages, so an MCP App can recover cancellation after a remount.",
+        "requiredScopes": ["curfew:unlock:request"],
+        "inputSchema": {
+          "type": "object", "additionalProperties": false,
+          "properties": { "cursor": { "type": "string", "format": "uuid" } }
+        },
+        "outputSchema": {
+          "type": "object", "additionalProperties": false,
+          "properties": {
+            "requestIds": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "type": "string", "format": "uuid" } },
+            "nextCursor": { "type": "string", "format": "uuid" }
+          },
+          "required": ["requestIds"]
+        }
+      },
+      {
         "name": "cancel_remote_unlock",
         "description": "Cancels a pending request or active bounded remote override.",
         "requiredScopes": ["curfew:unlock:request"],
