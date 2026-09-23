@@ -36,7 +36,9 @@
         "curfew:lock:device",
         "curfew:lock:all",
         "curfew:unlock:request",
-        "curfew:unlock:direct"
+        "curfew:unlock:direct",
+        "curfew:unlock:device",
+        "curfew:unlock:all"
       ]
     },
     "CurfewFirstPartyOAuthScope": {

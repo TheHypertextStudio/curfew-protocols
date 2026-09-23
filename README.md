@@ -4,6 +4,14 @@ Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, t
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
+## Remote-control contract in v0.0.10
+
+Version `0.0.10` separates the reported Curfew enforcement phase from wake-campaign gate status. `list_devices` may carry a server-timed enforcement snapshot and a distinct owner-chosen remote-control alias; neither is a decrypted device name or schedule. The coordinator must require an explicit label and opt-in before allowing remote targeting.
+
+Unlock authority now has two dimensions: approval-required versus separately granted direct access, and one named device versus all currently opted-in devices. `request_remote_unlock` accepts exactly one device under `curfew:unlock:request` plus `curfew:unlock:device`; `request_remote_unlock_all` accepts no caller-supplied IDs under `curfew:unlock:request` plus `curfew:unlock:all`. Direct use additionally needs `curfew:unlock:direct` and an exact bounded grant. Old tokens and clients need fresh consent; they do not inherit all-device authority. The three unlock creation/read tools share one closed lifecycle result containing the exact request, state, and any active override.
+
+`get_remote_lock_command` accepts the caller's root request command ID and returns current, caller-owned per-device receipts. For lock-all, each receipt has a separate child command ID. A queued receipt does not prove that the target applied the lock.
+
 ## Remote-control contract in v0.0.9
 
 Version `0.0.9` adds the signed result-acceptance proof required by the matching Curfew Sync and native-host implementations.
@@ -80,7 +88,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.9")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.10")
 ```
 
 ```swift
@@ -91,12 +99,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.9`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.10`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.9")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.10")
 ```
 
 ```kotlin

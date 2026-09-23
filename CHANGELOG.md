@@ -8,6 +8,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 No unreleased changes.
 
+## [0.0.10] — 2026-09-23
+
+### Added
+
+- Add an explicitly owner-chosen remote-control alias and separately timed enforcement report to the account-scoped device listing. Wake-campaign gate state remains separate from Curfew lock state; encrypted device names and schedules remain private.
+- Add an all-device temporary-unlock request whose exact eligible targets are resolved by the coordinator, plus a caller-owned lock-command lifecycle query with closed per-device receipts. Its input is the caller's root request ID; lock-all receipts carry separate child command IDs.
+- Separate one-device and all-device unlock target permissions from the existing approval-required and direct-grant permissions.
+
+### Changed
+
+- Limit the existing temporary-unlock request to exactly one target. Existing clients and tokens must obtain the new target permission through fresh consent; this release intentionally does not retain plural unlock authority under the old scope.
+- Define one closed unlock lifecycle result across one-device creation, all-device creation, and later request reads, rejecting contradictory pending, approved, and cancelled states. Align advertised unlock IDs and times with the coordinator's canonical UUID and UTC-instant validation.
+- Keep every package and tag in the `0.0.x` series and publish the coordinated contract through GitHub Packages only after the generated TypeScript, Swift, Kotlin, and contract gates pass.
+
 ## [0.0.9] — 2026-09-05
 
 ### Added

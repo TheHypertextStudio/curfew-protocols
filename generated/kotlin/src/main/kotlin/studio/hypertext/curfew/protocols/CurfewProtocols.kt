@@ -1069,6 +1069,8 @@ enum class CurfewOAuthScope(val value: String) {
     @SerialName("curfew:entitlements:read") CurfewEntitlementsRead("curfew:entitlements:read"),
     @SerialName("curfew:lock:all") CurfewLockAll("curfew:lock:all"),
     @SerialName("curfew:lock:device") CurfewLockDevice("curfew:lock:device"),
+    @SerialName("curfew:unlock:all") CurfewUnlockAll("curfew:unlock:all"),
+    @SerialName("curfew:unlock:device") CurfewUnlockDevice("curfew:unlock:device"),
     @SerialName("curfew:unlock:direct") CurfewUnlockDirect("curfew:unlock:direct"),
     @SerialName("curfew:unlock:request") CurfewUnlockRequest("curfew:unlock:request"),
     @SerialName("curfew:wake:read") CurfewWakeRead("curfew:wake:read");

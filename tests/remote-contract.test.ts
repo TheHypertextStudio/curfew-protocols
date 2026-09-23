@@ -16,6 +16,193 @@ async function schema(name: string): Promise<Record<string, any>> {
 }
 
 describe("remote command contract", () => {
+  it("separates one-device and all-device unlock target authority", async () => {
+    const oauth = await schema("oauth.json")
+    const scopes = oauth.definitions.CurfewOAuthScope.enum as string[]
+    expect(scopes).toContain("curfew:unlock:device")
+    expect(scopes).toContain("curfew:unlock:all")
+    const registry = await schema("mcp-tools.json")
+    const tools = registry.const.remoteTools as Array<{ name: string; requiredScopes: string[] }>
+    expect(tools.find((tool) => tool.name === "request_remote_unlock")?.requiredScopes).toEqual([
+      "curfew:unlock:request",
+      "curfew:unlock:device",
+    ])
+    expect(tools.find((tool) => tool.name === "request_remote_unlock_all")?.requiredScopes).toEqual([
+      "curfew:unlock:request",
+      "curfew:unlock:all",
+    ])
+  })
+
+  it("limits a one-device unlock request to exactly one target", async () => {
+    const validate = await mcpToolInputValidator("request_remote_unlock")
+    const request = {
+      requestId: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+      targetDeviceIds: ["018f4f45-7a98-7f53-89af-a4805f705d20"],
+      reason: "I need a brief recovery window",
+      durationMinutes: 5,
+      requestedAt: "2026-09-23T21:00:00Z",
+      approvalMode: "approval_required",
+    }
+
+    expect(validate(request), JSON.stringify(validate.errors)).toBe(true)
+    expect(
+      validate({
+        ...request,
+        targetDeviceIds: [
+          request.targetDeviceIds[0],
+          "018f4f45-85af-7f53-89af-a4805f705d21",
+        ],
+      }),
+      JSON.stringify(validate.errors),
+    ).toBe(false)
+  })
+
+  it("resolves all-device unlock targets only on the coordinator", async () => {
+    const validate = await mcpToolInputValidator("request_remote_unlock_all")
+    const request = {
+      requestId: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+      reason: "I need a brief recovery window",
+      durationMinutes: 5,
+      requestedAt: "2026-09-23T21:00:00Z",
+      approvalMode: "approval_required",
+    }
+
+    expect(validate(request), JSON.stringify(validate.errors)).toBe(true)
+    expect(
+      validate({
+        ...request,
+        targetDeviceIds: ["018f4f45-7a98-7f53-89af-a4805f705d20"],
+      }),
+      JSON.stringify(validate.errors),
+    ).toBe(false)
+  })
+
+  it("advertises only canonical UUIDs and UTC instants for both unlock requests", async () => {
+    for (const toolName of ["request_remote_unlock", "request_remote_unlock_all"]) {
+      const validate = await mcpToolInputValidator(toolName)
+      const request = {
+        requestId: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+        ...(toolName === "request_remote_unlock"
+          ? { targetDeviceIds: ["018f4f45-7a98-7f53-89af-a4805f705d20"] }
+          : {}),
+        reason: "I need a brief recovery window",
+        durationMinutes: 5,
+        requestedAt: "2026-09-23T21:00:00Z",
+        approvalMode: "approval_required",
+      }
+      expect(validate(request), JSON.stringify(validate.errors)).toBe(true)
+      expect(validate({ ...request, requestId: request.requestId.toUpperCase() })).toBe(false)
+      expect(validate({ ...request, requestedAt: "2026-09-23T14:00:00-07:00" })).toBe(false)
+      if (toolName === "request_remote_unlock") {
+        expect(validate({ ...request, targetDeviceIds: ["018F4F45-7A98-7F53-89AF-A4805F705D20"] })).toBe(false)
+      }
+    }
+  })
+
+  it("requires a server-received enforcement snapshot separate from wake status", async () => {
+    const validate = await mcpToolOutputValidator("list_devices")
+    const item = {
+      deviceId: "018f4f45-7a98-7f53-89af-a4805f705d20",
+      connectivity: "online",
+      wakeGate: "not_configured",
+      statusVersion: 1,
+      observedAt: "2026-09-23T20:59:00Z",
+      remoteControlAlias: "Office Mac",
+      enforcementStatus: {
+        phase: "locked",
+        activeLockoutEndsAt: "2026-09-23T21:05:00Z",
+        observedAt: "2026-09-23T20:59:00Z",
+        receivedAt: "2026-09-23T20:59:02Z",
+      },
+    }
+
+    expect(validate({ devices: [item] }), JSON.stringify(validate.errors)).toBe(true)
+    expect(
+      validate({
+        devices: [
+          {
+            ...item,
+            enforcementStatus: {
+              phase: "locked",
+              activeLockoutEndsAt: "2026-09-23T21:05:00Z",
+              observedAt: "2026-09-23T20:59:00Z",
+            },
+          },
+        ],
+      }),
+      JSON.stringify(validate.errors),
+    ).toBe(false)
+  })
+
+  it("returns a correlated closed lock-command lifecycle", async () => {
+    const input = await mcpToolInputValidator("get_remote_lock_command")
+    const output = await mcpToolOutputValidator("get_remote_lock_command")
+    const commandId = "018f4f45-4d34-7d98-a6c5-4de1bd63a21c"
+    const deviceId = "018f4f45-7a98-7f53-89af-a4805f705d20"
+    expect(input({ commandId })).toBe(true)
+    expect(output({
+      requestCommandId: commandId,
+      receipts: [{ commandId, deviceId, status: "queued", queuedAt: "2026-09-23T21:00:00Z" }],
+    })).toBe(true)
+    expect(output({
+      requestCommandId: commandId,
+      receipts: [{ commandId, deviceId, status: "applied", resolvedAt: "2026-09-23T21:00:02Z" }],
+    })).toBe(false)
+  })
+
+  it("reports lock-all child command IDs under the caller's root request ID", async () => {
+    const validate = await mcpToolOutputValidator("get_remote_lock_command")
+    const requestCommandId = "018f4f45-4d34-7d98-a6c5-4de1bd63a21c"
+    const childOne = "018f4f45-7a98-7f53-89af-a4805f705d20"
+    const childTwo = "018f4f45-85af-7f53-89af-a4805f705d21"
+    const receipts = [
+      { commandId: childOne, deviceId: "018f4f45-85af-7f53-89af-a4805f705d22", status: "queued", queuedAt: "2026-09-23T21:00:00Z" },
+      { commandId: childTwo, deviceId: "018f4f45-85af-7f53-89af-a4805f705d23", status: "delivered", deliveredAt: "2026-09-23T21:00:01Z" },
+    ]
+    expect(validate({ requestCommandId, receipts }), JSON.stringify(validate.errors)).toBe(true)
+    expect(validate({ commandId: requestCommandId, receipts })).toBe(false)
+  })
+
+  it("uses one closed lifecycle result for one-device, all-device, and read unlock tools", async () => {
+    const request = {
+      requestId: "018f4f45-4d34-7d98-a6c5-4de1bd63a21c",
+      targetDeviceIds: ["018f4f45-7a98-7f53-89af-a4805f705d20"],
+      reason: "I need a brief recovery window",
+      durationMinutes: 5,
+      requestedAt: "2026-09-23T21:00:00Z",
+      approvalMode: "approval_required",
+      oauthClientId: "claude-phone",
+    }
+    for (const toolName of [
+      "request_remote_unlock",
+      "request_remote_unlock_all",
+      "get_remote_unlock_request",
+    ]) {
+      const validate = await mcpToolOutputValidator(toolName)
+      expect(validate({ request, status: "pending" }), JSON.stringify(validate.errors)).toBe(true)
+      expect(validate({ request, status: "pending", invented: true })).toBe(false)
+      expect(validate({ request: { ...request, targetDeviceIds: [] }, status: "pending" })).toBe(false)
+      expect(validate({ request, status: "complete" })).toBe(false)
+
+      const override = {
+        overrideId: "018f4f45-85af-7f53-89af-a4805f705d21",
+        requestId: request.requestId,
+        targetDeviceIds: request.targetDeviceIds,
+        reason: request.reason,
+        durationMinutes: request.durationMinutes,
+        startsAt: "2026-09-23T21:00:01Z",
+        authorizedBy: "mcp_user_approval",
+        status: "active",
+      }
+      expect(validate({ request, status: "pending", override })).toBe(false)
+      expect(validate({ request, status: "approved" })).toBe(false)
+      expect(validate({ request, status: "approved", override }), JSON.stringify(validate.errors)).toBe(true)
+      expect(validate({ request, status: "cancelled", override })).toBe(false)
+      expect(validate({ request, status: "cancelled", override: { ...override, status: "cancelled" } })).toBe(true)
+      expect(validate({ request, status: "cancelled" })).toBe(true)
+    }
+  })
+
   it("rejects malformed delivery expiry and a wrong coordinator audience", async () => {
     const validate = await definitionValidator(
       "remote-command.json",

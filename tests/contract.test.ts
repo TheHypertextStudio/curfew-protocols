@@ -79,20 +79,24 @@ describe("schemas", () => {
       "list_entitlements",
       "get_wake_status",
       "request_remote_unlock",
+      "request_remote_unlock_all",
       "get_remote_unlock_request",
       "cancel_remote_unlock",
       "curfew.lock.device",
       "curfew.lock.all",
+      "get_remote_lock_command",
     ])
     expect(remoteTools?.map(({ requiredScopes }) => requiredScopes)).toEqual([
       ["curfew:devices:read"],
       ["curfew:entitlements:read"],
       ["curfew:wake:read"],
-      ["curfew:unlock:request"],
+      ["curfew:unlock:request", "curfew:unlock:device"],
+      ["curfew:unlock:request", "curfew:unlock:all"],
       ["curfew:unlock:request"],
       ["curfew:unlock:request"],
       ["curfew:lock:device"],
       ["curfew:lock:all"],
+      ["curfew:devices:read"],
     ])
     expect(JSON.stringify(remoteTools)).not.toContain("display_name")
   })
@@ -139,6 +143,8 @@ describe("schemas", () => {
       "curfew:lock:all",
       "curfew:unlock:request",
       "curfew:unlock:direct",
+      "curfew:unlock:device",
+      "curfew:unlock:all",
     ])
     expect(parsed.properties.firstPartyResource.const).toBe(
       "https://curfew-sync.hypertext.studio",
