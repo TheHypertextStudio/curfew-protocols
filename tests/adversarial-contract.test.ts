@@ -164,7 +164,7 @@ describe("MCP and sync surfaces", () => {
     const validate = await validator("mcp-tools.json")
 
     expect(validate(registry), JSON.stringify(validate.errors)).toBe(true)
-    expect(registry.remoteTools).toHaveLength(8)
+    expect(registry.remoteTools).toHaveLength(10)
     for (const tool of registry.remoteTools) {
       expect(tool).toHaveProperty("requiredScopes")
       expect(tool).toHaveProperty("outputSchema")
@@ -202,6 +202,8 @@ describe("MCP and sync surfaces", () => {
       "curfew:lock:all",
       "curfew:unlock:request",
       "curfew:unlock:direct",
+      "curfew:unlock:device",
+      "curfew:unlock:all",
     ])
   })
 

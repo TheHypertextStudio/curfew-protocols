@@ -3925,6 +3925,8 @@ public enum CurfewOAuthScope: String, Codable {
     case curfewEntitlementsRead = "curfew:entitlements:read"
     case curfewLockAll = "curfew:lock:all"
     case curfewLockDevice = "curfew:lock:device"
+    case curfewUnlockAll = "curfew:unlock:all"
+    case curfewUnlockDevice = "curfew:unlock:device"
     case curfewUnlockDirect = "curfew:unlock:direct"
     case curfewUnlockRequest = "curfew:unlock:request"
     case curfewWakeRead = "curfew:wake:read"

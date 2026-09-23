@@ -774,7 +774,7 @@ export type MCPToolRegistry = {
   remoteTools: [
     {
       name: "list_devices"
-      description: "Lists only server-readable routing and wake-gate status for this account's enrolled devices. Human-readable device names remain encrypted."
+      description: "Lists routing, the owner-chosen remote-control alias, and a minimal reported enforcement snapshot. Encrypted device names and schedules remain private; wake-gate status is separate from Curfew lock status."
       requiredScopes: ["curfew:devices:read"]
       inputSchema: {type: "object"; additionalProperties: false; properties: {}; required: []}
       outputSchema: {
@@ -788,13 +788,30 @@ export type MCPToolRegistry = {
               additionalProperties: false
               properties: {
                 deviceId: {type: "string"; format: "uuid"}
+                remoteControlAlias: {
+                  type: ["string", "null"]
+                  minLength: 1
+                  maxLength: 64
+                  pattern: "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$"
+                }
                 connectivity: {type: "string"; enum: ["online", "offline"]}
                 wakeGate: {type: "string"; enum: ["not_configured", "locked", "released"]}
                 activeCampaignId: {type: ["string", "null"]; format: "uuid"}
                 statusVersion: {type: "integer"; minimum: 1}
                 observedAt: {type: "string"; format: "date-time"}
+                enforcementStatus: {
+                  type: "object"
+                  additionalProperties: false
+                  properties: {
+                    phase: {type: "string"; enum: ["working", "warning", "locked", "day_off", "unknown"]}
+                    activeLockoutEndsAt: {type: ["string", "null"]; format: "date-time"}
+                    observedAt: {type: "string"; format: "date-time"}
+                    receivedAt: {type: "string"; format: "date-time"}
+                  }
+                  required: ["phase", "activeLockoutEndsAt", "observedAt", "receivedAt"]
+                }
               }
-              required: ["deviceId", "connectivity", "wakeGate", "statusVersion", "observedAt"]
+              required: ["deviceId", "remoteControlAlias", "connectivity", "wakeGate", "statusVersion", "observedAt"]
             }
           }
         }
@@ -886,28 +903,207 @@ export type MCPToolRegistry = {
     },
     {
       name: "request_remote_unlock"
-      description: "Creates a reasoned 5–60 minute unlock request. Approval is required unless the OAuth client has an exact active direct-unlock grant."
-      requiredScopes: ["curfew:unlock:request"]
+      description: "Creates a reasoned 5–60 minute unlock request for exactly one opted-in device. Approval is required unless the OAuth client has an exact active direct-unlock grant."
+      requiredScopes: ["curfew:unlock:request", "curfew:unlock:device"]
       inputSchema: {
         type: "object"
         additionalProperties: false
         properties: {
-          requestId: {type: "string"; format: "uuid"}
+          requestId: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
           targetDeviceIds: {
             type: "array"
             minItems: 1
-            maxItems: 32
+            maxItems: 1
             uniqueItems: true
-            items: {type: "string"; format: "uuid"}
+            items: {
+              type: "string"
+              pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
           }
           reason: {type: "string"; minLength: 1; maxLength: 500}
           durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
-          requestedAt: {type: "string"; format: "date-time"}
+          requestedAt: {
+            type: "string"
+            pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+          }
           approvalMode: {type: "string"; enum: ["approval_required", "preauthorized_direct"]}
         }
         required: ["requestId", "targetDeviceIds", "reason", "durationMinutes", "requestedAt", "approvalMode"]
       }
-      outputSchema: {type: "object"}
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          request: {
+            type: "object"
+            additionalProperties: false
+            properties: {
+              requestId: {type: "string"; format: "uuid"}
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {type: "string"; format: "uuid"}
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              requestedAt: {type: "string"; format: "date-time"}
+              approvalMode: {type: "string"; enum: ["approval_required", "preauthorized_direct"]}
+              oauthClientId: {type: ["string", "null"]; minLength: 1; maxLength: 200}
+            }
+            required: ["requestId", "targetDeviceIds", "reason", "durationMinutes", "requestedAt", "approvalMode"]
+          }
+          status: {type: "string"; enum: ["pending", "approved", "cancelled"]}
+          override: {
+            type: "object"
+            additionalProperties: false
+            properties: {
+              overrideId: {type: "string"; format: "uuid"}
+              requestId: {type: "string"; format: "uuid"}
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {type: "string"; format: "uuid"}
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              startsAt: {type: "string"; format: "date-time"}
+              authorizedBy: {type: "string"; enum: ["fresh_web_aal2", "mcp_user_approval", "mcp_preauthorized_client"]}
+              status: {type: "string"; enum: ["active", "expired", "cancelled"]}
+            }
+            required: [
+              "overrideId",
+              "requestId",
+              "targetDeviceIds",
+              "reason",
+              "durationMinutes",
+              "startsAt",
+              "authorizedBy",
+              "status"
+            ]
+          }
+        }
+        required: ["request", "status"]
+        oneOf: [
+          {properties: {status: {const: "pending"}; override: false}},
+          {
+            properties: {
+              status: {const: "approved"}
+              override: {type: "object"; properties: {status: {enum: ["active", "expired"]}}}
+            }
+            required: ["override"]
+          },
+          {
+            properties: {
+              status: {const: "cancelled"}
+              override: {type: "object"; properties: {status: {const: "cancelled"}}}
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: "request_remote_unlock_all"
+      description: "Requests a 5–60 minute unlock of every currently labeled, opted-in device. The coordinator resolves and records the exact device snapshot; approval is required unless one exact direct grant covers every target."
+      requiredScopes: ["curfew:unlock:request", "curfew:unlock:all"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          requestId: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          reason: {type: "string"; minLength: 1; maxLength: 500}
+          durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+          requestedAt: {
+            type: "string"
+            pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+          }
+          approvalMode: {type: "string"; enum: ["approval_required", "preauthorized_direct"]}
+        }
+        required: ["requestId", "reason", "durationMinutes", "requestedAt", "approvalMode"]
+      }
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          request: {
+            type: "object"
+            additionalProperties: false
+            properties: {
+              requestId: {type: "string"; format: "uuid"}
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {type: "string"; format: "uuid"}
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              requestedAt: {type: "string"; format: "date-time"}
+              approvalMode: {type: "string"; enum: ["approval_required", "preauthorized_direct"]}
+              oauthClientId: {type: ["string", "null"]; minLength: 1; maxLength: 200}
+            }
+            required: ["requestId", "targetDeviceIds", "reason", "durationMinutes", "requestedAt", "approvalMode"]
+          }
+          status: {type: "string"; enum: ["pending", "approved", "cancelled"]}
+          override: {
+            type: "object"
+            additionalProperties: false
+            properties: {
+              overrideId: {type: "string"; format: "uuid"}
+              requestId: {type: "string"; format: "uuid"}
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {type: "string"; format: "uuid"}
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              startsAt: {type: "string"; format: "date-time"}
+              authorizedBy: {type: "string"; enum: ["fresh_web_aal2", "mcp_user_approval", "mcp_preauthorized_client"]}
+              status: {type: "string"; enum: ["active", "expired", "cancelled"]}
+            }
+            required: [
+              "overrideId",
+              "requestId",
+              "targetDeviceIds",
+              "reason",
+              "durationMinutes",
+              "startsAt",
+              "authorizedBy",
+              "status"
+            ]
+          }
+        }
+        required: ["request", "status"]
+        oneOf: [
+          {properties: {status: {const: "pending"}; override: false}},
+          {
+            properties: {
+              status: {const: "approved"}
+              override: {type: "object"; properties: {status: {enum: ["active", "expired"]}}}
+            }
+            required: ["override"]
+          },
+          {
+            properties: {
+              status: {const: "cancelled"}
+              override: {type: "object"; properties: {status: {const: "cancelled"}}}
+            }
+          }
+        ]
+      }
     },
     {
       name: "get_remote_unlock_request"
@@ -919,7 +1115,80 @@ export type MCPToolRegistry = {
         properties: {requestId: {type: "string"; format: "uuid"}}
         required: ["requestId"]
       }
-      outputSchema: {type: "object"}
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          request: {
+            type: "object"
+            additionalProperties: false
+            properties: {
+              requestId: {type: "string"; format: "uuid"}
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {type: "string"; format: "uuid"}
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              requestedAt: {type: "string"; format: "date-time"}
+              approvalMode: {type: "string"; enum: ["approval_required", "preauthorized_direct"]}
+              oauthClientId: {type: ["string", "null"]; minLength: 1; maxLength: 200}
+            }
+            required: ["requestId", "targetDeviceIds", "reason", "durationMinutes", "requestedAt", "approvalMode"]
+          }
+          status: {type: "string"; enum: ["pending", "approved", "cancelled"]}
+          override: {
+            type: "object"
+            additionalProperties: false
+            properties: {
+              overrideId: {type: "string"; format: "uuid"}
+              requestId: {type: "string"; format: "uuid"}
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {type: "string"; format: "uuid"}
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              startsAt: {type: "string"; format: "date-time"}
+              authorizedBy: {type: "string"; enum: ["fresh_web_aal2", "mcp_user_approval", "mcp_preauthorized_client"]}
+              status: {type: "string"; enum: ["active", "expired", "cancelled"]}
+            }
+            required: [
+              "overrideId",
+              "requestId",
+              "targetDeviceIds",
+              "reason",
+              "durationMinutes",
+              "startsAt",
+              "authorizedBy",
+              "status"
+            ]
+          }
+        }
+        required: ["request", "status"]
+        oneOf: [
+          {properties: {status: {const: "pending"}; override: false}},
+          {
+            properties: {
+              status: {const: "approved"}
+              override: {type: "object"; properties: {status: {enum: ["active", "expired"]}}}
+            }
+            required: ["override"]
+          },
+          {
+            properties: {
+              status: {const: "cancelled"}
+              override: {type: "object"; properties: {status: {const: "cancelled"}}}
+            }
+          }
+        ]
+      }
     },
     {
       name: "cancel_remote_unlock"
@@ -1505,6 +1774,288 @@ export type MCPToolRegistry = {
         }
         required: ["receipts"]
       }
+    },
+    {
+      name: "get_remote_lock_command"
+      description: "Looks up the caller's root request command ID and returns its current per-device child-command receipts. For lock-all, each receipt has a distinct child commandId; only the root ID is accepted as input. Results are retained only for a bounded period."
+      requiredScopes: ["curfew:devices:read"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          commandId: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+        }
+        required: ["commandId"]
+      }
+      outputSchema: {
+        type: "object"
+        definitions: {
+          CanonicalUUID: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          UTCInstant: {
+            type: "string"
+            pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+          }
+          RemoteCommandReceipt: {
+            description: "Structural projection of remote-command.json RemoteCommandReceipt. Keep this closed stage-specific union in lockstep with the transport receipt."
+            oneOf: [
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "queuedAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "queued"}
+                  queuedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "deliveredAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "delivered"}
+                  deliveredAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "applied"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                  appliedDeadline: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "rejected"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                  rejectionCode: {
+                    type: "string"
+                    enum: [
+                      "ineligible",
+                      "stale_status",
+                      "out_of_order",
+                      "invalid_signature",
+                      "invalid_deadline",
+                      "device_unavailable"
+                    ]
+                  }
+                }
+              },
+              {
+                type: "object"
+                additionalProperties: false
+                required: ["commandId", "deviceId", "status", "resolvedAt"]
+                properties: {
+                  commandId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  deviceId: {
+                    type: "string"
+                    pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                  }
+                  status: {type: "string"; const: "expired"}
+                  resolvedAt: {
+                    type: "string"
+                    pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                  }
+                }
+              }
+            ]
+          }
+        }
+        additionalProperties: false
+        properties: {
+          requestCommandId: {
+            type: "string"
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          }
+          receipts: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            items: {
+              description: "Structural projection of remote-command.json RemoteCommandReceipt used by both remote lock tool outputs. Keep this closed oneOf in lockstep with the canonical transport receipt."
+              oneOf: [
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "queuedAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["queued"]}
+                    queuedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "deliveredAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["delivered"]}
+                    deliveredAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt", "appliedDeadline"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["applied"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                    appliedDeadline: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt", "rejectionCode"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["rejected"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                    rejectionCode: {
+                      type: "string"
+                      enum: [
+                        "ineligible",
+                        "stale_status",
+                        "out_of_order",
+                        "invalid_signature",
+                        "invalid_deadline",
+                        "device_unavailable"
+                      ]
+                    }
+                  }
+                },
+                {
+                  type: "object"
+                  additionalProperties: false
+                  required: ["commandId", "deviceId", "status", "resolvedAt"]
+                  properties: {
+                    commandId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    deviceId: {
+                      type: "string"
+                      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    }
+                    status: {type: "string"; enum: ["expired"]}
+                    resolvedAt: {
+                      type: "string"
+                      pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+        required: ["requestCommandId", "receipts"]
+      }
     }
   ]
 }
@@ -1519,6 +2070,8 @@ export type CurfewOAuthScope =
   | "curfew:lock:all"
   | "curfew:unlock:request"
   | "curfew:unlock:direct"
+  | "curfew:unlock:device"
+  | "curfew:unlock:all"
 export type CurfewFirstPartyOAuthScope =
   | "curfew:account:read"
   | "curfew:devices:read"
