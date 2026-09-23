@@ -203,6 +203,23 @@ describe("remote command contract", () => {
     }
   })
 
+  it("paginates only caller-owned pending unlock request IDs for panel recovery", async () => {
+    const registry = await schema("mcp-tools.json")
+    const tools = registry.const.remoteTools as Array<{ name: string; requiredScopes: string[] }>
+    expect(tools.find((tool) => tool.name === "list_pending_remote_unlock_requests")?.requiredScopes).toEqual([
+      "curfew:unlock:request",
+    ])
+    const input = await mcpToolInputValidator("list_pending_remote_unlock_requests")
+    const output = await mcpToolOutputValidator("list_pending_remote_unlock_requests")
+    const requestId = "018f4f45-4d34-7d98-a6c5-4de1bd63a21c"
+    expect(input({})).toBe(true)
+    expect(input({ cursor: requestId })).toBe(true)
+    expect(input({ cursor: "not-a-uuid" })).toBe(false)
+    expect(output({ requestIds: [requestId], nextCursor: requestId })).toBe(true)
+    expect(output({ requestIds: [] })).toBe(true)
+    expect(output({ requestIds: [requestId], otherClient: true })).toBe(false)
+  })
+
   it("rejects malformed delivery expiry and a wrong coordinator audience", async () => {
     const validate = await definitionValidator(
       "remote-command.json",
