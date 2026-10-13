@@ -3847,12 +3847,16 @@ public extension MCPToolDefinition {
 /// offline_access are requested in addition to the Curfew scopes defined here.
 // MARK: - OAuthContract
 public struct OAuthContract: Codable {
-    public let firstPartyResource: FirstPartyResource
+    /// Deployment-selected resource. Consumers must enforce exact equality with their trusted
+    /// environment configuration.
+    public let firstPartyResource: String
     public let firstPartyScopes: [CurfewFirstPartyOAuthScope]
-    public let resource: Resource
+    /// Deployment-selected resource. Consumers must enforce exact equality with their trusted
+    /// environment configuration.
+    public let resource: String
     public let scopes: [CurfewOAuthScope]
 
-    public init(firstPartyResource: FirstPartyResource, firstPartyScopes: [CurfewFirstPartyOAuthScope], resource: Resource, scopes: [CurfewOAuthScope]) {
+    public init(firstPartyResource: String, firstPartyScopes: [CurfewFirstPartyOAuthScope], resource: String, scopes: [CurfewOAuthScope]) {
         self.firstPartyResource = firstPartyResource
         self.firstPartyScopes = firstPartyScopes
         self.resource = resource
@@ -3879,9 +3883,9 @@ public extension OAuthContract {
     }
 
     func with(
-        firstPartyResource: FirstPartyResource? = nil,
+        firstPartyResource: String? = nil,
         firstPartyScopes: [CurfewFirstPartyOAuthScope]? = nil,
-        resource: Resource? = nil,
+        resource: String? = nil,
         scopes: [CurfewOAuthScope]? = nil
     ) -> OAuthContract {
         return OAuthContract(
@@ -3901,10 +3905,6 @@ public extension OAuthContract {
     }
 }
 
-public enum FirstPartyResource: String, Codable {
-    case httpsCurfewSyncHypertextStudio = "https://curfew-sync.hypertext.studio"
-}
-
 public enum CurfewFirstPartyOAuthScope: String, Codable {
     case curfewAccountRead = "curfew:account:read"
     case curfewDevicesRead = "curfew:devices:read"
@@ -3914,10 +3914,6 @@ public enum CurfewFirstPartyOAuthScope: String, Codable {
     case curfewSyncWrite = "curfew:sync:write"
     case curfewWakeRead = "curfew:wake:read"
     case curfewWakeWrite = "curfew:wake:write"
-}
-
-public enum Resource: String, Codable {
-    case httpsCurfewSyncHypertextStudioMCP = "https://curfew-sync.hypertext.studio/mcp"
 }
 
 public enum CurfewOAuthScope: String, Codable {

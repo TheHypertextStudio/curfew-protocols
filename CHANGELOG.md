@@ -1,3 +1,7 @@
+# 1.0.0
+
+Breaking: OAuth resources and MCP App origin policies are deployment-configured HTTPS values rather than production hostname constants. Consumers must enforce exact trusted issuer/resource/origin matches. No tool, scope, account, or encrypted-data shapes change.
+
 # Changelog
 
 All notable changes to `@thehypertextstudio/curfew-protocols` are documented here.
