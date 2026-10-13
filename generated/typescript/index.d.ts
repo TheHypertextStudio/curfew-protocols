@@ -2071,6 +2071,107 @@ export type MCPToolRegistry = {
         }
         required: ["requestCommandId", "receipts"]
       }
+    },
+    {
+      name: "prepare_remote_lock"
+      description: "Preparation only: collects missing device selection and lock duration through standard MCP elicitation, then returns complete bounded inputs for review. Does not queue a lock or change device enforcement."
+      requiredScopes: ["curfew:devices:read", "curfew:lock:device"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          deviceIds: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            uniqueItems: true
+            items: {
+              type: "string"
+              pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+          durationMinutes: {type: "integer"; minimum: 5; maximum: 720}
+        }
+        required: []
+      }
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          deviceIds: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            uniqueItems: true
+            items: {
+              type: "string"
+              pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+          durationMinutes: {type: "integer"; minimum: 5; maximum: 720}
+        }
+        required: ["deviceIds", "durationMinutes"]
+      }
+    },
+    {
+      name: "prepare_remote_unlock"
+      description: "Preparation only: collects missing device selection, duration, and reason through standard MCP elicitation, then returns a canonical approval-required request for review. Does not submit or approve an unlock, create an override, or grant direct-unlock authority."
+      requiredScopes: ["curfew:devices:read", "curfew:unlock:request"]
+      inputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          targetDeviceIds: {
+            type: "array"
+            minItems: 1
+            maxItems: 32
+            uniqueItems: true
+            items: {
+              type: "string"
+              pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            }
+          }
+          durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+          reason: {type: "string"; minLength: 1; maxLength: 500}
+        }
+        required: []
+      }
+      outputSchema: {
+        type: "object"
+        additionalProperties: false
+        properties: {
+          request: {
+            type: "object"
+            additionalProperties: false
+            required: ["requestId", "targetDeviceIds", "reason", "durationMinutes", "requestedAt", "approvalMode"]
+            properties: {
+              requestId: {
+                type: "string"
+                pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+              targetDeviceIds: {
+                type: "array"
+                minItems: 1
+                maxItems: 32
+                uniqueItems: true
+                items: {
+                  type: "string"
+                  pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                }
+              }
+              reason: {type: "string"; minLength: 1; maxLength: 500}
+              durationMinutes: {type: "integer"; minimum: 5; maximum: 60}
+              requestedAt: {
+                type: "string"
+                pattern: "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+              }
+              approvalMode: {type: "string"; const: "approval_required"}
+              oauthClientId: {type: ["string", "null"]; minLength: 1; maxLength: 200}
+            }
+          }
+        }
+        required: ["request"]
+      }
     }
   ]
 }

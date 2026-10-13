@@ -6,6 +6,22 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 
 ## Remote-control contract
 
+Version `0.0.12` adds read-only interactive preparation tools. `prepare_remote_lock`
+accepts optional device IDs and a duration of 5–720 minutes and returns complete
+bounded lock inputs. `prepare_remote_unlock` accepts optional target IDs, a reason,
+and a duration of 5–60 minutes and returns a canonical `RemoteOverrideRequest`
+restricted to `approval_required`. Both accept 1–32 unique canonical device UUIDs
+when supplied. Consumers collect missing fields through standard MCP elicitation;
+continuation state belongs to the MCP server, not the Curfew wire format.
+
+Preparation does not queue commands, submit requests, approve unlocks, or grant
+execution authority. Implementations must keep explicit execution and its existing
+permission checks separate. The two preparation tools require device-read scope
+plus lock-device or unlock-request scope respectively; execution still requires
+its existing target-specific permissions. Existing machine tools are unchanged.
+The additive tools can be removed from consumer discovery to roll back interactive
+preparation without changing existing command contracts.
+
 Version `0.0.11` adds `list_pending_remote_unlock_requests`, a bounded, paginated
 list of request IDs belonging to the exact OAuth client. An MCP App can recover
 pending approval and cancellation after its host discards local panel storage;
@@ -93,7 +109,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.11")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.12")
 ```
 
 ```swift
@@ -104,12 +120,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.11`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.12`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.11")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.12")
 ```
 
 ```kotlin

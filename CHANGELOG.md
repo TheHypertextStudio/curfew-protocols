@@ -8,6 +8,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 No unreleased changes.
 
+## [0.0.12] — 2026-10-13
+
+### Added
+
+- Add read-only `prepare_remote_lock` and `prepare_remote_unlock` tool contracts for interactive device selection, duration, and unlock-reason collection through standard MCP elicitation. Missing inputs are optional; completed outputs retain canonical UUIDs and bounded durations. Unlock preparation returns only an approval-required request and grants no direct-unlock authority.
+- Add preparation contract tests for missing input, closed shapes, target uniqueness and bounds, complete output, canonical request alignment, and rejection of custom continuation state or execution results. Existing machine tools and approval policies remain unchanged; consumers must implement elicitation and explicit execution separately. No new permissions or runtime mutations are introduced by these schemas; rollback removes the two additive tools from consumer discovery.
+
 ## [0.0.11] — 2026-09-23
 
 ### Added

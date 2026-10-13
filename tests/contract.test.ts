@@ -86,6 +86,8 @@ describe("schemas", () => {
       "curfew.lock.device",
       "curfew.lock.all",
       "get_remote_lock_command",
+      "prepare_remote_lock",
+      "prepare_remote_unlock",
     ])
     expect(remoteTools?.map(({ requiredScopes }) => requiredScopes)).toEqual([
       ["curfew:devices:read"],
@@ -99,6 +101,8 @@ describe("schemas", () => {
       ["curfew:lock:device"],
       ["curfew:lock:all"],
       ["curfew:devices:read"],
+      ["curfew:devices:read", "curfew:lock:device"],
+      ["curfew:devices:read", "curfew:unlock:request"],
     ])
     expect(JSON.stringify(remoteTools)).not.toContain("display_name")
   })
