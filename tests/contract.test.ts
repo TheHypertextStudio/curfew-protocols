@@ -138,9 +138,7 @@ describe("schemas", () => {
     const raw = await readFile(join(repoRoot, "schemas", "oauth.json"), "utf8")
     const parsed = JSON.parse(raw)
 
-    expect(parsed.properties.resource.const).toBe(
-      "https://curfew-sync.hypertext.studio/mcp",
-    )
+    expect(parsed.properties.resource.format).toBe("uri")
     expect(parsed.definitions.CurfewOAuthScope.enum).toEqual([
       "curfew:devices:read",
       "curfew:entitlements:read",
@@ -152,9 +150,7 @@ describe("schemas", () => {
       "curfew:unlock:device",
       "curfew:unlock:all",
     ])
-    expect(parsed.properties.firstPartyResource.const).toBe(
-      "https://curfew-sync.hypertext.studio",
-    )
+    expect(parsed.properties.firstPartyResource.format).toBe("uri")
     expect(parsed.definitions.CurfewFirstPartyOAuthScope.enum).toEqual([
       "curfew:account:read",
       "curfew:devices:read",

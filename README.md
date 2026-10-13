@@ -6,7 +6,7 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 
 ## Remote-control contract
 
-Version `0.0.12` adds read-only interactive preparation tools. `prepare_remote_lock`
+Version `1.0.0` adds read-only interactive preparation tools. `prepare_remote_lock`
 accepts optional device IDs and a duration of 5–720 minutes and returns complete
 bounded lock inputs. `prepare_remote_unlock` accepts optional target IDs, a reason,
 and a duration of 5–60 minutes and returns a canonical `RemoteOverrideRequest`
@@ -109,7 +109,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.12")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "1.0.0")
 ```
 
 ```swift
@@ -120,12 +120,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.12`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:1.0.0`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.12")
+implementation("studio.hypertext.curfew:curfew-protocols:1.0.0")
 ```
 
 ```kotlin
@@ -147,7 +147,7 @@ dotnet run --project tests/dotnet/CurfewProtocols.Decoder.csproj
 
 `tests/vectors/v2-golden.json` fixes canonical callback, encrypted-record, HPKE, recovery, and signature bytes. TypeScript, Swift, and Kotlin independently derive or verify those values so a platform cannot hide incompatible canonicalization by signing and verifying only its own output.
 
-Publishing is release-driven. A matching `v0.0.*` tag reruns all language gates, proves the tagged commit is already on `main`, and publishes the internal JavaScript and Kotlin packages to GitHub Packages; no public npm registry is used. Swift Package Manager consumes the same immutable release tag.
+Publishing is release-driven. A matching `v*` tag reruns all language gates, proves the tagged commit is already on `main`, and publishes the internal JavaScript and Kotlin packages to GitHub Packages; no public npm registry is used. Swift Package Manager consumes the same immutable release tag.
 
 See `AGENTS.md` for the change discipline (every schema edit requires regen, test, version bump, changelog entry).
 
@@ -172,3 +172,7 @@ Preserve shared caches when cleaning a checkout. Continue using the repository's
 existing build and test commands.
 
 Unlock preparation targets exactly one device, matching `request_remote_unlock`; all-device unlock remains a separate command with separate authority.
+
+## Deployment identity
+
+Version 1.0.0 removes production hostname constants from OAuth resources and MCP App policies. HTTPS shapes are structural; each consumer must enforce exact issuer, audience, resource, callback and CSP origin equality using trusted environment configuration. Schema IDs and scopes remain stable.

@@ -191,9 +191,7 @@ describe("MCP and sync surfaces", () => {
 
   it("uses the approved account MCP resource and colon-delimited scopes", async () => {
     const oauth = await readSchema("oauth.json")
-    expect(oauth.properties.resource.const).toBe(
-      "https://curfew-sync.hypertext.studio/mcp",
-    )
+    expect(oauth.properties.resource.format).toBe("uri")
     expect(oauth.definitions.CurfewOAuthScope.enum).toEqual([
       "curfew:devices:read",
       "curfew:entitlements:read",

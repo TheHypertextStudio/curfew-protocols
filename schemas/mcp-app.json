@@ -5,28 +5,69 @@
   "description": "Curfew status-and-devices resources/read HTML content using MCP Apps _meta.ui policy.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["uri", "mimeType", "text", "_meta"],
+  "required": [
+    "uri",
+    "mimeType",
+    "text",
+    "_meta"
+  ],
   "properties": {
-    "uri": { "type": "string", "const": "ui://curfew/status-and-devices" },
-    "mimeType": { "type": "string", "const": "text/html;profile=mcp-app" },
-    "text": { "type": "string", "minLength": 1 },
+    "uri": {
+      "type": "string",
+      "const": "ui://curfew/status-and-devices"
+    },
+    "mimeType": {
+      "type": "string",
+      "const": "text/html;profile=mcp-app"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
     "_meta": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["ui"],
+      "required": [
+        "ui"
+      ],
       "properties": {
         "ui": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["csp"],
+          "required": [
+            "csp"
+          ],
           "properties": {
             "csp": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["connectDomains", "resourceDomains"],
+              "required": [
+                "connectDomains",
+                "resourceDomains"
+              ],
               "properties": {
-                "connectDomains": { "type": "array", "const": ["https://curfew-sync.hypertext.studio"] },
-                "resourceDomains": { "type": "array", "const": ["https://curfew-sync.hypertext.studio"] }
+                "connectDomains": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https://[A-Za-z0-9.-]+$"
+                  },
+                  "description": "Consumers must populate only origins from their trusted deployment configuration."
+                },
+                "resourceDomains": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https://[A-Za-z0-9.-]+$"
+                  },
+                  "description": "Consumers must populate only origins from their trusted deployment configuration."
+                }
               }
             }
           }
