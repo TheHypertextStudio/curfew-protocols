@@ -218,3 +218,5 @@ Initial release. Extracts existing wire-format shapes from the Curfew macOS app 
 - TypeScript codegen via `json-schema-to-typescript` → `generated/typescript/`.
 - Swift codegen via `quicktype-core` → `generated/swift/Sources/CurfewProtocols/`.
 - Contract tests verifying every shape roundtrips through both codegens without lossy fields.
+
+Unlock preparation targets exactly one device, matching `request_remote_unlock`; all-device unlock remains a separate command with separate authority.

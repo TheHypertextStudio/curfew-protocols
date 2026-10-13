@@ -76,8 +76,17 @@ describe("interactive preparation contract", () => {
     delete expected.description
     expected.properties.requestId = account.definitions.CanonicalUUID
     expected.properties.targetDeviceIds.items = account.definitions.CanonicalUUID
+    expected.properties.targetDeviceIds.maxItems = 1
     expected.properties.requestedAt = account.definitions.UTCInstant
     expected.properties.approvalMode = { type: "string", const: "approval_required" }
     expect(tools.find((tool: { name: string }) => tool.name === "prepare_remote_unlock").outputSchema.properties.request).toEqual(expected)
   })
+})
+
+it("prepares an unlock that the single-device command can consume", async () => {
+  const second = "018f4f45-7a98-7f53-89af-a4805f705d21"
+  const input = await mcpToolInputValidator("prepare_remote_unlock")
+  const output = await mcpToolOutputValidator("prepare_remote_unlock")
+  expect(input({ targetDeviceIds: [deviceId, second] })).toBe(false)
+  expect(output({ request: { ...request, targetDeviceIds: [deviceId, second] } })).toBe(false)
 })

@@ -170,3 +170,5 @@ cache reuse without resolving dependencies. Use `--offline` only when the engine
 and dependency artifacts already exist locally; missing artifacts are reported.
 Preserve shared caches when cleaning a checkout. Continue using the repository's
 existing build and test commands.
+
+Unlock preparation targets exactly one device, matching `request_remote_unlock`; all-device unlock remains a separate command with separate authority.

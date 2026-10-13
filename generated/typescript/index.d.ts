@@ -2124,7 +2124,7 @@ export type MCPToolRegistry = {
           targetDeviceIds: {
             type: "array"
             minItems: 1
-            maxItems: 32
+            maxItems: 1
             uniqueItems: true
             items: {
               type: "string"
@@ -2152,7 +2152,7 @@ export type MCPToolRegistry = {
               targetDeviceIds: {
                 type: "array"
                 minItems: 1
-                maxItems: 32
+                maxItems: 1
                 uniqueItems: true
                 items: {
                   type: "string"
