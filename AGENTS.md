@@ -15,7 +15,7 @@ This repo is the versioned wire-format contract between the Curfew macOS app and
    - Edit the schema.
    - Run `pnpm codegen` and commit the regenerated TypeScript, Swift, Kotlin, and native golden-test outputs under `generated/`.
    - Run `pnpm test` (contract tests roundtrip every schema through both codegens; failure means the codegens disagree about a field shape).
-   - Bump `package.json` version (before 1.0: additive = patch, breaking = minor; at or after 1.0: additive = minor, breaking = major) and add an entry to `CHANGELOG.md`.
+   - Bump `package.json` to the next unused `0.0.x` version and add an entry to `CHANGELOG.md`. All supported releases stay in `0.0.x`; compatibility changes still require explicit coordinated consumer migration notes. Preserve accidentally published historical tags/packages rather than rewriting them.
    All four happen in the same PR.
 3. **Tag and publish in a single step.** After merge to `main`, tag `vX.Y.Z` and push the tag. `.github/workflows/publish-github-package.yml` publishes `@thehypertextstudio/*` to GitHub Packages with the repository `GITHUB_TOKEN`; the tag and package version must match. Local publication uses `pnpm publish` with `NODE_AUTH_TOKEN`, never a committed credential.
 4. **No business logic in this repo.** No tool implementations, no request handlers — only shapes. If a change feels like adding logic, it belongs in the consumer repo.
@@ -37,10 +37,10 @@ pnpm typecheck:consumer  # compiles the emitted .d.ts itself, lib checking on
 
 | Change | Version bump | Required actions |
 |---|---|---|
-| New tool added to `mcp-tools.json` | Patch before 1.0, minor after 1.0 | Regen, test, changelog |
-| New optional field on existing shape | Patch before 1.0, minor after 1.0 | Regen, test, changelog |
-| New required field on existing shape | Minor before 1.0, major after 1.0 | Regen, test, changelog + consumer migration notes |
-| Field rename / type change | Minor before 1.0, major after 1.0 | Regen, test, changelog + consumer migration notes |
+| New tool added to `mcp-tools.json` | Next unused `0.0.x` | Regen, test, changelog |
+| New optional field on existing shape | Next unused `0.0.x` | Regen, test, changelog |
+| New required field on existing shape | Next unused `0.0.x` | Regen, test, changelog + consumer migration notes |
+| Field rename / type change | Next unused `0.0.x` | Regen, test, changelog + consumer migration notes |
 | Description-only edit | Patch | Regen, test, changelog |
 
 ## Commit scopes

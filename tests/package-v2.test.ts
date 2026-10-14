@@ -15,7 +15,9 @@ describe("internal versioned artifacts", () => {
     )
 
     expect(pkg.name).toBe("@thehypertextstudio/curfew-protocols")
-    expect(pkg.version).toMatch(/^[0-9]+\.[0-9]+\.[0-9]+$/)
+    // Consumers require exact pre-release 0.0.x coordinates, not an accidental
+    // stable release that silently changes their supported contract line.
+    expect(pkg.version).toMatch(/^0\.0\.(0|[1-9][0-9]*)$/)
     expect(pkg.files).toContain("generated/kotlin/build.gradle.kts")
     expect(pkg.files).toContain("generated/kotlin/src/main")
     expect(pkg.files).not.toContain("generated/kotlin")

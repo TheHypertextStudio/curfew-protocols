@@ -6,7 +6,7 @@ JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit 
 
 ## Remote-control contract
 
-Version `1.0.0` adds read-only interactive preparation tools. `prepare_remote_lock`
+Version `0.0.13` includes read-only interactive preparation tools. `prepare_remote_lock`
 accepts optional device IDs and a duration of 5–720 minutes and returns complete
 bounded lock inputs. `prepare_remote_unlock` accepts optional target IDs, a reason,
 and a duration of 5–60 minutes and returns a canonical `RemoteOverrideRequest`
@@ -109,7 +109,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "1.0.0")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.13")
 ```
 
 ```swift
@@ -120,12 +120,12 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:1.0.0`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.13`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:1.0.0")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.13")
 ```
 
 ```kotlin
@@ -175,4 +175,4 @@ Unlock preparation targets exactly one device, matching `request_remote_unlock`;
 
 ## Deployment identity
 
-Version 1.0.0 removes production hostname constants from OAuth resources and MCP App policies. HTTPS shapes are structural; each consumer must enforce exact issuer, audience, resource, callback and CSP origin equality using trusted environment configuration. Schema IDs and scopes remain stable.
+Version 0.0.13 retains deployment-independent OAuth resources and MCP App policies. HTTPS shapes are structural; each consumer must enforce exact issuer, audience, resource, callback and CSP origin equality using trusted environment configuration. Schema IDs and scopes remain stable. The accidentally published 1.0.0 tag/package remains immutable historical evidence, not the supported consumer line. Consumers must pin the exact 0.0.13 release; do not use a range that can select 1.0.0.
