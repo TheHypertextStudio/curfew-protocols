@@ -159,7 +159,9 @@ describe("internal versioned artifacts", () => {
 
     expect(() => parseYaml(workflow)).not.toThrow()
 
-    expect(workflow).toContain("pnpm publish --access restricted")
+    expect(workflow).toContain(
+      "pnpm publish --access restricted --no-git-checks --tag latest",
+    )
     expect(workflow).toContain(":generated:kotlin:publish")
     expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-14/)
     expect(workflow).toMatch(/publish-kotlin:[\s\S]*?runs-on: ubuntu-latest/)

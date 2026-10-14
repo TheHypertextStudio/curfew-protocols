@@ -15,6 +15,7 @@ No unreleased changes.
 - Restore the owner-required `0.0.x` package/tag series after the accidental `1.0.0` publication. Keep all already-published tags and packages immutable; this release changes version metadata and consumer guidance, not wire shapes, scopes, or schema IDs.
 - Retain deployment-configured HTTPS OAuth resources and MCP App origin policies from the reviewed migration contract. Consumers still enforce exact trusted issuer/resource/origin matches; existing account, device and encrypted-data formats are unchanged.
 - Strengthen the package-coordinate regression to reject releases outside `0.0.x`, while retaining portability, insecure-URL rejection and generated-language contract coverage.
+- Select the `latest` npm distribution tag explicitly during publication so the corrective version can become the supported package despite immutable historical higher versions. Consumers still use exact pins.
 
 ### Release and rollback
 
