@@ -633,8 +633,18 @@ export interface MCPAppResource {
   _meta: {
     ui: {
       csp: {
-        connectDomains: unknown[]
-        resourceDomains: unknown[]
+        /**
+         * Consumers must populate only origins from their trusted deployment configuration.
+         *
+         * @minItems 1
+         */
+        connectDomains: [string, ...string[]]
+        /**
+         * Consumers must populate only origins from their trusted deployment configuration.
+         *
+         * @minItems 1
+         */
+        resourceDomains: [string, ...string[]]
       }
     }
   }
@@ -2202,9 +2212,15 @@ export type CurfewFirstPartyOAuthScope =
  * OAuth resource identifiers and least-privilege scopes for Curfew remote MCP and first-party native account/sync clients. Standard OpenID scopes such as openid and offline_access are requested in addition to the Curfew scopes defined here.
  */
 export interface OAuthContract {
-  resource: "https://curfew-sync.hypertext.studio/mcp"
+  /**
+   * Deployment-selected resource. Consumers must enforce exact equality with their trusted environment configuration.
+   */
+  resource: string
   scopes: CurfewOAuthScope[]
-  firstPartyResource: "https://curfew-sync.hypertext.studio"
+  /**
+   * Deployment-selected resource. Consumers must enforce exact equality with their trusted environment configuration.
+   */
+  firstPartyResource: string
   firstPartyScopes: CurfewFirstPartyOAuthScope[]
 }
 

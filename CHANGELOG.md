@@ -2,11 +2,24 @@
 
 All notable changes to `@thehypertextstudio/curfew-protocols` are documented here.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The supported pre-release series is `0.0.x`; every release requires exact coordinated consumer pins and migration notes for compatibility changes.
 
 ## [Unreleased]
 
 No unreleased changes.
+
+## [0.0.13] — 2026-10-13
+
+### Changed
+
+- Support deployment-configured HTTPS OAuth resources and MCP App origin policies. Consumers still enforce exact trusted issuer/resource/origin matches; existing account, device and encrypted-data formats are unchanged.
+- Strengthen the package-coordinate regression to reject releases outside `0.0.x`, while retaining portability, insecure-URL rejection and generated-language contract coverage.
+- Select the `latest` npm distribution tag explicitly during publication. Consumers still use exact pins.
+
+### Release and rollback
+
+- Publish `v0.0.13` once to GitHub Packages only after review and all language gates pass, then update both exact consumers and registry-derived lockfiles. Do not point committed consumers at an unpublished artifact or substitute a local tarball.
+- Rollback uses an explicit previously published pin and must account for the older hostname policy. Do not restore revoked authorization or infer production readiness from protocol tests.
 
 ## [0.0.12] — 2026-10-13
 

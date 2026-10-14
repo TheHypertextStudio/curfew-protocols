@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest"
 import { parse as parseYaml } from "yaml"
 import { repoRoot } from "./schema-validator"
 
-describe("internal 0.0.x artifacts", () => {
+describe("internal versioned artifacts", () => {
   it("publishes matching internal JavaScript and Kotlin Maven coordinates", async () => {
     const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
     const kotlinBuild = await readFile(
@@ -15,7 +15,8 @@ describe("internal 0.0.x artifacts", () => {
     )
 
     expect(pkg.name).toBe("@thehypertextstudio/curfew-protocols")
-    expect(pkg.version).toMatch(/^0\.0\.[0-9]+$/)
+    // Keep every coordinated consumer on the exact supported 0.0.x line.
+    expect(pkg.version).toMatch(/^0\.0\.(0|[1-9][0-9]*)$/)
     expect(pkg.files).toContain("generated/kotlin/build.gradle.kts")
     expect(pkg.files).toContain("generated/kotlin/src/main")
     expect(pkg.files).not.toContain("generated/kotlin")
@@ -28,14 +29,14 @@ describe("internal 0.0.x artifacts", () => {
     })
   })
 
-  it("publishes only matching 0.0.x release tags to internal GitHub packages", async () => {
+  it("publishes only matching versioned release tags to internal GitHub packages", async () => {
     const workflow = await readFile(
       join(repoRoot, ".github", "workflows", "publish-github-package.yml"),
       "utf8",
     )
 
     expect(() => parseYaml(workflow)).not.toThrow()
-    expect(workflow).toContain('tags:\n      - "v0.0.*"')
+    expect(workflow).toContain('tags:\n      - "v*"')
     expect(workflow).toContain("Verify release tag matches package version")
     expect(workflow).toContain('require("./package.json").version')
     expect(workflow).not.toContain('require(\\"./package.json\\").version')
@@ -75,7 +76,7 @@ describe("internal 0.0.x artifacts", () => {
     expect(workflow).toContain(`version: ${pkg.packageManager.replace("pnpm@", "")}`)
   })
 
-  it("documents only the current 0.0.x consumer coordinates", async () => {
+  it("documents only the current versioned consumer coordinates", async () => {
     const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"))
     const readme = await readFile(join(repoRoot, "README.md"), "utf8")
 
@@ -157,7 +158,9 @@ describe("internal 0.0.x artifacts", () => {
 
     expect(() => parseYaml(workflow)).not.toThrow()
 
-    expect(workflow).toContain("pnpm publish --access restricted")
+    expect(workflow).toContain(
+      "pnpm publish --access restricted --no-git-checks --tag latest",
+    )
     expect(workflow).toContain(":generated:kotlin:publish")
     expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-14/)
     expect(workflow).toMatch(/publish-kotlin:[\s\S]*?runs-on: ubuntu-latest/)

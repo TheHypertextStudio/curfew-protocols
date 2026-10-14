@@ -1035,16 +1035,22 @@ data class MCPToolDefinition (
  */
 @Serializable
 data class OAuthContract (
-    val firstPartyResource: FirstPartyResource,
+    /**
+     * Deployment-selected resource. Consumers must enforce exact equality with their trusted
+     * environment configuration.
+     */
+    val firstPartyResource: String,
+
     val firstPartyScopes: List<CurfewFirstPartyOAuthScope>,
-    val resource: Resource,
+
+    /**
+     * Deployment-selected resource. Consumers must enforce exact equality with their trusted
+     * environment configuration.
+     */
+    val resource: String,
+
     val scopes: List<CurfewOAuthScope>
 )
-
-@Serializable
-enum class FirstPartyResource(val value: String) {
-    @SerialName("https://curfew-sync.hypertext.studio") HTTPSCurfewSyncHypertextStudio("https://curfew-sync.hypertext.studio");
-}
 
 @Serializable
 enum class CurfewFirstPartyOAuthScope(val value: String) {
@@ -1056,11 +1062,6 @@ enum class CurfewFirstPartyOAuthScope(val value: String) {
     @SerialName("curfew:sync:write") CurfewSyncWrite("curfew:sync:write"),
     @SerialName("curfew:wake:read") CurfewWakeRead("curfew:wake:read"),
     @SerialName("curfew:wake:write") CurfewWakeWrite("curfew:wake:write");
-}
-
-@Serializable
-enum class Resource(val value: String) {
-    @SerialName("https://curfew-sync.hypertext.studio/mcp") HTTPSCurfewSyncHypertextStudiomcp("https://curfew-sync.hypertext.studio/mcp");
 }
 
 @Serializable

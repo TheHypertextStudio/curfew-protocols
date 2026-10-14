@@ -3,7 +3,7 @@ name: Publish GitHub Package
 on:
   push:
     tags:
-      - "v0.0.*"
+      - "v*"
 
 permissions:
   contents: read
@@ -67,7 +67,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Verify release tag matches package version
         run: test "v$(node -p 'require("./package.json").version')" = "${{ github.ref_name }}"
-      - run: pnpm publish --access restricted --no-git-checks
+      # Publish the supported 0.0.x line with an explicit distribution tag.
+      - run: pnpm publish --access restricted --no-git-checks --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
