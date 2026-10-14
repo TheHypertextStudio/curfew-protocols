@@ -1,16 +1,29 @@
-# 1.0.0
-
-Breaking: OAuth resources and MCP App origin policies are deployment-configured HTTPS values rather than production hostname constants. Consumers must enforce exact trusted issuer/resource/origin matches. No tool, scope, account, or encrypted-data shapes change.
-
 # Changelog
 
 All notable changes to `@thehypertextstudio/curfew-protocols` are documented here.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The supported pre-release series is `0.0.x`; every release requires exact coordinated consumer pins and migration notes for compatibility changes.
 
 ## [Unreleased]
 
 No unreleased changes.
+
+## [0.0.13] — 2026-10-13
+
+### Changed
+
+- Restore the owner-required `0.0.x` package/tag series after the accidental `1.0.0` publication. Keep all already-published tags and packages immutable; this release changes version metadata and consumer guidance, not wire shapes, scopes, or schema IDs.
+- Retain deployment-configured HTTPS OAuth resources and MCP App origin policies from the reviewed migration contract. Consumers still enforce exact trusted issuer/resource/origin matches; existing account, device and encrypted-data formats are unchanged.
+- Strengthen the package-coordinate regression to reject releases outside `0.0.x`, while retaining portability, insecure-URL rejection and generated-language contract coverage.
+
+### Release and rollback
+
+- Publish `v0.0.13` once to GitHub Packages only after review and all language gates pass, then update both exact consumers and registry-derived lockfiles. Do not point committed consumers at an unpublished artifact or substitute a local tarball.
+- Rollback uses an explicit previously published pin and must account for the older hostname policy. Never move/delete `v1.0.0`, restore revoked authorization, or infer production readiness from protocol tests.
+
+## [1.0.0] — 2026-10-13 (historical accidental publication)
+
+OAuth resources and MCP App origin policies became deployment-configured HTTPS values rather than production hostname constants. Consumers must enforce exact trusted issuer/resource/origin matches. No tool, scope, account, or encrypted-data shapes changed. The published artifact remains immutable; use the corrective `0.0.13` line for new consumer pins.
 
 ## [0.0.12] — 2026-10-13
 
