@@ -67,7 +67,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Verify release tag matches package version
         run: test "v$(node -p 'require("./package.json").version')" = "${{ github.ref_name }}"
-      - run: pnpm publish --access restricted --no-git-checks
+      # 0.0.x remains the supported line even when historical accidental
+      # publications have a higher semver. npm requires an explicit tag then.
+      - run: pnpm publish --access restricted --no-git-checks --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
