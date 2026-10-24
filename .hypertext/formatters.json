@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "formatters": [
+    {
+      "include": ["**/*.swift", "*.swift"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/native.py",
+        "swift",
+        "--path",
+        "{path}"
+      ]
+    },
+    {
+      "include": ["**/*.cs", "*.cs"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/extras.py",
+        "csharp"
+      ]
+    },
+    {
+      "include": [
+        "*.kt",
+        "**/*.kt",
+        "*.kts",
+        "**/*.kts",
+        "**/*.kt.template",
+        "**/*.kts.template"
+      ],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/kotlin.py",
+        "ktlint",
+        "{path}"
+      ]
+    },
+    {
+      "include": ["**/*.swift.template"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/native.py",
+        "swift",
+        "--path",
+        "{path}"
+      ]
+    },
+    {
+      "include": ["*.toml"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "toml"
+      ]
+    },
+    {
+      "include": ["*.yml", "*.yaml"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "yaml"
+      ]
+    },
+    {
+      "include": ["*.md", "*.markdown", "*.mdc"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "markdown"
+      ]
+    },
+    {
+      "include": ["*.py", "*.pyi"],
+      "argv": ["python3", ".hypertext/formatter-tools/run.py", "{path}"]
+    },
+    {
+      "include": [".hypertext/formatter-tools/kotlin.editorconfig", "*.ini"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "ini"
+      ]
+    },
+    {
+      "include": ["*.json"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "json"
+      ]
+    },
+    {
+      "include": [
+        "bootstrap",
+        "scripts/bootstrap-worktree",
+        "*.sh",
+        "*.bash",
+        "*.zsh"
+      ],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "sh"
+      ]
+    },
+    {
+      "include": ["*.ts", "*.tsx", "*.mts"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "typescript"
+      ]
+    },
+    {
+      "include": [
+        "*.xml",
+        "*.svg",
+        "*.plist",
+        "*.entitlements",
+        "*.xcprivacy",
+        "*.xcworkspacedata",
+        "*.xcsettings",
+        "*.xcscheme",
+        "*.xcbkptlist",
+        "*.csproj"
+      ],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "xml"
+      ]
+    },
+    {
+      "include": ["*.js", "*.jsx", "*.mjs", "*.cjs"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "babel"
+      ]
+    }
+  ],
+  "exclude": [
+    {
+      "include": [
+        ".hypertext/formatting/*",
+        ".hypertext/formatter-tools/setup.py",
+        ".hypertext/formatter-tools/run.py",
+        ".hypertext/formatter-tools/prettier.mjs",
+        ".hypertext/formatter-tools/text.py"
+      ],
+      "kind": "vendored",
+      "reason": "Locked shared formatter engine; maintained and formatted in product-standards."
+    },
+    {
+      "include": ["generated/kotlin/build.gradle.kts"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/kotlin/src/main/kotlin/studio/hypertext/curfew/protocols/CurfewProtocols.kt"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/kotlin/src/test/kotlin/studio/hypertext/curfew/protocols/CurfewV2GoldenVectorsTest.kt"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/kotlin/src/test/kotlin/studio/hypertext/curfew/protocols/RemoteLockoutTargetTest.kt"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/swift/Sources/CurfewProtocols/CurfewProtocols.swift"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/swift/Tests/CurfewProtocolsTests/CurfewV2GoldenVectorsTests.swift"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/swift/Tests/CurfewProtocolsTests/RemoteCommandTests.swift"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": [
+        "generated/swift/Tests/CurfewProtocolsTests/RemoteLockoutTargetTests.swift"
+      ],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["generated/typescript/index.d.ts"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["generated/typescript/index.js"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["generated/typescript/validation.d.ts"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["generated/typescript/validation.js"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["gradle/wrapper/gradle-wrapper.properties"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["gradlew"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["gradlew.bat"],
+      "kind": "generated",
+      "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
+    },
+    {
+      "include": ["pnpm-lock.yaml"],
+      "kind": "generated",
+      "reason": "Package-manager generated lock/resolution data; retain canonical tool serialization."
+    },
+    {
+      "include": ["scripts/bootstrap-worktree-engine"],
+      "kind": "generated",
+      "reason": "Generated pinned launcher; maintained by bootstrap render-launcher.py rather than consumer edits."
+    },
+    {
+      "include": ["gradle/wrapper/gradle-wrapper.jar"],
+      "kind": "binary",
+      "reason": "Binary resource; no text formatter applies."
+    },
+    {
+      "include": [".gitignore"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": [".npmrc"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["LICENSE"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    },
+    {
+      "include": ["gradle.properties"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented configuration, legal text or plain list; no general code formatter applies. Preserve meaningful ordering and data."
+    }
+  ]
+}
