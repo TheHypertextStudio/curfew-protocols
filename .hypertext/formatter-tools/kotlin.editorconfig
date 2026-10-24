@@ -1,0 +1,3 @@
+# Formatting must preserve protocol literals rather than split their contents.
+[*.{kt,kts}]
+max_line_length=off

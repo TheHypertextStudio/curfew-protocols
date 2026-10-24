@@ -89,16 +89,19 @@ pnpm add @thehypertextstudio/curfew-protocols
 ```
 
 ```ts
-import type { DeviceDescriptor, RemoteLockCommand } from "@thehypertextstudio/curfew-protocols"
+import type {
+  DeviceDescriptor,
+  RemoteLockCommand,
+} from "@thehypertextstudio/curfew-protocols";
 ```
 
 Draft-07 cannot express the alarm-duration arithmetic. Trust-boundary validators must register the generated custom keyword before compiling Curfew schemas:
 
 ```ts
-import Ajv from "ajv"
-import { addCurfewProtocolKeywords } from "@thehypertextstudio/curfew-protocols/validation"
+import Ajv from "ajv";
+import { addCurfewProtocolKeywords } from "@thehypertextstudio/curfew-protocols/validation";
 
-const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }))
+const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }));
 ```
 
 The committed `.npmrc` routes this scope to GitHub Packages. Each developer,
@@ -163,6 +166,11 @@ reuses native dependency caches and keeps installed dependencies and mutable
 build outputs inside this checkout. Setup does not build applications or start
 services. The first engine download requires GitHub CLI authentication with
 access to the private `TheHypertextStudio/bootstrap` repository.
+
+Preparation also installs the pinned commit-formatting tools and composes the
+local Git hooks. Run `python3 .hypertext/formatting/install.py` to prepare only
+formatting tools and hooks. Commits format staged source and configuration while
+retaining unstaged edits, and never install or download tools.
 
 Run `./bootstrap worktree plan --json` to inspect proposed actions or
 `./bootstrap worktree check` to inspect readiness. Use `--no-install` to configure

@@ -6,4 +6,5 @@ if [ "${BOOTSTRAP_OFFLINE:-0}" = 1 ]; then
   exit 1
 fi
 cd "$root/."
+python3 .hypertext/formatting/install.py
 exec pnpm rebuild esbuild

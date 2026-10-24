@@ -1,0 +1,44 @@
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+SCRIPT = Path(__file__).with_name("kotlin.py")
+ROOT = SCRIPT.resolve().parents[2]
+
+
+class KotlinPathTests(unittest.TestCase):
+    def test_root_gradle_script_formats_without_reading_or_writing_source(self):
+        original = (ROOT / "build.gradle.kts").read_bytes()
+        with tempfile.TemporaryDirectory() as folder:
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "ktlint", "build.gradle.kts"],
+                input=original,
+                cwd=folder,
+                capture_output=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertEqual((ROOT / "build.gradle.kts").read_bytes(), original)
+        again = subprocess.run(
+            [sys.executable, str(SCRIPT), "ktlint", "build.gradle.kts"],
+            input=result.stdout,
+            capture_output=True,
+        )
+        self.assertEqual(again.returncode, 0, again.stderr.decode())
+        self.assertEqual(again.stdout, result.stdout)
+
+    def test_syntax_failure_keeps_actual_source_unchanged(self):
+        path = ROOT / "build.gradle.kts"
+        original = path.read_bytes()
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "ktlint", "build.gradle.kts"],
+            input=b"fun broken( {",
+            capture_output=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(path.read_bytes(), original)
+
+
+if __name__ == "__main__":
+    unittest.main()

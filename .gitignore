@@ -13,3 +13,6 @@ coverage/
 **/build/
 **/bin/
 **/obj/
+/.hypertext/formatter-tools/runtime.json
+/.hypertext/formatter-tools/bin/
+/.hypertext/formatter-tools/__pycache__/
