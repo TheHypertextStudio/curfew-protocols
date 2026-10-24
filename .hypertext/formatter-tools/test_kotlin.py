@@ -10,6 +10,13 @@ ROOT = SCRIPT.resolve().parents[2]
 
 
 class KotlinPathTests(unittest.TestCase):
+    def test_literal_percent_and_modulo_preserve_bytes(self):
+        command = [sys.executable, str(SCRIPT), "ktlint", "sample.gradle.kts"]
+        source = b'val pattern = "%m %% %s %n"\nval remainder = 7 % 3\n'
+        result = subprocess.run(command, input=source, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr.decode())
+        self.assertEqual(result.stdout, source)
+
     def test_root_gradle_script_formats_without_reading_or_writing_source(self):
         original = (ROOT / "build.gradle.kts").read_bytes()
         with tempfile.TemporaryDirectory() as folder:
