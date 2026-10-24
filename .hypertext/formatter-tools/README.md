@@ -4,13 +4,13 @@
 listed in `native-rules.json` once during repository setup; formatting never installs
 or downloads tools. Missing tools stop the commit with a setup instruction.
 
-SwiftFormat reuses `.swiftformat` when present. Curfew keeps its verified 0.63.1
-wrapper and cache; other Swift repositories pin 0.64.0 with archive and executable
-SHA-256 verification. The reviewed SwiftFormat archives require macOS.
+SwiftFormat 0.64.1 reuses `.swiftformat` when present. Curfew’s wrapper and
+staged-byte adapter use the same release and verified cache; the other Swift
+adapters verify the same official archive and executable SHA-256 digests. The reviewed SwiftFormat archives require macOS.
 
-Rust uses the exact rustup toolchain 1.98.1 and each manifest's edition. It formats
+Rust uses the exact rustup toolchain 1.99.1 and each manifest's edition. It formats
 the staged source without resolving module files from the working tree and does not
-change Cargo target directories. Meson 1.10.2 uses a dedicated cached Python
+change Cargo target directories. Meson 1.12.1 uses a dedicated cached Python
 environment. Blueprint 0.22.2 uses its upstream pure Python formatter from a
 checksum-verified source archive; it needs no GTK installation or running VM.
 
@@ -23,7 +23,11 @@ The Xcode formatter rejects any change to the complete parsed property-list data
 .NET runs against an isolated folder with exact SDK selection and no project
 restore. Run the applicable `extras.py setup-TOOL` commands from `native-rules.json`.
 
-`kotlin.py` uses the shared pinned KtLint 1.5.0 engine. Authored code-generation
+`kotlin.py` uses the shared pinned KtLint 1.8.0 engine. Authored code-generation
 templates are parsed using their Kotlin or Swift suffix before `.template`.
 Kotlin line length is unlimited by default so formatting never changes protocol
 literal contents merely to satisfy an unrelated lint warning.
+
+Native style files remain authoritative. Curfew’s command wrapper reads its
+SwiftFormat artifact pin from `native.py`; Rust repositories select the same
+toolchain in `rust-toolchain.toml` and the staged-byte adapter.

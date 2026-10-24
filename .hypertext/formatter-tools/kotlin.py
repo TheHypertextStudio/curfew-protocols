@@ -10,9 +10,9 @@ import sys
 import tempfile
 import urllib.request
 
-VERSION = "1.5.0"
-SHA256 = "a27854622198800f50971a049dcdba38f2105d47e7e7258786c7d28045c5735d"
-URL = "https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli/1.5.0/ktlint-cli-1.5.0-all.jar"
+VERSION = "1.8.0"
+SHA256 = "369ad2b789f95a011f807e1fcb690ccef80bd7cd014fd139e73ae82dcc0baeab"
+URL = f"https://repo.maven.apache.org/maven2/com/pinterest/ktlint/ktlint-cli/{VERSION}/ktlint-cli-{VERSION}-all.jar"
 CACHE = (
     Path(os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache")))
     / "hypertext-studio/formatters"
@@ -56,11 +56,14 @@ def setup():
     result = subprocess.run(
         java_command() + ["--version"], capture_output=True, timeout=30
     )
-    if result.returncode or result.stdout.strip() != b"ktlint version 1.5.0":
+    if (
+        result.returncode
+        or result.stdout.strip() != f"ktlint version {VERSION}".encode()
+    ):
         raise ValueError(
-            "Pinned KtLint 1.5.0 could not execute; use the repository JDK"
+            f"Pinned KtLint {VERSION} could not execute; use the repository JDK"
         )
-    print("Pinned KtLint 1.5.0 ready in the shared native cache.")
+    print(f"Pinned KtLint {VERSION} ready in the shared native cache.")
 
 
 def java_command():
@@ -80,7 +83,7 @@ def main():
         raise ValueError("Unknown native formatter; expected ktlint PATH or --setup")
     if not verified():
         raise ValueError(
-            "Pinned KtLint is missing or changed. Run python3 .hypertext/formatter-tools/native.py --setup before committing"
+            "Pinned KtLint is missing or changed. Run python3 .hypertext/formatter-tools/kotlin.py --setup before committing"
         )
     # The virtual source path preserves nested .editorconfig discovery and script
     # parsing, while --stdin ensures the source file itself is never opened for write.
@@ -89,7 +92,6 @@ def main():
         virtual_path = Path(__file__).resolve().parents[2] / virtual_path
     command = java_command() + [
         "--log-level=none",
-        "--editorconfig=" + str(Path(__file__).with_name("kotlin.editorconfig")),
         "--format",
         "--stdin",
         "--stdin-path",
@@ -100,7 +102,7 @@ def main():
     sys.stderr.buffer.write(result.stderr)
     if result.returncode:
         return result.returncode
-    # KtLint 1.5.0 reports parse errors on stderr while exiting zero and
+    # KtLint can report parse errors on stderr while exiting zero and
     # emitting no source. Never let that behavior erase a staged file.
     if b"Not a valid Kotlin file" in result.stderr or (
         source.strip() and not result.stdout.strip()
