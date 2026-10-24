@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -38,6 +39,25 @@ class KotlinPathTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(path.read_bytes(), original)
+
+    def test_native_editorconfig_discovery_controls_indentation(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / ".editorconfig").write_text(
+                "root = true\n[*.{kt,kts}]\nindent_size = 2\nktlint_code_style = intellij_idea\n"
+            )
+            helper = root / ".hypertext/formatter-tools/kotlin.py"
+            helper.parent.mkdir(parents=True)
+            shutil.copyfile(SCRIPT, helper)
+            (root / "src").mkdir()
+            result = subprocess.run(
+                [sys.executable, str(helper), "ktlint", "src/Sample.kt"],
+                cwd=root.parent,
+                input=b"fun main() {\nprintln(1)\n}\n",
+                capture_output=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            self.assertIn(b"\n  println(1)\n", result.stdout)
 
 
 if __name__ == "__main__":

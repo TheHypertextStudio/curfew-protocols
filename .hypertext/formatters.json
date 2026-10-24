@@ -13,27 +13,11 @@
     },
     {
       "include": ["**/*.cs", "*.cs"],
-      "argv": [
-        "python3",
-        "{repo}/.hypertext/formatter-tools/extras.py",
-        "csharp"
-      ]
+      "argv": ["python3", "{repo}/.hypertext/formatter-tools/extras.py", "csharp"]
     },
     {
-      "include": [
-        "*.kt",
-        "**/*.kt",
-        "*.kts",
-        "**/*.kts",
-        "**/*.kt.template",
-        "**/*.kts.template"
-      ],
-      "argv": [
-        "python3",
-        "{repo}/.hypertext/formatter-tools/kotlin.py",
-        "ktlint",
-        "{path}"
-      ]
+      "include": ["*.kt", "**/*.kt", "*.kts", "**/*.kts", "**/*.kt.template", "**/*.kts.template"],
+      "argv": ["python3", "{repo}/.hypertext/formatter-tools/kotlin.py", "ktlint", "{path}"]
     },
     {
       "include": ["**/*.swift.template"],
@@ -47,76 +31,35 @@
     },
     {
       "include": ["*.toml"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "toml"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "toml"]
     },
     {
       "include": ["*.yml", "*.yaml"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "yaml"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "yaml"]
     },
     {
       "include": ["*.md", "*.markdown", "*.mdc"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "markdown"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "markdown"]
     },
     {
       "include": ["*.py", "*.pyi"],
       "argv": ["python3", ".hypertext/formatter-tools/run.py", "{path}"]
     },
     {
-      "include": [".hypertext/formatter-tools/kotlin.editorconfig", "*.ini"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "ini"
-      ]
+      "include": [".editorconfig", "*.ini"],
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "ini"]
     },
     {
       "include": ["*.json"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "json"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "json"]
     },
     {
-      "include": [
-        "bootstrap",
-        "scripts/bootstrap-worktree",
-        "*.sh",
-        "*.bash",
-        "*.zsh"
-      ],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "sh"
-      ]
+      "include": ["bootstrap", "scripts/bootstrap-worktree", "*.sh", "*.bash", "*.zsh"],
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "sh"]
     },
     {
       "include": ["*.ts", "*.tsx", "*.mts"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "typescript"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "typescript"]
     },
     {
       "include": [
@@ -131,21 +74,11 @@
         "*.xcbkptlist",
         "*.csproj"
       ],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "xml"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "xml"]
     },
     {
       "include": ["*.js", "*.jsx", "*.mjs", "*.cjs"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "babel"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "babel"]
     }
   ],
   "exclude": [
@@ -155,7 +88,9 @@
         ".hypertext/formatter-tools/setup.py",
         ".hypertext/formatter-tools/run.py",
         ".hypertext/formatter-tools/prettier.mjs",
-        ".hypertext/formatter-tools/text.py"
+        ".hypertext/formatter-tools/text.py",
+        ".hypertext/formatter-tools/preset.mjs",
+        ".hypertext/formatter-tools/npm-lock.json"
       ],
       "kind": "vendored",
       "reason": "Locked shared formatter engine; maintained and formatted in product-standards."
@@ -187,30 +122,22 @@
       "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
     },
     {
-      "include": [
-        "generated/swift/Sources/CurfewProtocols/CurfewProtocols.swift"
-      ],
+      "include": ["generated/swift/Sources/CurfewProtocols/CurfewProtocols.swift"],
       "kind": "generated",
       "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
     },
     {
-      "include": [
-        "generated/swift/Tests/CurfewProtocolsTests/CurfewV2GoldenVectorsTests.swift"
-      ],
+      "include": ["generated/swift/Tests/CurfewProtocolsTests/CurfewV2GoldenVectorsTests.swift"],
       "kind": "generated",
       "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
     },
     {
-      "include": [
-        "generated/swift/Tests/CurfewProtocolsTests/RemoteCommandTests.swift"
-      ],
+      "include": ["generated/swift/Tests/CurfewProtocolsTests/RemoteCommandTests.swift"],
       "kind": "generated",
       "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
     },
     {
-      "include": [
-        "generated/swift/Tests/CurfewProtocolsTests/RemoteLockoutTargetTests.swift"
-      ],
+      "include": ["generated/swift/Tests/CurfewProtocolsTests/RemoteLockoutTargetTests.swift"],
       "kind": "generated",
       "reason": "AGENTS forbids hand edits to generated outputs; Gradle wrapper launchers/config are canonical wrapper output."
     },

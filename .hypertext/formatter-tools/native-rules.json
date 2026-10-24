@@ -6,7 +6,7 @@
   ],
   "rules": [
     {
-      "name": "SwiftFormat 0.64.0",
+      "name": "SwiftFormat",
       "patterns": ["**/*.swift", "*.swift"],
       "argv": [
         "python3",
@@ -19,28 +19,12 @@
     {
       "name": "csharp",
       "patterns": ["**/*.cs", "*.cs"],
-      "argv": [
-        "python3",
-        "{root}/.hypertext/formatter-tools/extras.py",
-        "csharp"
-      ]
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/extras.py", "csharp"]
     },
     {
-      "name": "ktlint1.5.0",
-      "patterns": [
-        "*.kt",
-        "**/*.kt",
-        "*.kts",
-        "**/*.kts",
-        "**/*.kt.template",
-        "**/*.kts.template"
-      ],
-      "argv": [
-        "python3",
-        "{root}/.hypertext/formatter-tools/kotlin.py",
-        "ktlint",
-        "{path}"
-      ]
+      "name": "ktlint",
+      "patterns": ["*.kt", "**/*.kt", "*.kts", "**/*.kts", "**/*.kt.template", "**/*.kts.template"],
+      "argv": ["python3", "{root}/.hypertext/formatter-tools/kotlin.py", "ktlint", "{path}"]
     },
     {
       "name": "Swift template",
