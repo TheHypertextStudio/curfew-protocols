@@ -2,10 +2,25 @@
 // tests/vectors/v2-golden.json. Do not edit the generated file.
 package studio.hypertext.curfew.protocols
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.longOrNull
+import java.math.BigInteger
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
-import java.math.BigInteger
 import java.security.AlgorithmParameters
 import java.security.KeyFactory
 import java.security.MessageDigest
@@ -29,22 +44,9 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.doubleOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.long
-import kotlinx.serialization.json.longOrNull
 
 class CurfewV2GoldenVectorsTest {
     private val json = Json { ignoreUnknownKeys = false }
@@ -53,22 +55,34 @@ class CurfewV2GoldenVectorsTest {
     @Test
     fun validatesSharedV2Corpus() {
         val root = locateRepositoryRoot()
-        val manifest = json.parseToJsonElement(
-            root.resolve("tests/vectors/v2-golden.json").readText(),
-        ).jsonObject
+        val manifest =
+            json
+                .parseToJsonElement(
+                    root.resolve("tests/vectors/v2-golden.json").readText(),
+                ).jsonObject
         val cases = manifest.getValue("cases").jsonArray
-        assertEquals(generatedVectorIds, cases.map { it.jsonObject.getValue("id").jsonPrimitive.content })
+        assertEquals(
+            generatedVectorIds,
+            cases.map {
+                it.jsonObject
+                    .getValue("id")
+                    .jsonPrimitive.content
+            },
+        )
 
         cases.forEach { element ->
             val vector = element.jsonObject
             val id = vector.getValue("id").jsonPrimitive.content
             val schemaName = vector.getValue("schema").jsonPrimitive.content
             val definition = vector.getValue("definition").jsonPrimitive.content
-            val expected = vector.getValue("valid").jsonPrimitive.booleanOrNull
-                ?: error("$id valid must be Boolean")
-            val schema = json.parseToJsonElement(
-                root.resolve("schemas/$schemaName").readText(),
-            ).jsonObject
+            val expected =
+                vector.getValue("valid").jsonPrimitive.booleanOrNull
+                    ?: error("$id valid must be Boolean")
+            val schema =
+                json
+                    .parseToJsonElement(
+                        root.resolve("schemas/$schemaName").readText(),
+                    ).jsonObject
             val target = schema.getValue("definitions").jsonObject.getValue(definition)
             val actual = Draft07Subset(schema).valid(vector.getValue("payload"), target)
             assertEquals(expected, actual, id)
@@ -76,24 +90,50 @@ class CurfewV2GoldenVectorsTest {
     }
 
     @Test
+    fun accountScheduleGeneratedModelRoundTripsNilAndReservedException() {
+        val root = locateRepositoryRoot()
+        val manifest = json.parseToJsonElement(root.resolve("tests/vectors/v2-golden.json").readText()).jsonObject
+        val vector =
+            manifest
+                .getValue("cryptography")
+                .jsonObject
+                .getValue("accountScheduleRecord")
+                .jsonObject
+        val plaintext = vector.getValue("plaintextCanonical").jsonPrimitive.content
+        val schedule = json.decodeFromString(AccountScheduleV1.serializer(), plaintext)
+        assertNull(schedule.days.monday.hoursLimitMinutes)
+        assertNull(schedule.days.monday.exception)
+        assertEquals(480L, schedule.days.tuesday.hoursLimitMinutes)
+        assertEquals(AccountScheduleModeV1.Combined, schedule.days.wednesday.mode)
+        assertNotNull(schedule.days.saturday.exception)
+        val output = json.parseToJsonElement(json.encodeToString(AccountScheduleV1.serializer(), schedule))
+        val schema = json.parseToJsonElement(root.resolve("schemas/schedule.json").readText()).jsonObject
+        assertTrue(Draft07Subset(schema).valid(output, schema.getValue("definitions").jsonObject.getValue("AccountScheduleV1")))
+    }
+
+    @Test
     fun verifiesCanonicalCallbackCryptography() {
         val root = locateRepositoryRoot()
-        val manifest = json.parseToJsonElement(
-            root.resolve("tests/vectors/v2-golden.json").readText(),
-        ).jsonObject
+        val manifest =
+            json
+                .parseToJsonElement(
+                    root.resolve("tests/vectors/v2-golden.json").readText(),
+                ).jsonObject
         val cryptography = manifest.getValue("cryptography").jsonObject
         val callbackId = cryptography.getValue("callbackId").jsonPrimitive.content
         val secret = decodeBase64Url(cryptography.getValue("secret").jsonPrimitive.content)
-        val requestKey = hkdfSha256(
-            secret,
-            callbackId.encodeToByteArray(),
-            "curfew-callback-request-v1".encodeToByteArray(),
-        )
-        val responseKey = hkdfSha256(
-            secret,
-            callbackId.encodeToByteArray(),
-            "curfew-callback-response-v1".encodeToByteArray(),
-        )
+        val requestKey =
+            hkdfSha256(
+                secret,
+                callbackId.encodeToByteArray(),
+                "curfew-callback-request-v1".encodeToByteArray(),
+            )
+        val responseKey =
+            hkdfSha256(
+                secret,
+                callbackId.encodeToByteArray(),
+                "curfew-callback-response-v1".encodeToByteArray(),
+            )
         val challengeCanonical = canonicalJson(cryptography.getValue("challengeUnsigned"))
         val receiptCanonical = canonicalJson(cryptography.getValue("receiptUnsigned"))
 
@@ -120,11 +160,17 @@ class CurfewV2GoldenVectorsTest {
     @Test
     fun verifiesCanonicalRemoteCommandResultDigest() {
         val root = locateRepositoryRoot()
-        val manifest = json.parseToJsonElement(
-            root.resolve("tests/vectors/v2-golden.json").readText(),
-        ).jsonObject
-        val vector = manifest.getValue("cryptography").jsonObject
-            .getValue("remoteCommandResult").jsonObject
+        val manifest =
+            json
+                .parseToJsonElement(
+                    root.resolve("tests/vectors/v2-golden.json").readText(),
+                ).jsonObject
+        val vector =
+            manifest
+                .getValue("cryptography")
+                .jsonObject
+                .getValue("remoteCommandResult")
+                .jsonObject
         val canonical = canonicalJson(vector.getValue("resultUnsigned"))
 
         assertEquals(vector.getValue("resultCanonical").jsonPrimitive.content, canonical)
@@ -137,16 +183,27 @@ class CurfewV2GoldenVectorsTest {
     @Test
     fun verifiesEncryptedSyncCryptography() {
         val root = locateRepositoryRoot()
-        val cryptography = json.parseToJsonElement(
-            root.resolve("tests/vectors/v2-golden.json").readText(),
-        ).jsonObject.getValue("cryptography").jsonObject
+        val cryptography =
+            json
+                .parseToJsonElement(
+                    root.resolve("tests/vectors/v2-golden.json").readText(),
+                ).jsonObject
+                .getValue("cryptography")
+                .jsonObject
         val record = cryptography.getValue("encryptedRecord").jsonObject
         val rootKey = decodeBase64Url(record.getValue("rootKey").jsonPrimitive.content)
-        val namespaceKey = hkdfSha256(
-            rootKey,
-            record.getValue("namespaceKeySalt").jsonPrimitive.content.encodeToByteArray(),
-            record.getValue("namespaceKeyInfo").jsonPrimitive.content.encodeToByteArray(),
-        )
+        val namespaceKey =
+            hkdfSha256(
+                rootKey,
+                record
+                    .getValue("namespaceKeySalt")
+                    .jsonPrimitive.content
+                    .encodeToByteArray(),
+                record
+                    .getValue("namespaceKeyInfo")
+                    .jsonPrimitive.content
+                    .encodeToByteArray(),
+            )
         assertEquals(record.getValue("namespaceKey").jsonPrimitive.content, encodeBase64Url(namespaceKey))
         val aadCanonical = canonicalJson(record.getValue("aadUnsigned"))
         assertEquals(record.getValue("aadCanonical").jsonPrimitive.content, aadCanonical)
@@ -161,18 +218,22 @@ class CurfewV2GoldenVectorsTest {
                     namespaceKey,
                     decodeBase64Url(record.getValue("nonce").jsonPrimitive.content),
                     aadCanonical.encodeToByteArray(),
-                    record.getValue("plaintextCanonical").jsonPrimitive.content.encodeToByteArray(),
+                    record
+                        .getValue("plaintextCanonical")
+                        .jsonPrimitive.content
+                        .encodeToByteArray(),
                 ),
             ),
         )
         val signatureCanonical = canonicalJson(record.getValue("signatureUnsigned"))
         assertEquals(record.getValue("signatureCanonical").jsonPrimitive.content, signatureCanonical)
         val signingJwk = record.getValue("signingPublicKeyJwk").jsonObject
-        val signingPublicKey = ecPublicKey(
-            byteArrayOf(4) +
-                decodeBase64Url(signingJwk.getValue("x").jsonPrimitive.content) +
-                decodeBase64Url(signingJwk.getValue("y").jsonPrimitive.content),
-        )
+        val signingPublicKey =
+            ecPublicKey(
+                byteArrayOf(4) +
+                    decodeBase64Url(signingJwk.getValue("x").jsonPrimitive.content) +
+                    decodeBase64Url(signingJwk.getValue("y").jsonPrimitive.content),
+            )
         val signatureBytes = decodeBase64Url(record.getValue("signature").jsonPrimitive.content)
         assertTrue(
             Signature.getInstance("SHA256withECDSAinP1363Format").run {
@@ -187,14 +248,18 @@ class CurfewV2GoldenVectorsTest {
         val hpke = cryptography.getValue("hpkeEnvelope").jsonObject
         val hpkeAad = canonicalJson(hpke.getValue("aadUnsigned"))
         assertEquals(hpke.getValue("aadCanonical").jsonPrimitive.content, hpkeAad)
-        val hpkeResult = hpkeSealVector(
-            decodeBase64Url(hpke.getValue("recipientPublicKey").jsonPrimitive.content),
-            decodeBase64Url(hpke.getValue("ephemeralPrivateKey").jsonPrimitive.content),
-            decodeBase64Url(hpke.getValue("encapsulatedKey").jsonPrimitive.content),
-            hpke.getValue("info").jsonPrimitive.content.encodeToByteArray(),
-            hpkeAad.encodeToByteArray(),
-            rootKey,
-        )
+        val hpkeResult =
+            hpkeSealVector(
+                decodeBase64Url(hpke.getValue("recipientPublicKey").jsonPrimitive.content),
+                decodeBase64Url(hpke.getValue("ephemeralPrivateKey").jsonPrimitive.content),
+                decodeBase64Url(hpke.getValue("encapsulatedKey").jsonPrimitive.content),
+                hpke
+                    .getValue("info")
+                    .jsonPrimitive.content
+                    .encodeToByteArray(),
+                hpkeAad.encodeToByteArray(),
+                rootKey,
+            )
         assertEquals(hpke.getValue("sharedSecret").jsonPrimitive.content, encodeBase64Url(hpkeResult.sharedSecret))
         assertEquals(hpke.getValue("key").jsonPrimitive.content, encodeBase64Url(hpkeResult.key))
         assertEquals(hpke.getValue("baseNonce").jsonPrimitive.content, encodeBase64Url(hpkeResult.baseNonce))
@@ -203,11 +268,15 @@ class CurfewV2GoldenVectorsTest {
         val recovery = cryptography.getValue("recoveryEnvelope").jsonObject
         val recoveryAad = canonicalJson(recovery.getValue("aadUnsigned"))
         assertEquals(recovery.getValue("aadCanonical").jsonPrimitive.content, recoveryAad)
-        val wrappingKey = hkdfSha256(
-            decodeBase64Url(recovery.getValue("recoveryKey").jsonPrimitive.content),
-            decodeBase64Url(recovery.getValue("salt").jsonPrimitive.content),
-            recovery.getValue("info").jsonPrimitive.content.encodeToByteArray(),
-        )
+        val wrappingKey =
+            hkdfSha256(
+                decodeBase64Url(recovery.getValue("recoveryKey").jsonPrimitive.content),
+                decodeBase64Url(recovery.getValue("salt").jsonPrimitive.content),
+                recovery
+                    .getValue("info")
+                    .jsonPrimitive.content
+                    .encodeToByteArray(),
+            )
         assertEquals(recovery.getValue("wrappingKey").jsonPrimitive.content, encodeBase64Url(wrappingKey))
         assertEquals(
             recovery.getValue("ciphertext").jsonPrimitive.content,
@@ -225,28 +294,42 @@ class CurfewV2GoldenVectorsTest {
     @Test
     fun verifiesTimeResolution() {
         val root = locateRepositoryRoot()
-        val manifest = json.parseToJsonElement(
-            root.resolve("tests/vectors/v2-golden.json").readText(),
-        ).jsonObject
+        val manifest =
+            json
+                .parseToJsonElement(
+                    root.resolve("tests/vectors/v2-golden.json").readText(),
+                ).jsonObject
         manifest.getValue("timeResolution").jsonArray.forEach { element ->
             val vector = element.jsonObject
             val id = vector.getValue("id").jsonPrimitive.content
-            val actual = when (vector.getValue("kind").jsonPrimitive.content) {
-                "local_time" -> {
-                    val local = LocalDateTime.parse(vector.getValue("localDateTime").jsonPrimitive.content)
-                    val zone = ZoneId.of(vector.getValue("timeZone").jsonPrimitive.content)
-                    val offsets = zone.rules.getValidOffsets(local)
-                    if (offsets.isEmpty()) {
-                        zone.rules.getTransition(local)!!.dateTimeAfter.atZone(zone).toInstant()
-                    } else {
-                        ZonedDateTime.ofLocal(local, zone, offsets.first()).toInstant()
+            val actual =
+                when (vector.getValue("kind").jsonPrimitive.content) {
+                    "local_time" -> {
+                        val local = LocalDateTime.parse(vector.getValue("localDateTime").jsonPrimitive.content)
+                        val zone = ZoneId.of(vector.getValue("timeZone").jsonPrimitive.content)
+                        val offsets = zone.rules.getValidOffsets(local)
+                        if (offsets.isEmpty()) {
+                            zone.rules
+                                .getTransition(local)!!
+                                .dateTimeAfter
+                                .atZone(zone)
+                                .toInstant()
+                        } else {
+                            ZonedDateTime.ofLocal(local, zone, offsets.first()).toInstant()
+                        }
+                    }
+
+                    "final_deadline" -> {
+                        Instant
+                            .parse(
+                                vector.getValue("scheduledAt").jsonPrimitive.content,
+                            ).plusSeconds(vector.getValue("campaignDurationSeconds").jsonPrimitive.long)
+                    }
+
+                    else -> {
+                        error("Unknown time vector kind")
                     }
                 }
-                "final_deadline" -> Instant.parse(
-                    vector.getValue("scheduledAt").jsonPrimitive.content,
-                ).plusSeconds(vector.getValue("campaignDurationSeconds").jsonPrimitive.long)
-                else -> error("Unknown time vector kind")
-            }
             assertEquals(vector.getValue("expectedInstant").jsonPrimitive.content, actual.toString(), id)
         }
     }
@@ -255,7 +338,8 @@ class CurfewV2GoldenVectorsTest {
         var candidate = Path.of(System.getProperty("user.dir")).toAbsolutePath()
         repeat(8) {
             if (Files.isDirectory(candidate.resolve("schemas")) &&
-                Files.isRegularFile(candidate.resolve("tests/vectors/v2-golden.json"))) {
+                Files.isRegularFile(candidate.resolve("tests/vectors/v2-golden.json"))
+            ) {
                 return candidate
             }
             candidate = candidate.parent ?: return@repeat
@@ -264,18 +348,30 @@ class CurfewV2GoldenVectorsTest {
     }
 }
 
-private fun hkdfSha256(ikm: ByteArray, salt: ByteArray, info: ByteArray): ByteArray {
+private fun hkdfSha256(
+    ikm: ByteArray,
+    salt: ByteArray,
+    info: ByteArray,
+): ByteArray {
     val pseudorandomKey = hmacSha256(salt, ikm)
     return hmacSha256(pseudorandomKey, info + byteArrayOf(1)).copyOf(32)
 }
 
-private fun hmacSha256(key: ByteArray, message: ByteArray): ByteArray =
+private fun hmacSha256(
+    key: ByteArray,
+    message: ByteArray,
+): ByteArray =
     Mac.getInstance("HmacSHA256").run {
         init(SecretKeySpec(key, "HmacSHA256"))
         doFinal(message)
     }
 
-private fun aesGcmSeal(key: ByteArray, nonce: ByteArray, aad: ByteArray, plaintext: ByteArray): ByteArray =
+private fun aesGcmSeal(
+    key: ByteArray,
+    nonce: ByteArray,
+    aad: ByteArray,
+    plaintext: ByteArray,
+): ByteArray =
     Cipher.getInstance("AES/GCM/NoPadding").run {
         init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
         updateAAD(aad)
@@ -291,10 +387,11 @@ private val p256Parameters: ECParameterSpec by lazy {
 
 private fun ecPublicKey(raw: ByteArray): PublicKey {
     require(raw.size == 65 && raw[0] == 4.toByte())
-    val point = ECPoint(
-        BigInteger(1, raw.copyOfRange(1, 33)),
-        BigInteger(1, raw.copyOfRange(33, 65)),
-    )
+    val point =
+        ECPoint(
+            BigInteger(1, raw.copyOfRange(1, 33)),
+            BigInteger(1, raw.copyOfRange(33, 65)),
+        )
     return KeyFactory.getInstance("EC").generatePublic(ECPublicKeySpec(point, p256Parameters))
 }
 
@@ -320,19 +417,21 @@ private fun hpkeSealVector(
 ): HpkeVector {
     val kemSuite = "KEM".encodeToByteArray() + i2osp(0x10, 2)
     val hpkeSuite = "HPKE".encodeToByteArray() + i2osp(0x10, 2) + i2osp(1, 2) + i2osp(2, 2)
-    val dh = KeyAgreement.getInstance("ECDH").run {
-        init(ecPrivateKey(ephemeralPrivateKey))
-        doPhase(ecPublicKey(recipientPublicKey), true)
-        generateSecret()
-    }
+    val dh =
+        KeyAgreement.getInstance("ECDH").run {
+            init(ecPrivateKey(ephemeralPrivateKey))
+            doPhase(ecPublicKey(recipientPublicKey), true)
+            generateSecret()
+        }
     val eaePrk = labeledExtract(kemSuite, byteArrayOf(), "eae_prk", dh)
-    val sharedSecret = labeledExpand(
-        kemSuite,
-        eaePrk,
-        "shared_secret",
-        encapsulatedKey + recipientPublicKey,
-        32,
-    )
+    val sharedSecret =
+        labeledExpand(
+            kemSuite,
+            eaePrk,
+            "shared_secret",
+            encapsulatedKey + recipientPublicKey,
+            32,
+        )
     val pskIdHash = labeledExtract(hpkeSuite, byteArrayOf(), "psk_id_hash", byteArrayOf())
     val infoHash = labeledExtract(hpkeSuite, byteArrayOf(), "info_hash", info)
     val context = byteArrayOf(0) + pskIdHash + infoHash
@@ -342,8 +441,12 @@ private fun hpkeSealVector(
     return HpkeVector(sharedSecret, key, baseNonce, aesGcmSeal(key, baseNonce, aad, plaintext))
 }
 
-private fun labeledExtract(suite: ByteArray, salt: ByteArray, label: String, ikm: ByteArray): ByteArray =
-    hkdfExtract(salt, "HPKE-v1".encodeToByteArray() + suite + label.encodeToByteArray() + ikm)
+private fun labeledExtract(
+    suite: ByteArray,
+    salt: ByteArray,
+    label: String,
+    ikm: ByteArray,
+): ByteArray = hkdfExtract(salt, "HPKE-v1".encodeToByteArray() + suite + label.encodeToByteArray() + ikm)
 
 private fun labeledExpand(
     suite: ByteArray,
@@ -351,16 +454,23 @@ private fun labeledExpand(
     label: String,
     info: ByteArray,
     length: Int,
-): ByteArray = hkdfExpand(
-    pseudorandomKey,
-    i2osp(length, 2) + "HPKE-v1".encodeToByteArray() + suite + label.encodeToByteArray() + info,
-    length,
-)
+): ByteArray =
+    hkdfExpand(
+        pseudorandomKey,
+        i2osp(length, 2) + "HPKE-v1".encodeToByteArray() + suite + label.encodeToByteArray() + info,
+        length,
+    )
 
-private fun hkdfExtract(salt: ByteArray, ikm: ByteArray): ByteArray =
-    hmacSha256(if (salt.isEmpty()) ByteArray(32) else salt, ikm)
+private fun hkdfExtract(
+    salt: ByteArray,
+    ikm: ByteArray,
+): ByteArray = hmacSha256(if (salt.isEmpty()) ByteArray(32) else salt, ikm)
 
-private fun hkdfExpand(pseudorandomKey: ByteArray, info: ByteArray, length: Int): ByteArray {
+private fun hkdfExpand(
+    pseudorandomKey: ByteArray,
+    info: ByteArray,
+    length: Int,
+): ByteArray {
     var output = byteArrayOf()
     var previous = byteArrayOf()
     var counter = 1
@@ -372,25 +482,39 @@ private fun hkdfExpand(pseudorandomKey: ByteArray, info: ByteArray, length: Int)
     return output.copyOf(length)
 }
 
-private fun i2osp(value: Int, length: Int): ByteArray =
-    ByteArray(length) { index -> (value ushr (8 * (length - index - 1))).toByte() }
+private fun i2osp(
+    value: Int,
+    length: Int,
+): ByteArray = ByteArray(length) { index -> (value ushr (8 * (length - index - 1))).toByte() }
 
-private fun decodeBase64Url(value: String): ByteArray =
-    Base64.getUrlDecoder().decode(value)
+private fun decodeBase64Url(value: String): ByteArray = Base64.getUrlDecoder().decode(value)
 
-private fun encodeBase64Url(value: ByteArray): String =
-    Base64.getUrlEncoder().withoutPadding().encodeToString(value)
+private fun encodeBase64Url(value: ByteArray): String = Base64.getUrlEncoder().withoutPadding().encodeToString(value)
 
-private fun canonicalJson(value: JsonElement): String = when (value) {
-    is JsonObject -> value.entries.sortedBy { it.key }.joinToString(",", "{", "}") {
-        "${JsonPrimitive(it.key)}:${canonicalJson(it.value)}"
+private fun canonicalJson(value: JsonElement): String =
+    when (value) {
+        is JsonObject -> {
+            value.entries.sortedBy { it.key }.joinToString(",", "{", "}") {
+                "${JsonPrimitive(it.key)}:${canonicalJson(it.value)}"
+            }
+        }
+
+        is JsonArray -> {
+            value.joinToString(",", "[", "]") { canonicalJson(it) }
+        }
+
+        else -> {
+            value.toString()
+        }
     }
-    is JsonArray -> value.joinToString(",", "[", "]") { canonicalJson(it) }
-    else -> value.toString()
-}
 
-private class Draft07Subset(private val root: JsonObject) {
-    fun valid(instance: JsonElement, rawSchema: JsonElement): Boolean {
+private class Draft07Subset(
+    private val root: JsonObject,
+) {
+    fun valid(
+        instance: JsonElement,
+        rawSchema: JsonElement,
+    ): Boolean {
         val schema = rawSchema as? JsonObject ?: return true
         schema["\$ref"]?.jsonPrimitive?.contentOrNull?.let { reference ->
             return valid(instance, resolve(reference))
@@ -401,33 +525,50 @@ private class Draft07Subset(private val root: JsonObject) {
         schema["const"]?.let { if (instance != it) return false }
         schema["enum"]?.jsonArray?.let { if (instance !in it) return false }
         schema["type"]?.let { type ->
-            val types = if (type is JsonArray) type.mapNotNull { it.jsonPrimitive.contentOrNull }
-            else listOf(type.jsonPrimitive.content)
+            val types =
+                if (type is JsonArray) {
+                    type.mapNotNull { it.jsonPrimitive.contentOrNull }
+                } else {
+                    listOf(type.jsonPrimitive.content)
+                }
             if (types.none { matchesType(instance, it) }) return false
         }
 
         if (instance is JsonObject) {
             schema["x-curfew-derived-campaign-duration"]?.jsonObject?.let { rule ->
-                val attempts = instance[rule.getValue("attemptsProperty").jsonPrimitive.content]
-                    ?.jsonPrimitive?.longOrNull ?: return false
-                val ringing = instance[rule.getValue("ringProperty").jsonPrimitive.content]
-                    ?.jsonPrimitive?.longOrNull ?: return false
-                val quiet = instance[rule.getValue("quietProperty").jsonPrimitive.content]
-                    ?.jsonPrimitive?.longOrNull ?: return false
-                val declaredDuration = instance[rule.getValue("durationProperty").jsonPrimitive.content]
-                    ?.jsonPrimitive?.longOrNull
-                    ?: return false
+                val attempts =
+                    instance[rule.getValue("attemptsProperty").jsonPrimitive.content]
+                        ?.jsonPrimitive
+                        ?.longOrNull ?: return false
+                val ringing =
+                    instance[rule.getValue("ringProperty").jsonPrimitive.content]
+                        ?.jsonPrimitive
+                        ?.longOrNull ?: return false
+                val quiet =
+                    instance[rule.getValue("quietProperty").jsonPrimitive.content]
+                        ?.jsonPrimitive
+                        ?.longOrNull ?: return false
+                val declaredDuration =
+                    instance[rule.getValue("durationProperty").jsonPrimitive.content]
+                        ?.jsonPrimitive
+                        ?.longOrNull
+                        ?: return false
                 val cap = rule.getValue("capSeconds").jsonPrimitive.long
                 val computed = attempts * ringing + maxOf(0, attempts - 1) * quiet
                 if (computed != declaredDuration || computed > cap) return false
             }
-            val required = schema["required"]?.jsonArray
-                ?.map { it.jsonPrimitive.content }
-                .orEmpty()
+            val required =
+                schema["required"]
+                    ?.jsonArray
+                    ?.map { it.jsonPrimitive.content }
+                    .orEmpty()
             if (!instance.keys.containsAll(required)) return false
             val properties = schema["properties"] as? JsonObject
             if (schema["additionalProperties"]?.jsonPrimitive?.booleanOrNull == false &&
-                properties != null && instance.keys.any { it !in properties }) return false
+                properties != null && instance.keys.any { it !in properties }
+            ) {
+                return false
+            }
             properties?.forEach { (name, propertySchema) ->
                 instance[name]?.let { if (!valid(it, propertySchema)) return false }
             }
@@ -437,7 +578,10 @@ private class Draft07Subset(private val root: JsonObject) {
             schema["minItems"]?.jsonPrimitive?.intOrNull?.let { if (instance.size < it) return false }
             schema["maxItems"]?.jsonPrimitive?.intOrNull?.let { if (instance.size > it) return false }
             if (schema["uniqueItems"]?.jsonPrimitive?.booleanOrNull == true &&
-                instance.distinct().size != instance.size) return false
+                instance.distinct().size != instance.size
+            ) {
+                return false
+            }
             schema["items"]?.let { itemSchema ->
                 if (instance.any { !valid(it, itemSchema) }) return false
             }
@@ -471,14 +615,18 @@ private class Draft07Subset(private val root: JsonObject) {
         }
     }
 
-    private fun matchesType(instance: JsonElement, type: String): Boolean = when (type) {
-        "null" -> instance is JsonNull
-        "object" -> instance is JsonObject
-        "array" -> instance is JsonArray
-        "string" -> instance is JsonPrimitive && instance.isString
-        "boolean" -> instance is JsonPrimitive && instance.booleanOrNull != null
-        "integer" -> instance is JsonPrimitive && !instance.isString && instance.longOrNull != null
-        "number" -> instance is JsonPrimitive && !instance.isString && instance.doubleOrNull != null
-        else -> true
-    }
+    private fun matchesType(
+        instance: JsonElement,
+        type: String,
+    ): Boolean =
+        when (type) {
+            "null" -> instance is JsonNull
+            "object" -> instance is JsonObject
+            "array" -> instance is JsonArray
+            "string" -> instance is JsonPrimitive && instance.isString
+            "boolean" -> instance is JsonPrimitive && instance.booleanOrNull != null
+            "integer" -> instance is JsonPrimitive && !instance.isString && instance.longOrNull != null
+            "number" -> instance is JsonPrimitive && !instance.isString && instance.doubleOrNull != null
+            else -> true
+        }
 }

@@ -17,7 +17,8 @@
     },
     {
       "include": ["*.kt", "**/*.kt", "*.kts", "**/*.kts", "**/*.kt.template", "**/*.kts.template"],
-      "argv": ["python3", "{repo}/.hypertext/formatter-tools/kotlin.py", "ktlint", "{path}"]
+      "argv": ["python3", "{repo}/.hypertext/formatter-tools/kotlin.py", "ktlint", "{path}"],
+      "timeout_seconds": 120
     },
     {
       "include": ["**/*.swift.template"],
@@ -51,7 +52,8 @@
     },
     {
       "include": ["*.json"],
-      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "json"]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "json"],
+      "timeout_seconds": 120
     },
     {
       "include": ["bootstrap", "scripts/bootstrap-worktree", "*.sh", "*.bash", "*.zsh"],
@@ -59,7 +61,8 @@
     },
     {
       "include": ["*.ts", "*.tsx", "*.mts"],
-      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "typescript"]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "typescript"],
+      "timeout_seconds": 120
     },
     {
       "include": [

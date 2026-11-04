@@ -8,7 +8,8 @@
   "properties": {
     "releasePolicy": { "$ref": "#/definitions/ReleasePolicy" },
     "changePolicy": { "$ref": "#/definitions/ScheduleChangeApplicationPolicy" },
-    "migration": { "$ref": "#/definitions/LegacyScheduleMigration" }
+    "migration": { "$ref": "#/definitions/LegacyScheduleMigration" },
+    "accountSchedule": { "$ref": "#/definitions/AccountScheduleV1" }
   },
   "definitions": {
     "CanonicalUUID": {
@@ -23,6 +24,58 @@
     "LocalTime": {
       "type": "string",
       "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+    },
+    "AccountScheduleDayV1": {
+      "description": "One saved local-calendar day, including the inactive fields retained when a day is off or its mode changes. A missing hours limit retains the native time-trigger fallback. The empty exception object represents the current reserved native exception; unknown exception fields must be rejected.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["isDayOff", "lockTime", "unlockTime", "mode"],
+      "properties": {
+        "isDayOff": { "type": "boolean" },
+        "lockTime": { "$ref": "#/definitions/LocalTime" },
+        "unlockTime": { "$ref": "#/definitions/LocalTime" },
+        "mode": { "$ref": "#/definitions/AccountScheduleModeV1" },
+        "hoursLimitMinutes": {
+          "description": "An omitted or null value means no hours limit. A positive saved limit is retained even in time mode.",
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "maximum": 1440
+        },
+        "exception": {
+          "description": "An omitted or null value means no exception. An empty object retains the current reserved native exception.",
+          "oneOf": [{ "$ref": "#/definitions/AccountScheduleExceptionV1" }, { "type": "null" }]
+        }
+      }
+    },
+    "AccountScheduleModeV1": { "type": "string", "enum": ["time", "hours", "combined"] },
+    "AccountScheduleExceptionV1": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "AccountScheduleDaysV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+      "properties": {
+        "monday": { "$ref": "#/definitions/AccountScheduleDayV1" },
+        "tuesday": { "$ref": "#/definitions/AccountScheduleDayV1" },
+        "wednesday": { "$ref": "#/definitions/AccountScheduleDayV1" },
+        "thursday": { "$ref": "#/definitions/AccountScheduleDayV1" },
+        "friday": { "$ref": "#/definitions/AccountScheduleDayV1" },
+        "saturday": { "$ref": "#/definitions/AccountScheduleDayV1" },
+        "sunday": { "$ref": "#/definitions/AccountScheduleDayV1" }
+      }
+    },
+    "AccountScheduleV1": {
+      "description": "Plaintext for one encrypted account_settings schedule record. Times are evaluated in each device's local calendar; device identity, consent, permissions, grant usage and time zone remain outside this payload. This is a schedule contract, not a contract for all account settings.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "days"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "const": 1 },
+        "days": { "$ref": "#/definitions/AccountScheduleDaysV1" }
+      }
     },
     "DSTResolution": {
       "type": "object",
@@ -103,7 +156,10 @@
       "additionalProperties": false,
       "required": ["weekday", "lockTime", "unlockTime", "isDayOff"],
       "properties": {
-        "weekday": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+        "weekday": {
+          "type": "string",
+          "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        },
         "lockTime": { "$ref": "#/definitions/LocalTime" },
         "unlockTime": { "$ref": "#/definitions/LocalTime" },
         "isDayOff": { "type": "boolean" }
@@ -114,7 +170,10 @@
       "additionalProperties": false,
       "required": ["weekday", "lockTime", "isDayOff", "releasePolicy"],
       "properties": {
-        "weekday": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+        "weekday": {
+          "type": "string",
+          "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        },
         "lockTime": { "$ref": "#/definitions/LocalTime" },
         "isDayOff": { "type": "boolean" },
         "releasePolicy": { "$ref": "#/definitions/ReleasePolicy" }

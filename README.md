@@ -4,6 +4,8 @@ Versioned wire-format contract shared by Curfew for macOS, Curfew for Android, t
 
 JSON Schemas in `schemas/` are the single source of truth. Codegen scripts emit TypeScript declarations (`generated/typescript/`), Swift `Codable` structs (`generated/swift/Sources/CurfewProtocols/`), and Kotlin/JVM `kotlinx.serialization` models (`generated/kotlin/`). All outputs are committed; downstream consumers do not run codegen.
 
+Version `0.0.16` adds the encrypted account schedule plaintext contract. It preserves all seven local-calendar rules, including retained day-off times, mode, optional work-hour limit and the current reserved exception. It excludes device-local enrollment, permissions, time zone and grant usage. Consumers must validate the schema before applying a decrypted schedule and enforce each device's existing schedule-change policy. This contract does not provide budget or complete settings synchronization.
+
 ## Remote-control contract
 
 Version `0.0.13` includes read-only interactive preparation tools. `prepare_remote_lock`
@@ -109,7 +111,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.15")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.16")
 ```
 
 ```swift
@@ -120,19 +122,19 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.15`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.16`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.15")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.16")
 ```
 
 ```kotlin
 import studio.hypertext.curfew.protocols.WakeCampaign
 ```
 
-Version `0.0.15` must be published before consumers can use these coordinates.
+Version `0.0.16` must be published before consumers can use these coordinates.
 
 ## Development
 
