@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 
 ## [Unreleased]
 
+## [0.0.16] — 2026-11-10
+
+### Added
+
+- Define a versioned encrypted account schedule plaintext (`AccountScheduleV1`) with all seven local-calendar rules, saved off-day times, modes, work-hour limits, and reserved exception presence. Unknown fields and unsupported exception contents are rejected. Device-local permissions, identity, time zone, and grant counters are excluded.
+- Add shared schedule and fractional-timestamp encrypted-record vectors. Consumers must pin this release explicitly and validate decrypted values before applying schedule policy; this change does not implement synchronization or budget accounting.
+
+### Migration
+
+- Publish this version before updating exact consumer pins. Older consumers do not understand `AccountScheduleV1`.
+
 ## [0.0.15] — 2026-11-07
 
 ### Added

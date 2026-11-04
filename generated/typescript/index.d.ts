@@ -2597,6 +2597,7 @@ export type LocalTime = string
  * Executable anti-bypass policy. Strengthening begins at the next local midnight. Weakening waits at least 24 hours and never begins while a lockout is active.
  */
 export type ScheduleChangeApplicationPolicy = StrengtheningScheduleChangePolicy | WeakeningScheduleChangePolicy
+export type AccountScheduleModeV1 = "time" | "hours" | "combined"
 
 /**
  * Curfew v2 schedule and migration shapes. A day has exactly one morning release authority: a legacy fixed unlock or an account wake campaign. Stricter changes apply at the next local midnight; weaker changes wait 24 hours and cannot apply during an active lockout.
@@ -2605,6 +2606,7 @@ export interface CurfewScheduleContract {
   releasePolicy?: ReleasePolicy
   changePolicy?: ScheduleChangeApplicationPolicy
   migration?: LegacyScheduleMigration
+  accountSchedule?: AccountScheduleV1
 }
 export interface FixedUnlockReleasePolicy {
   kind: "fixed_unlock"
@@ -2646,6 +2648,42 @@ export interface ScheduleDayV2 {
   isDayOff: boolean
   releasePolicy: ReleasePolicy
 }
+
+/**
+ * Plaintext for one encrypted account_settings schedule record. Times are evaluated in each device's local calendar; device identity, consent, permissions, grant usage and time zone remain outside this payload. This is a schedule contract, not a contract for all account settings.
+ */
+export interface AccountScheduleV1 {
+  schemaVersion: 1
+  days: AccountScheduleDaysV1
+}
+export interface AccountScheduleDaysV1 {
+  monday: AccountScheduleDayV1
+  tuesday: AccountScheduleDayV1
+  wednesday: AccountScheduleDayV1
+  thursday: AccountScheduleDayV1
+  friday: AccountScheduleDayV1
+  saturday: AccountScheduleDayV1
+  sunday: AccountScheduleDayV1
+}
+
+/**
+ * One saved local-calendar day, including the inactive fields retained when a day is off or its mode changes. A missing hours limit retains the native time-trigger fallback. The empty exception object represents the current reserved native exception; unknown exception fields must be rejected.
+ */
+export interface AccountScheduleDayV1 {
+  isDayOff: boolean
+  lockTime: LocalTime
+  unlockTime: LocalTime
+  mode: AccountScheduleModeV1
+  /**
+   * An omitted or null value means no hours limit. A positive saved limit is retained even in time mode.
+   */
+  hoursLimitMinutes?: number | null
+  /**
+   * An omitted or null value means no exception. An empty object retains the current reserved native exception.
+   */
+  exception?: AccountScheduleExceptionV1 | null
+}
+export interface AccountScheduleExceptionV1 {}
 
 // From sync.json
 

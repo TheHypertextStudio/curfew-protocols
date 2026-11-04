@@ -1525,10 +1525,70 @@ enum class RemoteCommandKind(val value: String) {
  */
 @Serializable
 data class CurfewScheduleContract (
+    val accountSchedule: AccountScheduleV1? = null,
     val changePolicy: ScheduleChangeApplicationPolicy? = null,
     val migration: LegacyScheduleMigration? = null,
     val releasePolicy: ReleasePolicy? = null
 )
+
+/**
+ * Plaintext for one encrypted account_settings schedule record. Times are evaluated in each
+ * device's local calendar; device identity, consent, permissions, grant usage and time zone
+ * remain outside this payload. This is a schedule contract, not a contract for all account
+ * settings.
+ */
+@Serializable
+data class AccountScheduleV1 (
+    val days: AccountScheduleDaysV1,
+    val schemaVersion: Long
+)
+
+@Serializable
+data class AccountScheduleDaysV1 (
+    val friday: AccountScheduleDayV1,
+    val monday: AccountScheduleDayV1,
+    val saturday: AccountScheduleDayV1,
+    val sunday: AccountScheduleDayV1,
+    val thursday: AccountScheduleDayV1,
+    val tuesday: AccountScheduleDayV1,
+    val wednesday: AccountScheduleDayV1
+)
+
+/**
+ * One saved local-calendar day, including the inactive fields retained when a day is off or
+ * its mode changes. A missing hours limit retains the native time-trigger fallback. The
+ * empty exception object represents the current reserved native exception; unknown
+ * exception fields must be rejected.
+ */
+@Serializable
+data class AccountScheduleDayV1 (
+    /**
+     * An omitted or null value means no exception. An empty object retains the current reserved
+     * native exception.
+     */
+    val exception: AccountScheduleExceptionV1? = null,
+
+    /**
+     * An omitted or null value means no hours limit. A positive saved limit is retained even in
+     * time mode.
+     */
+    val hoursLimitMinutes: Long? = null,
+
+    val isDayOff: Boolean,
+    val lockTime: String,
+    val mode: AccountScheduleModeV1,
+    val unlockTime: String
+)
+
+@Serializable
+class AccountScheduleExceptionV1()
+
+@Serializable
+enum class AccountScheduleModeV1(val value: String) {
+    @SerialName("combined") Combined("combined"),
+    @SerialName("hours") Hours("hours"),
+    @SerialName("time") Time("time");
+}
 
 /**
  * Executable anti-bypass policy. Strengthening begins at the next local midnight. Weakening

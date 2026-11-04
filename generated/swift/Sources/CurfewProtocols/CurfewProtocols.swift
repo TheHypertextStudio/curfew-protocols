@@ -5427,11 +5427,13 @@ public enum RemoteCommandKind: String, Codable {
 /// local midnight; weaker changes wait 24 hours and cannot apply during an active lockout.
 // MARK: - CurfewScheduleContract
 public struct CurfewScheduleContract: Codable {
+    public let accountSchedule: AccountScheduleV1?
     public let changePolicy: ScheduleChangeApplicationPolicy?
     public let migration: LegacyScheduleMigration?
     public let releasePolicy: ReleasePolicy?
 
-    public init(changePolicy: ScheduleChangeApplicationPolicy?, migration: LegacyScheduleMigration?, releasePolicy: ReleasePolicy?) {
+    public init(accountSchedule: AccountScheduleV1?, changePolicy: ScheduleChangeApplicationPolicy?, migration: LegacyScheduleMigration?, releasePolicy: ReleasePolicy?) {
+        self.accountSchedule = accountSchedule
         self.changePolicy = changePolicy
         self.migration = migration
         self.releasePolicy = releasePolicy
@@ -5457,11 +5459,13 @@ public extension CurfewScheduleContract {
     }
 
     func with(
+        accountSchedule: AccountScheduleV1?? = nil,
         changePolicy: ScheduleChangeApplicationPolicy?? = nil,
         migration: LegacyScheduleMigration?? = nil,
         releasePolicy: ReleasePolicy?? = nil
     ) -> CurfewScheduleContract {
         return CurfewScheduleContract(
+            accountSchedule: accountSchedule ?? self.accountSchedule,
             changePolicy: changePolicy ?? self.changePolicy,
             migration: migration ?? self.migration,
             releasePolicy: releasePolicy ?? self.releasePolicy
@@ -5475,6 +5479,239 @@ public extension CurfewScheduleContract {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Plaintext for one encrypted account_settings schedule record. Times are evaluated in each
+/// device's local calendar; device identity, consent, permissions, grant usage and time zone
+/// remain outside this payload. This is a schedule contract, not a contract for all account
+/// settings.
+// MARK: - AccountScheduleV1
+public struct AccountScheduleV1: Codable {
+    public let days: AccountScheduleDaysV1
+    public let schemaVersion: Int
+
+    public init(days: AccountScheduleDaysV1, schemaVersion: Int) {
+        self.days = days
+        self.schemaVersion = schemaVersion
+    }
+}
+
+// MARK: AccountScheduleV1 convenience initializers and mutators
+
+public extension AccountScheduleV1 {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccountScheduleV1.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        days: AccountScheduleDaysV1? = nil,
+        schemaVersion: Int? = nil
+    ) -> AccountScheduleV1 {
+        return AccountScheduleV1(
+            days: days ?? self.days,
+            schemaVersion: schemaVersion ?? self.schemaVersion
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - AccountScheduleDaysV1
+public struct AccountScheduleDaysV1: Codable {
+    public let friday, monday, saturday, sunday: AccountScheduleDayV1
+    public let thursday, tuesday, wednesday: AccountScheduleDayV1
+
+    public init(friday: AccountScheduleDayV1, monday: AccountScheduleDayV1, saturday: AccountScheduleDayV1, sunday: AccountScheduleDayV1, thursday: AccountScheduleDayV1, tuesday: AccountScheduleDayV1, wednesday: AccountScheduleDayV1) {
+        self.friday = friday
+        self.monday = monday
+        self.saturday = saturday
+        self.sunday = sunday
+        self.thursday = thursday
+        self.tuesday = tuesday
+        self.wednesday = wednesday
+    }
+}
+
+// MARK: AccountScheduleDaysV1 convenience initializers and mutators
+
+public extension AccountScheduleDaysV1 {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccountScheduleDaysV1.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        friday: AccountScheduleDayV1? = nil,
+        monday: AccountScheduleDayV1? = nil,
+        saturday: AccountScheduleDayV1? = nil,
+        sunday: AccountScheduleDayV1? = nil,
+        thursday: AccountScheduleDayV1? = nil,
+        tuesday: AccountScheduleDayV1? = nil,
+        wednesday: AccountScheduleDayV1? = nil
+    ) -> AccountScheduleDaysV1 {
+        return AccountScheduleDaysV1(
+            friday: friday ?? self.friday,
+            monday: monday ?? self.monday,
+            saturday: saturday ?? self.saturday,
+            sunday: sunday ?? self.sunday,
+            thursday: thursday ?? self.thursday,
+            tuesday: tuesday ?? self.tuesday,
+            wednesday: wednesday ?? self.wednesday
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// One saved local-calendar day, including the inactive fields retained when a day is off or
+/// its mode changes. A missing hours limit retains the native time-trigger fallback. The
+/// empty exception object represents the current reserved native exception; unknown
+/// exception fields must be rejected.
+// MARK: - AccountScheduleDayV1
+public struct AccountScheduleDayV1: Codable {
+    /// An omitted or null value means no exception. An empty object retains the current reserved
+    /// native exception.
+    public let exception: AccountScheduleExceptionV1?
+    /// An omitted or null value means no hours limit. A positive saved limit is retained even in
+    /// time mode.
+    public let hoursLimitMinutes: Int?
+    public let isDayOff: Bool
+    public let lockTime: String
+    public let mode: AccountScheduleModeV1
+    public let unlockTime: String
+
+    public init(exception: AccountScheduleExceptionV1?, hoursLimitMinutes: Int?, isDayOff: Bool, lockTime: String, mode: AccountScheduleModeV1, unlockTime: String) {
+        self.exception = exception
+        self.hoursLimitMinutes = hoursLimitMinutes
+        self.isDayOff = isDayOff
+        self.lockTime = lockTime
+        self.mode = mode
+        self.unlockTime = unlockTime
+    }
+}
+
+// MARK: AccountScheduleDayV1 convenience initializers and mutators
+
+public extension AccountScheduleDayV1 {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccountScheduleDayV1.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        exception: AccountScheduleExceptionV1?? = nil,
+        hoursLimitMinutes: Int?? = nil,
+        isDayOff: Bool? = nil,
+        lockTime: String? = nil,
+        mode: AccountScheduleModeV1? = nil,
+        unlockTime: String? = nil
+    ) -> AccountScheduleDayV1 {
+        return AccountScheduleDayV1(
+            exception: exception ?? self.exception,
+            hoursLimitMinutes: hoursLimitMinutes ?? self.hoursLimitMinutes,
+            isDayOff: isDayOff ?? self.isDayOff,
+            lockTime: lockTime ?? self.lockTime,
+            mode: mode ?? self.mode,
+            unlockTime: unlockTime ?? self.unlockTime
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - AccountScheduleExceptionV1
+public struct AccountScheduleExceptionV1: Codable {
+
+    public init() {
+    }
+}
+
+// MARK: AccountScheduleExceptionV1 convenience initializers and mutators
+
+public extension AccountScheduleExceptionV1 {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccountScheduleExceptionV1.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+    ) -> AccountScheduleExceptionV1 {
+        return AccountScheduleExceptionV1(
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum AccountScheduleModeV1: String, Codable {
+    case combined = "combined"
+    case hours = "hours"
+    case time = "time"
 }
 
 /// Executable anti-bypass policy. Strengthening begins at the next local midnight. Weakening

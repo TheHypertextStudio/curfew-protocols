@@ -2,12 +2,12 @@
 // tests/vectors/v2-golden.json. Do not edit the generated file.
 import CoreFoundation
 import CryptoKit
+@testable import CurfewProtocols
 import Foundation
 import XCTest
-@testable import CurfewProtocols
 
 final class CurfewV2GoldenVectorsTests: XCTestCase {
-    private let generatedVectorIDs: [String] = ["fixed-unlock-release", "wake-campaign-release", "release-policy-mutual-exclusion", "legacy-schedule-migration", "default-no-deadline-alarm", "retired-bounded-campaign-fields", "malformed-callback", "callback-replay", "stale-callback-observation", "encrypted-record-current-writer", "stale-writer-version", "dst-gap", "dst-overlap", "remote-override-five-minutes", "remote-override-too-short", "remote-override-too-long"]
+    private let generatedVectorIDs: [String] = ["fixed-unlock-release", "wake-campaign-release", "release-policy-mutual-exclusion", "legacy-schedule-migration", "default-no-deadline-alarm", "retired-bounded-campaign-fields", "malformed-callback", "callback-replay", "stale-callback-observation", "encrypted-record-current-writer", "stale-writer-version", "dst-gap", "dst-overlap", "remote-override-five-minutes", "remote-override-too-short", "remote-override-too-long", "account-schedule-v1", "account-schedule-unknown-exception"]
 
     func testValidatesSharedV2Corpus() throws {
         let root = try repositoryRoot()
@@ -35,6 +35,27 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         }
     }
 
+    func testAccountScheduleGeneratedModelRoundTripsNilAndReservedException() throws {
+        let root = try repositoryRoot()
+        let manifest = try XCTUnwrap(
+            try json(at: root.appendingPathComponent("tests/vectors/v2-golden.json")) as? [String: Any]
+        )
+        let crypto = try XCTUnwrap(manifest["cryptography"] as? [String: Any])
+        let vector = try XCTUnwrap(crypto["accountScheduleRecord"] as? [String: Any])
+        let plaintext = try XCTUnwrap(vector["plaintextCanonical"] as? String)
+        let schedule = try AccountScheduleV1(plaintext)
+        XCTAssertNil(schedule.days.monday.hoursLimitMinutes)
+        XCTAssertNil(schedule.days.monday.exception)
+        XCTAssertEqual(schedule.days.tuesday.hoursLimitMinutes, 480)
+        XCTAssertEqual(schedule.days.wednesday.mode, .combined)
+        XCTAssertNotNil(schedule.days.saturday.exception)
+        let roundTrip = try JSONSerialization.jsonObject(with: schedule.jsonData())
+        let schema = try XCTUnwrap(try json(at: root.appendingPathComponent("schemas/schedule.json")) as? [String: Any])
+        let definitions = try XCTUnwrap(schema["definitions"] as? [String: Any])
+        let definition = try XCTUnwrap(definitions["AccountScheduleV1"] as? [String: Any])
+        XCTAssertTrue(Draft07Subset(root: schema).valid(roundTrip, schema: definition))
+    }
+
     func testVerifiesCanonicalCallbackCryptography() throws {
         let root = try repositoryRoot()
         let manifest = try XCTUnwrap(
@@ -42,7 +63,7 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         )
         let cryptography = try XCTUnwrap(manifest["cryptography"] as? [String: Any])
         let callbackID = try XCTUnwrap(cryptography["callbackId"] as? String)
-        let secret = try XCTUnwrap(decodeBase64URL(try XCTUnwrap(cryptography["secret"] as? String)))
+        let secret = try XCTUnwrap(try decodeBase64URL(XCTUnwrap(cryptography["secret"] as? String)))
         let requestKey = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: secret),
             salt: Data(callbackID.utf8),
@@ -55,8 +76,8 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
             info: Data("curfew-callback-response-v1".utf8),
             outputByteCount: 32
         )
-        let challengeCanonical = try canonicalJSON(try XCTUnwrap(cryptography["challengeUnsigned"]))
-        let receiptCanonical = try canonicalJSON(try XCTUnwrap(cryptography["receiptUnsigned"]))
+        let challengeCanonical = try canonicalJSON(XCTUnwrap(cryptography["challengeUnsigned"]))
+        let receiptCanonical = try canonicalJSON(XCTUnwrap(cryptography["receiptUnsigned"]))
 
         XCTAssertEqual(challengeCanonical, cryptography["challengeCanonical"] as? String)
         XCTAssertEqual(base64URL(requestKey), cryptography["requestKey"] as? String)
@@ -81,7 +102,7 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         )
         let cryptography = try XCTUnwrap(manifest["cryptography"] as? [String: Any])
         let vector = try XCTUnwrap(cryptography["remoteCommandResult"] as? [String: Any])
-        let canonical = try canonicalJSON(try XCTUnwrap(vector["resultUnsigned"]))
+        let canonical = try canonicalJSON(XCTUnwrap(vector["resultUnsigned"]))
 
         XCTAssertEqual(canonical, vector["resultCanonical"] as? String)
         XCTAssertEqual(
@@ -97,41 +118,41 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         )
         let cryptography = try XCTUnwrap(manifest["cryptography"] as? [String: Any])
         let record = try XCTUnwrap(cryptography["encryptedRecord"] as? [String: Any])
-        let rootKey = try XCTUnwrap(decodeBase64URL(try XCTUnwrap(record["rootKey"] as? String)))
-        let namespaceKey = HKDF<SHA256>.deriveKey(
+        let rootKey = try XCTUnwrap(try decodeBase64URL(XCTUnwrap(record["rootKey"] as? String)))
+        let namespaceKey = try HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: rootKey),
-            salt: Data(try XCTUnwrap(record["namespaceKeySalt"] as? String).utf8),
-            info: Data(try XCTUnwrap(record["namespaceKeyInfo"] as? String).utf8),
+            salt: Data(XCTUnwrap(record["namespaceKeySalt"] as? String).utf8),
+            info: Data(XCTUnwrap(record["namespaceKeyInfo"] as? String).utf8),
             outputByteCount: 32
         )
         XCTAssertEqual(base64URL(namespaceKey), record["namespaceKey"] as? String)
-        let aadCanonical = try canonicalJSON(try XCTUnwrap(record["aadUnsigned"]))
+        let aadCanonical = try canonicalJSON(XCTUnwrap(record["aadUnsigned"]))
         XCTAssertEqual(aadCanonical, record["aadCanonical"] as? String)
         XCTAssertEqual(
             base64URL(Data(SHA256.hash(data: Data(aadCanonical.utf8)))),
             record["aadDigest"] as? String
         )
         XCTAssertEqual(
-            base64URL(
-                try aesGcmSeal(
+            try base64URL(
+                aesGcmSeal(
                     key: namespaceKey.withUnsafeBytes { Data($0) },
-                    nonce: try XCTUnwrap(decodeBase64URL(try XCTUnwrap(record["nonce"] as? String))),
+                    nonce: XCTUnwrap(try decodeBase64URL(XCTUnwrap(record["nonce"] as? String))),
                     aad: Data(aadCanonical.utf8),
-                    plaintext: Data(try XCTUnwrap(record["plaintextCanonical"] as? String).utf8)
+                    plaintext: Data(XCTUnwrap(record["plaintextCanonical"] as? String).utf8)
                 )
             ),
             record["ciphertext"] as? String
         )
-        let signatureCanonical = try canonicalJSON(try XCTUnwrap(record["signatureUnsigned"]))
+        let signatureCanonical = try canonicalJSON(XCTUnwrap(record["signatureUnsigned"]))
         XCTAssertEqual(signatureCanonical, record["signatureCanonical"] as? String)
         let signingJWK = try XCTUnwrap(record["signingPublicKeyJwk"] as? [String: Any])
-        let signingPublicRaw = Data([4]) +
-            (try XCTUnwrap(decodeBase64URL(try XCTUnwrap(signingJWK["x"] as? String)))) +
-            (try XCTUnwrap(decodeBase64URL(try XCTUnwrap(signingJWK["y"] as? String))))
+        let signingPublicRaw = try Data([4]) +
+            XCTUnwrap(try decodeBase64URL(XCTUnwrap(signingJWK["x"] as? String))) +
+            XCTUnwrap(try decodeBase64URL(XCTUnwrap(signingJWK["y"] as? String)))
         let signingPublicKey = try P256.Signing.PublicKey(x963Representation: signingPublicRaw)
         let signature = try P256.Signing.ECDSASignature(
-            rawRepresentation: try XCTUnwrap(
-                decodeBase64URL(try XCTUnwrap(record["signature"] as? String))
+            rawRepresentation: XCTUnwrap(
+                try decodeBase64URL(XCTUnwrap(record["signature"] as? String))
             )
         )
         XCTAssertTrue(
@@ -139,19 +160,19 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         )
 
         let hpke = try XCTUnwrap(cryptography["hpkeEnvelope"] as? [String: Any])
-        let hpkeAAD = try canonicalJSON(try XCTUnwrap(hpke["aadUnsigned"]))
+        let hpkeAAD = try canonicalJSON(XCTUnwrap(hpke["aadUnsigned"]))
         XCTAssertEqual(hpkeAAD, hpke["aadCanonical"] as? String)
         let hpkeResult = try hpkeSealVector(
-            recipientPublicKey: try XCTUnwrap(
-                decodeBase64URL(try XCTUnwrap(hpke["recipientPublicKey"] as? String))
+            recipientPublicKey: XCTUnwrap(
+                try decodeBase64URL(XCTUnwrap(hpke["recipientPublicKey"] as? String))
             ),
-            ephemeralPrivateKey: try XCTUnwrap(
-                decodeBase64URL(try XCTUnwrap(hpke["ephemeralPrivateKey"] as? String))
+            ephemeralPrivateKey: XCTUnwrap(
+                try decodeBase64URL(XCTUnwrap(hpke["ephemeralPrivateKey"] as? String))
             ),
-            encapsulatedKey: try XCTUnwrap(
-                decodeBase64URL(try XCTUnwrap(hpke["encapsulatedKey"] as? String))
+            encapsulatedKey: XCTUnwrap(
+                try decodeBase64URL(XCTUnwrap(hpke["encapsulatedKey"] as? String))
             ),
-            info: Data(try XCTUnwrap(hpke["info"] as? String).utf8),
+            info: Data(XCTUnwrap(hpke["info"] as? String).utf8),
             aad: Data(hpkeAAD.utf8),
             plaintext: rootKey
         )
@@ -161,25 +182,25 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         XCTAssertEqual(base64URL(hpkeResult.ciphertext), hpke["ciphertext"] as? String)
 
         let recovery = try XCTUnwrap(cryptography["recoveryEnvelope"] as? [String: Any])
-        let recoveryAAD = try canonicalJSON(try XCTUnwrap(recovery["aadUnsigned"]))
+        let recoveryAAD = try canonicalJSON(XCTUnwrap(recovery["aadUnsigned"]))
         XCTAssertEqual(recoveryAAD, recovery["aadCanonical"] as? String)
-        let wrappingKey = HKDF<SHA256>.deriveKey(
+        let wrappingKey = try HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(
-                data: try XCTUnwrap(
-                    decodeBase64URL(try XCTUnwrap(recovery["recoveryKey"] as? String))
+                data: XCTUnwrap(
+                    try decodeBase64URL(XCTUnwrap(recovery["recoveryKey"] as? String))
                 )
             ),
-            salt: try XCTUnwrap(decodeBase64URL(try XCTUnwrap(recovery["salt"] as? String))),
-            info: Data(try XCTUnwrap(recovery["info"] as? String).utf8),
+            salt: XCTUnwrap(try decodeBase64URL(XCTUnwrap(recovery["salt"] as? String))),
+            info: Data(XCTUnwrap(recovery["info"] as? String).utf8),
             outputByteCount: 32
         )
         XCTAssertEqual(base64URL(wrappingKey), recovery["wrappingKey"] as? String)
         XCTAssertEqual(
-            base64URL(
-                try aesGcmSeal(
+            try base64URL(
+                aesGcmSeal(
                     key: wrappingKey.withUnsafeBytes { Data($0) },
-                    nonce: try XCTUnwrap(
-                        decodeBase64URL(try XCTUnwrap(recovery["nonce"] as? String))
+                    nonce: XCTUnwrap(
+                        try decodeBase64URL(XCTUnwrap(recovery["nonce"] as? String))
                     ),
                     aad: Data(recoveryAAD.utf8),
                     plaintext: rootKey
@@ -210,7 +231,7 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
                 guard fields.count == 6 else { throw CocoaError(.formatting) }
                 var calendar = Calendar(identifier: .gregorian)
                 calendar.timeZone = try XCTUnwrap(
-                    TimeZone(identifier: try XCTUnwrap(vector["timeZone"] as? String))
+                    try TimeZone(identifier: XCTUnwrap(vector["timeZone"] as? String))
                 )
                 var day = DateComponents()
                 day.calendar = calendar
@@ -234,10 +255,10 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
                 )
             case "final_deadline":
                 let scheduled = try XCTUnwrap(
-                    instantFormatter.date(from: try XCTUnwrap(vector["scheduledAt"] as? String))
+                    try instantFormatter.date(from: XCTUnwrap(vector["scheduledAt"] as? String))
                 )
-                resolved = scheduled.addingTimeInterval(
-                    try XCTUnwrap(vector["campaignDurationSeconds"] as? NSNumber).doubleValue
+                resolved = try scheduled.addingTimeInterval(
+                    XCTUnwrap(vector["campaignDurationSeconds"] as? NSNumber).doubleValue
                 )
             default:
                 throw CocoaError(.formatting)
@@ -315,11 +336,11 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
             info: context,
             length: 12
         )
-        return HPKEVector(
+        return try HPKEVector(
             sharedSecret: sharedSecret,
             key: key,
             baseNonce: baseNonce,
-            ciphertext: try aesGcmSeal(key: key, nonce: baseNonce, aad: aad, plaintext: plaintext)
+            ciphertext: aesGcmSeal(key: key, nonce: baseNonce, aad: aad, plaintext: plaintext)
         )
     }
 
@@ -378,7 +399,7 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
 
     private func i2osp(_ value: Int, length: Int) -> Data {
         Data((0 ..< length).map { index in
-            UInt8((value >> (8 * (length - index - 1))) & 0xff)
+            UInt8((value >> (8 * (length - index - 1))) & 0xFF)
         })
     }
 
@@ -391,7 +412,7 @@ final class CurfewV2GoldenVectorsTests: XCTestCase {
         let sealed = try AES.GCM.seal(
             plaintext,
             using: SymmetricKey(data: key),
-            nonce: try AES.GCM.Nonce(data: nonce),
+            nonce: AES.GCM.Nonce(data: nonce),
             authenticating: aad
         )
         return sealed.ciphertext + sealed.tag
@@ -458,7 +479,9 @@ private struct Draft07Subset {
         {
             return false
         }
-        if let constant = schema["const"], !jsonEqual(instance, constant) { return false }
+        if let constant = schema["const"], !jsonEqual(instance, constant) {
+            return false
+        }
         if let values = schema["enum"] as? [Any],
            !values.contains(where: { jsonEqual(instance, $0) })
         {
@@ -466,9 +489,14 @@ private struct Draft07Subset {
         }
         if let rawType = schema["type"] {
             let types: [String]
-            if let type = rawType as? String { types = [type] }
-            else { types = rawType as? [String] ?? [] }
-            if !types.contains(where: { matchesType(instance, type: $0) }) { return false }
+            if let type = rawType as? String {
+                types = [type]
+            } else {
+                types = rawType as? [String] ?? []
+            }
+            if !types.contains(where: { matchesType(instance, type: $0) }) {
+                return false
+            }
         }
 
         if let object = instance as? [String: Any] {
@@ -484,10 +512,14 @@ private struct Draft07Subset {
                       let cap = (rule["capSeconds"] as? NSNumber)?.int64Value
                 else { return false }
                 let computed = attempts * ringing + max(0, attempts - 1) * quiet
-                if computed != declaredDuration || computed > cap { return false }
+                if computed != declaredDuration || computed > cap {
+                    return false
+                }
             }
             let required = schema["required"] as? [String] ?? []
-            if required.contains(where: { object[$0] == nil }) { return false }
+            if required.contains(where: { object[$0] == nil }) {
+                return false
+            }
             if let properties = schema["properties"] as? [String: Any] {
                 if (schema["additionalProperties"] as? Bool) == false,
                    object.keys.contains(where: { properties[$0] == nil })
@@ -498,14 +530,20 @@ private struct Draft07Subset {
                     guard let value = object[name],
                           let property = rawProperty as? [String: Any]
                     else { continue }
-                    if !valid(value, schema: property) { return false }
+                    if !valid(value, schema: property) {
+                        return false
+                    }
                 }
             }
         }
 
         if let array = instance as? [Any] {
-            if let minimum = schema["minItems"] as? Int, array.count < minimum { return false }
-            if let maximum = schema["maxItems"] as? Int, array.count > maximum { return false }
+            if let minimum = schema["minItems"] as? Int, array.count < minimum {
+                return false
+            }
+            if let maximum = schema["maxItems"] as? Int, array.count > maximum {
+                return false
+            }
             if (schema["uniqueItems"] as? Bool) == true {
                 for index in array.indices {
                     if array[(index + 1)...].contains(where: { jsonEqual(array[index], $0) }) {
@@ -521,8 +559,12 @@ private struct Draft07Subset {
         }
 
         if let string = instance as? String {
-            if let minimum = schema["minLength"] as? Int, string.count < minimum { return false }
-            if let maximum = schema["maxLength"] as? Int, string.count > maximum { return false }
+            if let minimum = schema["minLength"] as? Int, string.count < minimum {
+                return false
+            }
+            if let maximum = schema["maxLength"] as? Int, string.count > maximum {
+                return false
+            }
             if let pattern = schema["pattern"] as? String,
                string.range(of: pattern, options: .regularExpression) == nil
             {
