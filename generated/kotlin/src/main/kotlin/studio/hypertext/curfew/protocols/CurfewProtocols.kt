@@ -7,6 +7,7 @@
 // val curfewAccountContract        = json.parse(CurfewAccountContract.serializer(), jsonString)
 // val curfewAlarmContract          = json.parse(CurfewAlarmContract.serializer(), jsonString)
 // val curfewCallbackContract       = json.parse(CurfewCallbackContract.serializer(), jsonString)
+// val curfewCommitmentContract     = json.parse(CurfewCommitmentContract.serializer(), jsonString)
 // val remoteCommandDeliveryBatch   = json.parse(RemoteCommandDeliveryBatch.serializer(), jsonString)
 // val deviceSessionContract        = json.parse(DeviceSessionContract.serializer(), jsonString)
 // val deviceContract               = json.parse(DeviceContract.serializer(), jsonString)
@@ -398,11 +399,11 @@ data class WakeAttempt (
     val quietEndsAt: String? = null,
     val ringEndsAt: String,
     val startedAt: String,
-    val state: State
+    val state: AttemptState
 )
 
 @Serializable
-enum class State(val value: String) {
+enum class AttemptState(val value: String) {
     @SerialName("failed") Failed("failed"),
     @SerialName("quiet") Quiet("quiet"),
     @SerialName("ringing") Ringing("ringing"),
@@ -550,6 +551,103 @@ data class CallbackPollPolicy (
     val intervalSeconds: Long,
     val maximumBackoffSeconds: Long,
     val requestTimeoutSeconds: Long
+)
+
+/**
+ * Platform-neutral identifiers for a bounded commitment occurrence and a condition
+ * observation. These shapes do not authenticate a result or authorize a release. Consumers
+ * must verify the source, match the occurrence, condition and policy version, and validate
+ * timestamp order and freshness before applying local policy.
+ */
+@Serializable
+data class CurfewCommitmentContract (
+    val conditionResult: CommitmentConditionResult? = null,
+    val deviceAcknowledgement: CommitmentDeviceAcknowledgement? = null,
+    val exception: CommitmentException? = null,
+    val occurrence: CommitmentOccurrence? = null
+)
+
+/**
+ * A minimal condition observation, not a release command. Unavailable is distinct from
+ * pending and from satisfaction. An override is a separate locally authorized action, not
+ * evidence of completion. The owning device checks source authentication, identifiers,
+ * timestamp validity and ordering, and freshness.
+ */
+@Serializable
+data class CommitmentConditionResult (
+    val conditionId: String,
+    val expiresAt: String,
+    val observedAt: String,
+    val occurrenceId: String,
+    val policyVersion: Long,
+    val status: ConditionResultStatus
+)
+
+@Serializable
+enum class ConditionResultStatus(val value: String) {
+    @SerialName("pending") Pending("pending"),
+    @SerialName("satisfied") Satisfied("satisfied"),
+    @SerialName("unavailable") Unavailable("unavailable");
+}
+
+/**
+ * A time-bounded report of one device’s local enforcement state, not proof of other devices
+ * or a command. Consumers authenticate the reporting device and validate occurrence, policy
+ * revision, timestamps and freshness.
+ */
+@Serializable
+data class CommitmentDeviceAcknowledgement (
+    val deviceId: String,
+    val expiresAt: String,
+    val observedAt: String,
+    val occurrenceId: String,
+    val policyVersion: Long,
+    val state: DeviceAcknowledgementState
+)
+
+@Serializable
+enum class DeviceAcknowledgementState(val value: String) {
+    @SerialName("enforcing") Enforcing("enforcing"),
+    @SerialName("notEnforcing") NotEnforcing("notEnforcing"),
+    @SerialName("unavailable") Unavailable("unavailable");
+}
+
+/**
+ * A bounded user-authorized exception, separate from condition satisfaction. Consumers
+ * authenticate its source, validate authority, scope, timestamp order, and freshness before
+ * applying it.
+ */
+@Serializable
+data class CommitmentException (
+    val endsAt: String,
+    val exceptionId: String,
+    val occurrenceId: String,
+    val policyVersion: Long,
+    val reason: Reason,
+    val startsAt: String
+)
+
+@Serializable
+enum class Reason(val value: String) {
+    @SerialName("emergency") Emergency("emergency"),
+    @SerialName("illness") Illness("illness"),
+    @SerialName("injury") Injury("injury"),
+    @SerialName("integrationUnavailable") IntegrationUnavailable("integrationUnavailable"),
+    @SerialName("other") Other("other"),
+    @SerialName("priorityChanged") PriorityChanged("priorityChanged");
+}
+
+/**
+ * A single bounded occurrence. The owning device validates that startsAt precedes endsAt.
+ * Recurrence, access rules and provider configuration are not carried here.
+ */
+@Serializable
+data class CommitmentOccurrence (
+    val commitmentId: String,
+    val endsAt: String,
+    val occurrenceId: String,
+    val policyVersion: Long,
+    val startsAt: String
 )
 
 /**

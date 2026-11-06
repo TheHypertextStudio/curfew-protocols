@@ -354,6 +354,68 @@ export interface CallbackReceiptAcceptance {
   macDisposition: "valid"
 }
 
+// From commitment.json
+
+export type CommitmentIdentifier = string
+export type CommitmentInstant = string
+
+/**
+ * Platform-neutral identifiers for a bounded commitment occurrence and a condition observation. These shapes do not authenticate a result or authorize a release. Consumers must verify the source, match the occurrence, condition and policy version, and validate timestamp order and freshness before applying local policy.
+ */
+export interface CurfewCommitmentContract {
+  occurrence?: CommitmentOccurrence
+  conditionResult?: CommitmentConditionResult
+  exception?: CommitmentException
+  deviceAcknowledgement?: CommitmentDeviceAcknowledgement
+}
+
+/**
+ * A single bounded occurrence. The owning device validates that startsAt precedes endsAt. Recurrence, access rules and provider configuration are not carried here.
+ */
+export interface CommitmentOccurrence {
+  occurrenceId: CommitmentIdentifier
+  commitmentId: CommitmentIdentifier
+  policyVersion: number
+  startsAt: CommitmentInstant
+  endsAt: CommitmentInstant
+}
+
+/**
+ * A minimal condition observation, not a release command. Unavailable is distinct from pending and from satisfaction. An override is a separate locally authorized action, not evidence of completion. The owning device checks source authentication, identifiers, timestamp validity and ordering, and freshness.
+ */
+export interface CommitmentConditionResult {
+  occurrenceId: CommitmentIdentifier
+  conditionId: CommitmentIdentifier
+  policyVersion: number
+  status: "pending" | "satisfied" | "unavailable"
+  observedAt: CommitmentInstant
+  expiresAt: CommitmentInstant
+}
+
+/**
+ * A bounded user-authorized exception, separate from condition satisfaction. Consumers authenticate its source, validate authority, scope, timestamp order, and freshness before applying it.
+ */
+export interface CommitmentException {
+  exceptionId: CommitmentIdentifier
+  occurrenceId: CommitmentIdentifier
+  policyVersion: number
+  reason: "emergency" | "illness" | "injury" | "integrationUnavailable" | "priorityChanged" | "other"
+  startsAt: CommitmentInstant
+  endsAt: CommitmentInstant
+}
+
+/**
+ * A time-bounded report of one device’s local enforcement state, not proof of other devices or a command. Consumers authenticate the reporting device and validate occurrence, policy revision, timestamps and freshness.
+ */
+export interface CommitmentDeviceAcknowledgement {
+  occurrenceId: CommitmentIdentifier
+  policyVersion: number
+  deviceId: CommitmentIdentifier
+  state: "enforcing" | "notEnforcing" | "unavailable"
+  observedAt: CommitmentInstant
+  expiresAt: CommitmentInstant
+}
+
 // From device-poll.json
 
 export type Cursor = string

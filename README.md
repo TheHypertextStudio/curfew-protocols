@@ -112,7 +112,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.13")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.14")
 ```
 
 ```swift
@@ -123,17 +123,19 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.13`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.14`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.13")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.14")
 ```
 
 ```kotlin
 import studio.hypertext.curfew.protocols.WakeCampaign
 ```
+
+Version `0.0.14` is prepared in this branch and must be published before consumers can use these coordinates.
 
 ## Development
 
