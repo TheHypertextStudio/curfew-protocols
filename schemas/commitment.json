@@ -1,0 +1,186 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://curfew-protocols.hypertext.studio/schemas/commitment.json",
+  "title": "CurfewCommitmentContract",
+  "description": "Platform-neutral identifiers for a bounded commitment occurrence and a condition observation. These shapes do not authenticate a result or authorize a release. Consumers must verify the source, match the occurrence, condition and policy version, and validate timestamp order and freshness before applying local policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "occurrence": {
+      "$ref": "#/definitions/CommitmentOccurrence"
+    },
+    "conditionResult": {
+      "$ref": "#/definitions/CommitmentConditionResult"
+    },
+    "exception": {
+      "$ref": "#/definitions/CommitmentException"
+    },
+    "deviceAcknowledgement": {
+      "$ref": "#/definitions/CommitmentDeviceAcknowledgement"
+    }
+  },
+  "definitions": {
+    "CommitmentIdentifier": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "CommitmentInstant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+    },
+    "CommitmentOccurrence": {
+      "description": "A single bounded occurrence. The owning device validates that startsAt precedes endsAt. Recurrence, access rules and provider configuration are not carried here.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurrenceId",
+        "commitmentId",
+        "policyVersion",
+        "startsAt",
+        "endsAt"
+      ],
+      "properties": {
+        "occurrenceId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "commitmentId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "startsAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        },
+        "endsAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        }
+      }
+    },
+    "CommitmentConditionResult": {
+      "description": "A minimal condition observation, not a release command. Unavailable is distinct from pending and from satisfaction. An override is a separate locally authorized action, not evidence of completion. The owning device checks source authentication, identifiers, timestamp validity and ordering, and freshness.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurrenceId",
+        "conditionId",
+        "policyVersion",
+        "status",
+        "observedAt",
+        "expiresAt"
+      ],
+      "properties": {
+        "occurrenceId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "conditionId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "satisfied",
+            "unavailable"
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        },
+        "expiresAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        }
+      }
+    },
+    "CommitmentException": {
+      "description": "A bounded user-authorized exception, separate from condition satisfaction. Consumers authenticate its source, validate authority, scope, timestamp order, and freshness before applying it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exceptionId",
+        "occurrenceId",
+        "policyVersion",
+        "reason",
+        "startsAt",
+        "endsAt"
+      ],
+      "properties": {
+        "exceptionId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "occurrenceId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "emergency",
+            "illness",
+            "injury",
+            "integrationUnavailable",
+            "priorityChanged",
+            "other"
+          ]
+        },
+        "startsAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        },
+        "endsAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        }
+      }
+    },
+    "CommitmentDeviceAcknowledgement": {
+      "description": "A time-bounded report of one device’s local enforcement state, not proof of other devices or a command. Consumers authenticate the reporting device and validate occurrence, policy revision, timestamps and freshness.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurrenceId",
+        "policyVersion",
+        "deviceId",
+        "state",
+        "observedAt",
+        "expiresAt"
+      ],
+      "properties": {
+        "occurrenceId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "policyVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "deviceId": {
+          "$ref": "#/definitions/CommitmentIdentifier"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "enforcing",
+            "notEnforcing",
+            "unavailable"
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        },
+        "expiresAt": {
+          "$ref": "#/definitions/CommitmentInstant"
+        }
+      }
+    }
+  }
+}
