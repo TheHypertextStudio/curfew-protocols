@@ -31,7 +31,7 @@ jobs:
       - run: pnpm test
 
   verify-swift:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7.0.1
       - run: swift build
