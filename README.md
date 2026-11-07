@@ -89,17 +89,14 @@ pnpm add @thehypertextstudio/curfew-protocols
 ```
 
 ```ts
-import type {
-  DeviceDescriptor,
-  RemoteLockCommand,
-} from "@thehypertextstudio/curfew-protocols";
+import type { DeviceDescriptor, RemoteLockCommand } from '@thehypertextstudio/curfew-protocols';
 ```
 
 Draft-07 cannot express the alarm-duration arithmetic. Trust-boundary validators must register the generated custom keyword before compiling Curfew schemas:
 
 ```ts
-import Ajv from "ajv";
-import { addCurfewProtocolKeywords } from "@thehypertextstudio/curfew-protocols/validation";
+import Ajv from 'ajv';
+import { addCurfewProtocolKeywords } from '@thehypertextstudio/curfew-protocols/validation';
 
 const ajv = addCurfewProtocolKeywords(new Ajv({ strict: true }));
 ```
@@ -112,7 +109,7 @@ committed. The tag publishing workflow receives its token from GitHub Actions.
 ## Swift consumer
 
 ```swift
-.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.14")
+.package(url: "https://github.com/TheHypertextStudio/curfew-protocols", exact: "0.0.15")
 ```
 
 ```swift
@@ -123,19 +120,19 @@ let command = try RemoteLockCommand(json)
 
 ## Kotlin consumer
 
-The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.14`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
+The generated JVM artifact uses package `studio.hypertext.curfew.protocols` and Maven coordinates `studio.hypertext.curfew:curfew-protocols:0.0.15`. The Android application ID remains the separate reverse-DNS identifier `studio.hypertext.curfew`.
 
 Release artifacts are published to GitHub Packages at `https://maven.pkg.github.com/TheHypertextStudio/curfew-protocols`. Consumers must configure that repository with a GitHub Packages credential that can read packages.
 
 ```kotlin
-implementation("studio.hypertext.curfew:curfew-protocols:0.0.14")
+implementation("studio.hypertext.curfew:curfew-protocols:0.0.15")
 ```
 
 ```kotlin
 import studio.hypertext.curfew.protocols.WakeCampaign
 ```
 
-Version `0.0.14` is prepared in this branch and must be published before consumers can use these coordinates.
+Version `0.0.15` must be published before consumers can use these coordinates.
 
 ## Development
 
