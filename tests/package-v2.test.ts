@@ -43,7 +43,7 @@ describe("internal versioned artifacts", () => {
     expect(workflow).toContain("registry-url: https://npm.pkg.github.com")
     expect(workflow).toContain('scope: "@thehypertextstudio"')
     expect(workflow).toContain("--access restricted")
-    expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-14/)
+    expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-15/)
     expect(workflow).toMatch(/publish-kotlin:[\s\S]*?runs-on: ubuntu-latest/)
     expect(workflow).toContain(":generated:kotlin:publish")
     expect(workflow).toContain("packages: write")
@@ -162,7 +162,7 @@ describe("internal versioned artifacts", () => {
       "pnpm publish --access restricted --no-git-checks --tag latest",
     )
     expect(workflow).toContain(":generated:kotlin:publish")
-    expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-14/)
+    expect(workflow).toMatch(/publish-npm:[\s\S]*?runs-on: macos-15/)
     expect(workflow).toMatch(/publish-kotlin:[\s\S]*?runs-on: ubuntu-latest/)
     expect(workflow).toMatch(
       /publish-npm:[\s\S]*?needs: \[verify-typescript, verify-swift, verify-kotlin\]/,
