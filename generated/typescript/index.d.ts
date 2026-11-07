@@ -363,10 +363,28 @@ export type CommitmentInstant = string
  * Platform-neutral identifiers for a bounded commitment occurrence and a condition observation. These shapes do not authenticate a result or authorize a release. Consumers must verify the source, match the occurrence, condition and policy version, and validate timestamp order and freshness before applying local policy.
  */
 export interface CurfewCommitmentContract {
+  deviceOffer?: CommitmentDeviceOffer
   occurrence?: CommitmentOccurrence
   conditionResult?: CommitmentConditionResult
   exception?: CommitmentException
   deviceAcknowledgement?: CommitmentDeviceAcknowledgement
+}
+
+/**
+ * An encrypted, authenticated offer for one occurrence. The receiving device checks the writer is the named enrolled verifier, checks it is a target, validates the window and obtains the owner's local app selection and consent before enforcement. App identities and provider details remain local.
+ */
+export interface CommitmentDeviceOffer {
+  occurrence: CommitmentOccurrence
+  title: string
+  conditionId: CommitmentIdentifier
+  verifierDeviceId: CommitmentIdentifier
+  /**
+   * @minItems 1
+   * @maxItems 32
+   */
+  targetDeviceIds: [CommitmentIdentifier, ...CommitmentIdentifier[]]
+  trigger: "untilSatisfied" | "whenSatisfied"
+  restrictWhenUnavailable: boolean
 }
 
 /**

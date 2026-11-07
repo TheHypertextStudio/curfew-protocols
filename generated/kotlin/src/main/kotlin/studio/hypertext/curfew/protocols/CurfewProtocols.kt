@@ -563,6 +563,7 @@ data class CallbackPollPolicy (
 data class CurfewCommitmentContract (
     val conditionResult: CommitmentConditionResult? = null,
     val deviceAcknowledgement: CommitmentDeviceAcknowledgement? = null,
+    val deviceOffer: CommitmentDeviceOffer? = null,
     val exception: CommitmentException? = null,
     val occurrence: CommitmentOccurrence? = null
 )
@@ -613,6 +614,42 @@ enum class DeviceAcknowledgementState(val value: String) {
 }
 
 /**
+ * An encrypted, authenticated offer for one occurrence. The receiving device checks the
+ * writer is the named enrolled verifier, checks it is a target, validates the window and
+ * obtains the owner's local app selection and consent before enforcement. App identities
+ * and provider details remain local.
+ */
+@Serializable
+data class CommitmentDeviceOffer (
+    val conditionId: String,
+    val occurrence: CommitmentOccurrence,
+    val restrictWhenUnavailable: Boolean,
+    val targetDeviceIds: List<String>,
+    val title: String,
+    val trigger: Trigger,
+    val verifierDeviceId: String
+)
+
+/**
+ * A single bounded occurrence. The owning device validates that startsAt precedes endsAt.
+ * Recurrence, access rules and provider configuration are not carried here.
+ */
+@Serializable
+data class CommitmentOccurrence (
+    val commitmentId: String,
+    val endsAt: String,
+    val occurrenceId: String,
+    val policyVersion: Long,
+    val startsAt: String
+)
+
+@Serializable
+enum class Trigger(val value: String) {
+    @SerialName("untilSatisfied") UntilSatisfied("untilSatisfied"),
+    @SerialName("whenSatisfied") WhenSatisfied("whenSatisfied");
+}
+
+/**
  * A bounded user-authorized exception, separate from condition satisfaction. Consumers
  * authenticate its source, validate authority, scope, timestamp order, and freshness before
  * applying it.
@@ -636,19 +673,6 @@ enum class Reason(val value: String) {
     @SerialName("other") Other("other"),
     @SerialName("priorityChanged") PriorityChanged("priorityChanged");
 }
-
-/**
- * A single bounded occurrence. The owning device validates that startsAt precedes endsAt.
- * Recurrence, access rules and provider configuration are not carried here.
- */
-@Serializable
-data class CommitmentOccurrence (
-    val commitmentId: String,
-    val endsAt: String,
-    val occurrenceId: String,
-    val policyVersion: Long,
-    val startsAt: String
-)
 
 /**
  * Bounded response for proof-authenticated device polling. Each item is the same canonical

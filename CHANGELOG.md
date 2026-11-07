@@ -6,12 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The
 
 ## [Unreleased]
 
+## [0.0.15] — 2026-11-07
+
+### Added
+
+- Define an encrypted device offer for a single commitment occurrence. It names the verifier, target devices, and condition behavior. Each recipient validates the sender and obtains local consent and app choices before enforcing it.
+
+### Migration
+
+- Publish this version before updating exact consumer pins. Older consumers do not understand device offers. A compatible producer and recipient are required before activation can be offered.
+
 ## [0.0.14] — 2026-11-06
 
 ### Added
 
 - Define platform-neutral commitment occurrence, condition-result, bounded exception, and per-device enforcement acknowledgement shapes. A result is not a release command. Consumers must authenticate its source and validate its identity, timestamps, and freshness before applying local policy. No Curfew client consumes these shapes yet.
-
 
 ## [0.0.13] — 2026-10-13
 

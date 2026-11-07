@@ -1940,12 +1940,14 @@ public extension CallbackPollPolicy {
 public struct CurfewCommitmentContract: Codable {
     public let conditionResult: CommitmentConditionResult?
     public let deviceAcknowledgement: CommitmentDeviceAcknowledgement?
+    public let deviceOffer: CommitmentDeviceOffer?
     public let exception: CommitmentException?
     public let occurrence: CommitmentOccurrence?
 
-    public init(conditionResult: CommitmentConditionResult?, deviceAcknowledgement: CommitmentDeviceAcknowledgement?, exception: CommitmentException?, occurrence: CommitmentOccurrence?) {
+    public init(conditionResult: CommitmentConditionResult?, deviceAcknowledgement: CommitmentDeviceAcknowledgement?, deviceOffer: CommitmentDeviceOffer?, exception: CommitmentException?, occurrence: CommitmentOccurrence?) {
         self.conditionResult = conditionResult
         self.deviceAcknowledgement = deviceAcknowledgement
+        self.deviceOffer = deviceOffer
         self.exception = exception
         self.occurrence = occurrence
     }
@@ -1972,12 +1974,14 @@ public extension CurfewCommitmentContract {
     func with(
         conditionResult: CommitmentConditionResult?? = nil,
         deviceAcknowledgement: CommitmentDeviceAcknowledgement?? = nil,
+        deviceOffer: CommitmentDeviceOffer?? = nil,
         exception: CommitmentException?? = nil,
         occurrence: CommitmentOccurrence?? = nil
     ) -> CurfewCommitmentContract {
         return CurfewCommitmentContract(
             conditionResult: conditionResult ?? self.conditionResult,
             deviceAcknowledgement: deviceAcknowledgement ?? self.deviceAcknowledgement,
+            deviceOffer: deviceOffer ?? self.deviceOffer,
             exception: exception ?? self.exception,
             occurrence: occurrence ?? self.occurrence
         )
@@ -2151,6 +2155,160 @@ public enum DeviceAcknowledgementState: String, Codable {
     case unavailable = "unavailable"
 }
 
+/// An encrypted, authenticated offer for one occurrence. The receiving device checks the
+/// writer is the named enrolled verifier, checks it is a target, validates the window and
+/// obtains the owner's local app selection and consent before enforcement. App identities
+/// and provider details remain local.
+// MARK: - CommitmentDeviceOffer
+public struct CommitmentDeviceOffer: Codable {
+    public let conditionID: String
+    public let occurrence: CommitmentOccurrence
+    public let restrictWhenUnavailable: Bool
+    public let targetDeviceIDS: [String]
+    public let title: String
+    public let trigger: Trigger
+    public let verifierDeviceID: String
+
+    public enum CodingKeys: String, CodingKey {
+        case conditionID = "conditionId"
+        case occurrence, restrictWhenUnavailable
+        case targetDeviceIDS = "targetDeviceIds"
+        case title, trigger
+        case verifierDeviceID = "verifierDeviceId"
+    }
+
+    public init(conditionID: String, occurrence: CommitmentOccurrence, restrictWhenUnavailable: Bool, targetDeviceIDS: [String], title: String, trigger: Trigger, verifierDeviceID: String) {
+        self.conditionID = conditionID
+        self.occurrence = occurrence
+        self.restrictWhenUnavailable = restrictWhenUnavailable
+        self.targetDeviceIDS = targetDeviceIDS
+        self.title = title
+        self.trigger = trigger
+        self.verifierDeviceID = verifierDeviceID
+    }
+}
+
+// MARK: CommitmentDeviceOffer convenience initializers and mutators
+
+public extension CommitmentDeviceOffer {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CommitmentDeviceOffer.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        conditionID: String? = nil,
+        occurrence: CommitmentOccurrence? = nil,
+        restrictWhenUnavailable: Bool? = nil,
+        targetDeviceIDS: [String]? = nil,
+        title: String? = nil,
+        trigger: Trigger? = nil,
+        verifierDeviceID: String? = nil
+    ) -> CommitmentDeviceOffer {
+        return CommitmentDeviceOffer(
+            conditionID: conditionID ?? self.conditionID,
+            occurrence: occurrence ?? self.occurrence,
+            restrictWhenUnavailable: restrictWhenUnavailable ?? self.restrictWhenUnavailable,
+            targetDeviceIDS: targetDeviceIDS ?? self.targetDeviceIDS,
+            title: title ?? self.title,
+            trigger: trigger ?? self.trigger,
+            verifierDeviceID: verifierDeviceID ?? self.verifierDeviceID
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// A single bounded occurrence. The owning device validates that startsAt precedes endsAt.
+/// Recurrence, access rules and provider configuration are not carried here.
+// MARK: - CommitmentOccurrence
+public struct CommitmentOccurrence: Codable {
+    public let commitmentID: String
+    public let endsAt: String
+    public let occurrenceID: String
+    public let policyVersion: Int
+    public let startsAt: String
+
+    public enum CodingKeys: String, CodingKey {
+        case commitmentID = "commitmentId"
+        case endsAt
+        case occurrenceID = "occurrenceId"
+        case policyVersion, startsAt
+    }
+
+    public init(commitmentID: String, endsAt: String, occurrenceID: String, policyVersion: Int, startsAt: String) {
+        self.commitmentID = commitmentID
+        self.endsAt = endsAt
+        self.occurrenceID = occurrenceID
+        self.policyVersion = policyVersion
+        self.startsAt = startsAt
+    }
+}
+
+// MARK: CommitmentOccurrence convenience initializers and mutators
+
+public extension CommitmentOccurrence {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(CommitmentOccurrence.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        commitmentID: String? = nil,
+        endsAt: String? = nil,
+        occurrenceID: String? = nil,
+        policyVersion: Int? = nil,
+        startsAt: String? = nil
+    ) -> CommitmentOccurrence {
+        return CommitmentOccurrence(
+            commitmentID: commitmentID ?? self.commitmentID,
+            endsAt: endsAt ?? self.endsAt,
+            occurrenceID: occurrenceID ?? self.occurrenceID,
+            policyVersion: policyVersion ?? self.policyVersion,
+            startsAt: startsAt ?? self.startsAt
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+public enum Trigger: String, Codable {
+    case untilSatisfied = "untilSatisfied"
+    case whenSatisfied = "whenSatisfied"
+}
+
 /// A bounded user-authorized exception, separate from condition satisfaction. Consumers
 /// authenticate its source, validate authority, scope, timestamp order, and freshness before
 /// applying it.
@@ -2231,75 +2389,6 @@ public enum Reason: String, Codable {
     case integrationUnavailable = "integrationUnavailable"
     case other = "other"
     case priorityChanged = "priorityChanged"
-}
-
-/// A single bounded occurrence. The owning device validates that startsAt precedes endsAt.
-/// Recurrence, access rules and provider configuration are not carried here.
-// MARK: - CommitmentOccurrence
-public struct CommitmentOccurrence: Codable {
-    public let commitmentID: String
-    public let endsAt: String
-    public let occurrenceID: String
-    public let policyVersion: Int
-    public let startsAt: String
-
-    public enum CodingKeys: String, CodingKey {
-        case commitmentID = "commitmentId"
-        case endsAt
-        case occurrenceID = "occurrenceId"
-        case policyVersion, startsAt
-    }
-
-    public init(commitmentID: String, endsAt: String, occurrenceID: String, policyVersion: Int, startsAt: String) {
-        self.commitmentID = commitmentID
-        self.endsAt = endsAt
-        self.occurrenceID = occurrenceID
-        self.policyVersion = policyVersion
-        self.startsAt = startsAt
-    }
-}
-
-// MARK: CommitmentOccurrence convenience initializers and mutators
-
-public extension CommitmentOccurrence {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(CommitmentOccurrence.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        commitmentID: String? = nil,
-        endsAt: String? = nil,
-        occurrenceID: String? = nil,
-        policyVersion: Int? = nil,
-        startsAt: String? = nil
-    ) -> CommitmentOccurrence {
-        return CommitmentOccurrence(
-            commitmentID: commitmentID ?? self.commitmentID,
-            endsAt: endsAt ?? self.endsAt,
-            occurrenceID: occurrenceID ?? self.occurrenceID,
-            policyVersion: policyVersion ?? self.policyVersion,
-            startsAt: startsAt ?? self.startsAt
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
 }
 
 /// Bounded response for proof-authenticated device polling. Each item is the same canonical
