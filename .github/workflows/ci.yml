@@ -36,7 +36,7 @@ jobs:
 
   swift:
     name: Swift (SPM build + test)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v7.0.1
       - run: swift --version
