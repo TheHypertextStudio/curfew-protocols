@@ -157,7 +157,7 @@ See `AGENTS.md` for the change discipline (every schema edit requires regen, tes
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](LICENSE).
 
 ## Worktree setup
 
